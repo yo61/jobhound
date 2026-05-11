@@ -1,0 +1,43 @@
+[project]
+name = "jobhound"
+version = "0.1.0"
+description = "Action-based CLI for tracking a job hunt"
+requires-python = ">=3.13"
+dependencies = [
+    "typer>=0.12",
+    "questionary>=2.0",
+    "tomli-w>=1.0",
+    "rich>=13",
+]
+
+[project.scripts]
+jh = "jobhound.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "ty>=0.0.1a8",
+    "pytest-cov>=5",
+]
+
+[build-system]
+requires = ["uv_build>=0.4"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ty.rules]
+# strict-by-default; tighten as needed
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"

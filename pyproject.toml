@@ -10,9 +10,6 @@ dependencies = [
     "rich>=13",
 ]
 
-[project.scripts]
-jh = "jobhound.cli:app"
-
 [dependency-groups]
 dev = [
     "pytest>=8",

@@ -11,6 +11,9 @@ dependencies = [
     "xdg-base-dirs>=6",
 ]
 
+[project.scripts]
+jh = "jobhound.cli:app"
+
 [dependency-groups]
 dev = [
     "pytest>=8",

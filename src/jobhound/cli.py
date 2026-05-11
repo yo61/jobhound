@@ -9,6 +9,7 @@ from jobhound.commands import accept as cmd_accept
 from jobhound.commands import apply as cmd_apply
 from jobhound.commands import contact as cmd_contact
 from jobhound.commands import decline as cmd_decline
+from jobhound.commands import edit as cmd_edit
 from jobhound.commands import ghost as cmd_ghost
 from jobhound.commands import link as cmd_link
 from jobhound.commands import list_ as cmd_list
@@ -38,3 +39,4 @@ app.command(cmd_tag.run, name="tag")
 app.command(cmd_link.run, name="link")
 app.command(cmd_contact.run, name="contact")
 app.command(cmd_list.run, name="list")
+app.command(cmd_edit.run, name="edit")

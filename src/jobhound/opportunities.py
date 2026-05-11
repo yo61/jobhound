@@ -7,6 +7,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from jobhound.contact import Contact
 from jobhound.priority import Priority
 from jobhound.status import Status
 from jobhound.transitions import require_transition
@@ -33,7 +34,7 @@ class Opportunity:
     next_action: str | None
     next_action_due: date | None
     tags: tuple[str, ...] = field(default_factory=tuple)
-    contacts: tuple[dict[str, Any], ...] = field(default_factory=tuple)
+    contacts: tuple[Contact, ...] = field(default_factory=tuple)
     links: dict[str, Any] = field(default_factory=dict)
     path: Path | None = None
 
@@ -133,12 +134,9 @@ class Opportunity:
         """Set priority to one of high/medium/low."""
         return replace(self, priority=Priority(priority))
 
-    def with_contact(self, contact: dict[str, str]) -> Opportunity:
-        """Append a contact entry. `name` is required and non-empty."""
-        name = contact.get("name")
-        if not name:
-            raise ValueError("contact must have a non-empty 'name'")
-        return replace(self, contacts=(*self.contacts, dict(contact)))
+    def with_contact(self, contact: Contact) -> Opportunity:
+        """Append a contact entry."""
+        return replace(self, contacts=(*self.contacts, contact))
 
     def with_link(self, *, name: str, url: str) -> Opportunity:
         """Set or replace a link entry."""
@@ -169,7 +167,7 @@ def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opp
         next_action=data.get("next_action"),
         next_action_due=data.get("next_action_due"),
         tags=tuple(data.get("tags") or ()),
-        contacts=tuple(data.get("contacts") or ()),
+        contacts=tuple(Contact.from_dict(c) for c in (data.get("contacts") or ())),
         links=dict(data.get("links") or {}),
         path=path,
     )

@@ -84,7 +84,7 @@ def _as_serializable(opp: Opportunity) -> dict[str, Any]:
         "location": opp.location,
         "comp_range": opp.comp_range,
         "tags": list(opp.tags) if opp.tags else None,
-        "contacts": [dict(c) for c in opp.contacts] if opp.contacts else None,
+        "contacts": [c.to_dict() for c in opp.contacts] if opp.contacts else None,
         "links": dict(opp.links) if opp.links else None,
     }
     return {k: raw[k] for k in _FIELD_ORDER if raw.get(k) is not None}

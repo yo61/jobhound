@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from jobhound.contact import Contact
 from jobhound.meta_io import ValidationError, read_meta, validate, write_meta
 from jobhound.opportunities import Opportunity
 from jobhound.priority import Priority
@@ -27,7 +28,7 @@ def _full_opp(slug: str = "2026-05-foo-engineer") -> Opportunity:
         next_action="Wait for response",
         next_action_due=date(2026, 5, 19),
         tags=("remote", "uk"),
-        contacts=({"name": "Jane Doe", "channel": "email"},),
+        contacts=(Contact(name="Jane Doe", channel="email"),),
         links={"posting": "https://example.com/job"},
     )
 

@@ -1,5 +1,6 @@
 """Tests for jh link and jh contact."""
 
+from jobhound.contact import Contact
 from jobhound.meta_io import read_meta
 
 
@@ -33,4 +34,4 @@ def test_contact_appends(tmp_jh, invoke) -> None:
         ]
     )
     opp = read_meta(tmp_jh.db_path / "opportunities" / "2026-05-foo-em" / "meta.toml")
-    assert opp.contacts == ({"name": "Jane Doe", "role": "Recruiter", "channel": "email"},)
+    assert opp.contacts == (Contact(name="Jane Doe", role="Recruiter", channel="email"),)

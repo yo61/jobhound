@@ -224,15 +224,18 @@ def test_with_priority_sets_value() -> None:
 
 
 def test_with_contact_appends() -> None:
+    from jobhound.contact import Contact
+
     opp = _prospect()
-    after = opp.with_contact({"name": "Jane", "role": "Recruiter"})
-    assert after.contacts == ({"name": "Jane", "role": "Recruiter"},)
+    after = opp.with_contact(Contact(name="Jane", role="Recruiter"))
+    assert after.contacts == (Contact(name="Jane", role="Recruiter"),)
 
 
 def test_with_contact_requires_name() -> None:
-    opp = _prospect()
+    from jobhound.contact import Contact
+
     with pytest.raises(ValueError):
-        opp.with_contact({"role": "Recruiter"})
+        Contact(name="")
 
 
 def test_with_link_sets_or_overwrites() -> None:

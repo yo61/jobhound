@@ -7,8 +7,10 @@ from cyclopts import App
 from jobhound import __version__
 from jobhound.commands import accept as cmd_accept
 from jobhound.commands import apply as cmd_apply
+from jobhound.commands import contact as cmd_contact
 from jobhound.commands import decline as cmd_decline
 from jobhound.commands import ghost as cmd_ghost
+from jobhound.commands import link as cmd_link
 from jobhound.commands import log as cmd_log
 from jobhound.commands import new as cmd_new
 from jobhound.commands import note as cmd_note
@@ -32,3 +34,5 @@ app.command(cmd_decline.run, name="decline")
 app.command(cmd_note.run, name="note")
 app.command(cmd_priority.run, name="priority")
 app.command(cmd_tag.run, name="tag")
+app.command(cmd_link.run, name="link")
+app.command(cmd_contact.run, name="contact")

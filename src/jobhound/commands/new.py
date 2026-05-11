@@ -13,6 +13,7 @@ from jobhound.config import load_config
 from jobhound.opportunities import Opportunity
 from jobhound.paths import Paths, paths_from_config
 from jobhound.repository import OpportunityRepository
+from jobhound.status import Status
 
 _SLUG_BAD = re.compile(r"[^a-z0-9]+")
 
@@ -50,7 +51,7 @@ def run(
         slug=slug,
         company=company,
         role=role,
-        status="prospect",
+        status=Status.PROSPECT,
         priority="medium",
         source=source,
         location=None,

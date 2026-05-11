@@ -5,13 +5,12 @@ from datetime import date
 import pytest
 
 from jobhound.opportunities import (
-    ACTIVE_STATUSES,
-    CLOSED_STATUSES,
     GHOSTED_DAYS,
     STALE_DAYS,
     Opportunity,
     opportunity_from_dict,
 )
+from jobhound.status import Status
 
 
 def _make(**overrides: object) -> Opportunity:
@@ -44,10 +43,9 @@ def test_missing_required_field_raises() -> None:
 
 
 def test_is_active() -> None:
-    for s in ACTIVE_STATUSES:
-        assert _make(status=s).is_active
-    for s in CLOSED_STATUSES:
-        assert not _make(status=s).is_active
+    for status in Status:
+        opp = _make(status=status.value)
+        assert opp.is_active is status.is_active
 
 
 def test_days_since_activity() -> None:

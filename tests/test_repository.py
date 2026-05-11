@@ -13,6 +13,7 @@ from jobhound.opportunities import Opportunity
 from jobhound.paths import Paths, paths_from_config
 from jobhound.repository import OpportunityRepository
 from jobhound.slug import SlugNotFoundError
+from jobhound.status import Status
 
 
 def _make_config(tmp_path: Path) -> Config:
@@ -24,7 +25,7 @@ def _make_opp(slug: str = "2026-05-acme-eng") -> Opportunity:
         slug=slug,
         company="Acme",
         role="Engineer",
-        status="prospect",
+        status=Status.PROSPECT,
         priority="medium",
         source=None,
         location=None,

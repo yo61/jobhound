@@ -75,7 +75,7 @@ def _as_serializable(opp: Opportunity) -> dict[str, Any]:
         "role": opp.role,
         "slug": opp.slug,
         "source": opp.source,
-        "status": opp.status,
+        "status": opp.status.value,
         "priority": opp.priority,
         "first_contact": opp.first_contact,
         "applied_on": opp.applied_on,

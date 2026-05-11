@@ -7,6 +7,7 @@ from datetime import date
 import pytest
 
 from jobhound.opportunities import Opportunity
+from jobhound.status import Status
 from jobhound.transitions import InvalidTransitionError
 
 
@@ -15,7 +16,7 @@ def _prospect() -> Opportunity:
         slug="2026-05-acme-eng",
         company="Acme",
         role="Engineer",
-        status="prospect",
+        status=Status.PROSPECT,
         priority="medium",
         source=None,
         location=None,

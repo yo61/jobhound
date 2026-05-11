@@ -7,6 +7,7 @@ import pytest
 
 from jobhound.meta_io import ValidationError, read_meta, validate, write_meta
 from jobhound.opportunities import Opportunity
+from jobhound.status import Status
 
 
 def _full_opp(slug: str = "2026-05-foo-engineer") -> Opportunity:
@@ -14,7 +15,7 @@ def _full_opp(slug: str = "2026-05-foo-engineer") -> Opportunity:
         slug=slug,
         company="Foo",
         role="Engineer",
-        status="applied",
+        status=Status.APPLIED,
         priority="medium",
         source="LinkedIn",
         location="UK",
@@ -36,6 +37,7 @@ def test_write_then_read_round_trip(tmp_path: Path) -> None:
     write_meta(opp, path)
     loaded = read_meta(path)
     assert loaded.company == opp.company
+    assert loaded.status is Status.APPLIED
     assert loaded.applied_on == opp.applied_on
     assert loaded.tags == opp.tags
     assert loaded.contacts == opp.contacts
@@ -79,7 +81,7 @@ def test_write_omits_none_fields(tmp_path: Path) -> None:
         slug="s",
         company="F",
         role="E",
-        status="applied",
+        status=Status.APPLIED,
         priority="medium",
         source=None,
         location=None,

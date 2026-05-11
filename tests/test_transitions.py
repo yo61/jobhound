@@ -2,20 +2,19 @@
 
 import pytest
 
+from jobhound.status import Status
 from jobhound.transitions import (
-    LOG_FORWARD,
     InvalidTransitionError,
     log_options,
     require_transition,
 )
 
 
-def test_log_forward_map() -> None:
-    assert LOG_FORWARD == {
-        "applied": "screen",
-        "screen": "interview",
-        "interview": "offer",
-    }
+def test_log_forward_targets() -> None:
+    # Forward transition rules now live on Status.legal_targets.
+    assert Status.SCREEN in Status.APPLIED.legal_targets(verb="log")
+    assert Status.INTERVIEW in Status.SCREEN.legal_targets(verb="log")
+    assert Status.OFFER in Status.INTERVIEW.legal_targets(verb="log")
 
 
 def test_log_options_from_applied() -> None:

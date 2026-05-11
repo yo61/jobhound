@@ -1,8 +1,4 @@
-"""The Opportunity dataclass and its queries.
-
-Ported from the old repo's `opportunities.py`. The TOML layer hands us native
-`datetime.date` values, so the old `_coerce_date` helper is gone.
-"""
+"""The Opportunity dataclass and its queries."""
 
 from __future__ import annotations
 
@@ -11,38 +7,13 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-ACTIVE_STATUSES: tuple[str, ...] = (
-    "prospect",
-    "applied",
-    "screen",
-    "interview",
-    "offer",
-)
-CLOSED_STATUSES: tuple[str, ...] = (
-    "accepted",
-    "declined",
-    "rejected",
-    "withdrawn",
-    "ghosted",
-)
-ALL_STATUSES: tuple[str, ...] = ACTIVE_STATUSES + CLOSED_STATUSES
+from jobhound.status import Status
+from jobhound.transitions import require_transition
 
 STALE_DAYS: int = 14
 GHOSTED_DAYS: int = 21
 
 _PRIORITIES: frozenset[str] = frozenset({"high", "medium", "low"})
-
-
-def _require_transition(current: str, target: str, *, verb: str) -> None:
-    """Local indirection that defers the import of `transitions.require_transition`.
-
-    The module-level cycle (transitions.py imports ACTIVE_STATUSES from here) means
-    we can't import at module top. Each call is cached by sys.modules after the
-    first hit, so the overhead is negligible.
-    """
-    from jobhound.transitions import require_transition
-
-    require_transition(current, target, verb=verb)
 
 
 @dataclass(frozen=True)
@@ -52,7 +23,7 @@ class Opportunity:
     slug: str
     company: str
     role: str
-    status: str
+    status: Status
     priority: str
     source: str | None
     location: str | None
@@ -69,7 +40,7 @@ class Opportunity:
 
     @property
     def is_active(self) -> bool:
-        return self.status in ACTIVE_STATUSES
+        return self.status.is_active
 
     def days_since_activity(self, today: date) -> int | None:
         if self.last_activity is None:
@@ -95,10 +66,10 @@ class Opportunity:
         next_action_due: date,
     ) -> Opportunity:
         """Submit the application. Requires status `prospect`."""
-        _require_transition(self.status, "applied", verb="apply")
+        require_transition(self.status, Status.APPLIED, verb="apply")
         return replace(
             self,
-            status="applied",
+            status=Status.APPLIED,
             applied_on=applied_on,
             last_activity=today,
             next_action=next_action,
@@ -116,8 +87,8 @@ class Opportunity:
     ) -> Opportunity:
         """Record an interaction. `next_status='stay'` keeps the current status."""
         if not force:
-            _require_transition(self.status, next_status, verb="log")
-        new_status = self.status if next_status == "stay" else next_status
+            require_transition(self.status, next_status, verb="log")
+        new_status = self.status if next_status == "stay" else Status(next_status)
         return replace(
             self,
             status=new_status,
@@ -130,23 +101,23 @@ class Opportunity:
 
     def withdraw(self, *, today: date) -> Opportunity:
         """Move to status `withdrawn`. Requires an active status."""
-        _require_transition(self.status, "withdrawn", verb="withdraw")
-        return replace(self, status="withdrawn", last_activity=today)
+        require_transition(self.status, Status.WITHDRAWN, verb="withdraw")
+        return replace(self, status=Status.WITHDRAWN, last_activity=today)
 
     def ghost(self, *, today: date) -> Opportunity:
         """Move to status `ghosted`. Requires an active status."""
-        _require_transition(self.status, "ghosted", verb="ghost")
-        return replace(self, status="ghosted", last_activity=today)
+        require_transition(self.status, Status.GHOSTED, verb="ghost")
+        return replace(self, status=Status.GHOSTED, last_activity=today)
 
     def accept(self, *, today: date) -> Opportunity:
         """Move to status `accepted`. Requires status `offer`."""
-        _require_transition(self.status, "accepted", verb="accept")
-        return replace(self, status="accepted", last_activity=today)
+        require_transition(self.status, Status.ACCEPTED, verb="accept")
+        return replace(self, status=Status.ACCEPTED, last_activity=today)
 
     def decline(self, *, today: date) -> Opportunity:
         """Move to status `declined`. Requires status `offer`."""
-        _require_transition(self.status, "declined", verb="decline")
-        return replace(self, status="declined", last_activity=today)
+        require_transition(self.status, Status.DECLINED, verb="decline")
+        return replace(self, status=Status.DECLINED, last_activity=today)
 
     # ---- behaviour: field-shaped operations --------------------------------
 
@@ -181,9 +152,11 @@ class Opportunity:
 
 def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opportunity:
     """Build an Opportunity from a parsed meta.toml dict."""
-    status = data.get("status", "prospect")
-    if status not in ALL_STATUSES:
-        raise ValueError(f"Unknown status {status!r} in {path}")
+    raw_status = data.get("status", "prospect")
+    try:
+        status = Status(raw_status)
+    except ValueError as exc:
+        raise ValueError(f"Unknown status {raw_status!r} in {path}") from exc
     return Opportunity(
         slug=data.get("slug") or (path.parent.name if path else ""),
         company=data["company"],

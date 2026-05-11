@@ -9,10 +9,8 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from jobhound.config import load_config
-from jobhound.git import commit_change, ensure_repo
-from jobhound.meta_io import read_meta, write_meta
 from jobhound.paths import paths_from_config
-from jobhound.slug import resolve_slug
+from jobhound.repository import OpportunityRepository
 
 
 def run(
@@ -31,20 +29,13 @@ def run(
         raise SystemExit(1)
 
     cfg = load_config()
-    paths = paths_from_config(cfg)
-    ensure_repo(paths.db_root)
-    opp_dir = resolve_slug(slug_query, paths.opportunities_dir)
-    opp = read_meta(opp_dir / "meta.toml")
-    tags = (set(opp.tags) | add_set) - remove_set
-    new_tags = tuple(sorted(tags))
-    write_meta(replace(opp, tags=new_tags), opp_dir / "meta.toml")
+    repo = OpportunityRepository(paths_from_config(cfg), cfg)
+    opp, opp_dir = repo.find(slug_query)
+    tags = tuple(sorted((set(opp.tags) | add_set) - remove_set))
+    updated = replace(opp, tags=tags)
 
     summary = " ".join(
         [*(f"+{t}" for t in sorted(add_set)), *(f"-{t}" for t in sorted(remove_set))]
     )
-    commit_change(
-        paths.db_root,
-        f"tag: {opp.slug} {summary}",
-        enabled=cfg.auto_commit and not no_commit,
-    )
-    print(f"tags {opp.slug}: {new_tags}")
+    repo.save(updated, opp_dir, message=f"tag: {opp.slug} {summary}", no_commit=no_commit)
+    print(f"tags {opp.slug}: {tags}")

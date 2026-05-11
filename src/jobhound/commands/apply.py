@@ -10,10 +10,8 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from jobhound.config import load_config
-from jobhound.git import commit_change, ensure_repo
-from jobhound.meta_io import read_meta, write_meta
 from jobhound.paths import paths_from_config
-from jobhound.slug import resolve_slug
+from jobhound.repository import OpportunityRepository
 from jobhound.transitions import InvalidTransitionError, require_transition
 
 
@@ -29,15 +27,13 @@ def run(
 ) -> None:
     """Mark the application as submitted."""
     cfg = load_config()
-    paths = paths_from_config(cfg)
-    ensure_repo(paths.db_root)
+    repo = OpportunityRepository(paths_from_config(cfg), cfg)
 
     today_date = date.fromisoformat(today) if today else date.today()
     applied_on = date.fromisoformat(on) if on else today_date
     due = date.fromisoformat(next_action_due)
 
-    opp_dir = resolve_slug(slug_query, paths.opportunities_dir)
-    opp = read_meta(opp_dir / "meta.toml")
+    opp, opp_dir = repo.find(slug_query)
     try:
         require_transition(opp.status, "applied", verb="apply")
     except InvalidTransitionError as exc:
@@ -52,10 +48,5 @@ def run(
         next_action=next_action,
         next_action_due=due,
     )
-    write_meta(updated, opp_dir / "meta.toml")
-    commit_change(
-        paths.db_root,
-        f"apply: {opp.slug}",
-        enabled=cfg.auto_commit and not no_commit,
-    )
+    repo.save(updated, opp_dir, message=f"apply: {opp.slug}", no_commit=no_commit)
     print(f"applied: {opp.slug}")

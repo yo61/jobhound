@@ -9,10 +9,8 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from jobhound.config import load_config
-from jobhound.git import commit_change, ensure_repo
-from jobhound.meta_io import read_meta, write_meta
 from jobhound.paths import paths_from_config
-from jobhound.slug import resolve_slug
+from jobhound.repository import OpportunityRepository
 
 
 def run(
@@ -25,21 +23,14 @@ def run(
 ) -> None:
     """Append a timestamped one-liner to <slug>/notes.md and bump last_activity."""
     cfg = load_config()
-    paths = paths_from_config(cfg)
-    ensure_repo(paths.db_root)
+    repo = OpportunityRepository(paths_from_config(cfg), cfg)
     today_date = date.fromisoformat(today) if today else date.today()
 
-    opp_dir = resolve_slug(slug_query, paths.opportunities_dir)
+    opp, opp_dir = repo.find(slug_query)
     notes = opp_dir / "notes.md"
     existing = notes.read_text() if notes.exists() else ""
-    line = f"- {today_date.isoformat()} {msg}\n"
-    notes.write_text(existing + line)
+    notes.write_text(existing + f"- {today_date.isoformat()} {msg}\n")
 
-    opp = read_meta(opp_dir / "meta.toml")
-    write_meta(replace(opp, last_activity=today_date), opp_dir / "meta.toml")
-    commit_change(
-        paths.db_root,
-        f"note: {opp.slug}",
-        enabled=cfg.auto_commit and not no_commit,
-    )
+    updated = replace(opp, last_activity=today_date)
+    repo.save(updated, opp_dir, message=f"note: {opp.slug}", no_commit=no_commit)
     print(f"noted: {opp.slug}")

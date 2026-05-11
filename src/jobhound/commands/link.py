@@ -8,10 +8,8 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from jobhound.config import load_config
-from jobhound.git import commit_change, ensure_repo
-from jobhound.meta_io import read_meta, write_meta
 from jobhound.paths import paths_from_config
-from jobhound.slug import resolve_slug
+from jobhound.repository import OpportunityRepository
 
 
 def run(
@@ -24,16 +22,10 @@ def run(
 ) -> None:
     """Add or update a link."""
     cfg = load_config()
-    paths = paths_from_config(cfg)
-    ensure_repo(paths.db_root)
-    opp_dir = resolve_slug(slug_query, paths.opportunities_dir)
-    opp = read_meta(opp_dir / "meta.toml")
+    repo = OpportunityRepository(paths_from_config(cfg), cfg)
+    opp, opp_dir = repo.find(slug_query)
     links = dict(opp.links)
     links[name] = url
-    write_meta(replace(opp, links=links), opp_dir / "meta.toml")
-    commit_change(
-        paths.db_root,
-        f"link: {opp.slug} {name}",
-        enabled=cfg.auto_commit and not no_commit,
-    )
+    updated = replace(opp, links=links)
+    repo.save(updated, opp_dir, message=f"link: {opp.slug} {name}", no_commit=no_commit)
     print(f"link {opp.slug}: {name} = {url}")

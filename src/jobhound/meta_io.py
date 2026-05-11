@@ -9,6 +9,7 @@ from typing import Any
 import tomli_w
 
 from jobhound.opportunities import Opportunity, opportunity_from_dict
+from jobhound.slug_value import Slug
 
 
 class ValidationError(Exception):
@@ -36,12 +37,10 @@ _FIELD_ORDER: tuple[str, ...] = (
 
 
 def _check_slug_safe(slug: str) -> None:
-    if "/" in slug or "\\" in slug:
-        raise ValidationError(f"slug {slug!r} contains a path separator")
-    if slug.startswith(".") or slug != slug.strip():
-        raise ValidationError(f"slug {slug!r} starts with '.' or has surrounding whitespace")
-    if not slug or any(ch.isspace() for ch in slug):
-        raise ValidationError(f"slug {slug!r} contains whitespace or is empty")
+    try:
+        Slug.create(slug)
+    except ValueError as exc:
+        raise ValidationError(str(exc)) from exc
 
 
 def validate(data: dict[str, Any], path: Path | None) -> Opportunity:

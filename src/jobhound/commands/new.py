@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import sys
 from datetime import date, timedelta
 from typing import Annotated
@@ -14,18 +13,8 @@ from jobhound.opportunities import Opportunity
 from jobhound.paths import Paths, paths_from_config
 from jobhound.priority import Priority
 from jobhound.repository import OpportunityRepository
+from jobhound.slug_value import Slug
 from jobhound.status import Status
-
-_SLUG_BAD = re.compile(r"[^a-z0-9]+")
-
-
-def _slugify(text: str) -> str:
-    s = _SLUG_BAD.sub("-", text.lower()).strip("-")
-    return s or "untitled"
-
-
-def _build_slug(today: date, company: str, role: str) -> str:
-    return f"{today:%Y-%m}-{_slugify(company)}-{_slugify(role)}"
 
 
 def run(
@@ -46,10 +35,10 @@ def run(
 
     today_date = date.fromisoformat(today) if today else date.today()
     due = date.fromisoformat(next_action_due) if next_action_due else today_date + timedelta(days=7)
-    slug = _build_slug(today_date, company, role)
+    slug = Slug.build(today_date, company, role)
 
     opp = Opportunity(
-        slug=slug,
+        slug=slug.value,
         company=company,
         role=role,
         status=Status.PROSPECT,
@@ -64,7 +53,7 @@ def run(
         next_action_due=due,
     )
     try:
-        opp_dir = repo.create(opp, message=f"new: {slug}", no_commit=no_commit)
+        opp_dir = repo.create(opp, message=f"new: {slug.value}", no_commit=no_commit)
     except FileExistsError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc

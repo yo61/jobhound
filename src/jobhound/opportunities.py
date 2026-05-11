@@ -167,5 +167,5 @@ def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opp
         next_action_due=data.get("next_action_due"),
         tags=tuple(data.get("tags") or ()),
         contacts=tuple(Contact.from_dict(c) for c in (data.get("contacts") or ())),
-        links=dict(data.get("links") or {}),
+        links={k: v for k, v in (data.get("links") or {}).items() if v is not None},
     )

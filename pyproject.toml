@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Action-based CLI for tracking a job hunt"
 requires-python = ">=3.13"
 dependencies = [
-    "typer>=0.12",
+    "cyclopts==4.11.2",
     "questionary>=2.0",
     "tomli-w>=1.0",
     "rich>=13",

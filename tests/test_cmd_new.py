@@ -2,15 +2,11 @@
 
 import subprocess
 
-from typer.testing import CliRunner
-
-from jobhound.cli import app
 from jobhound.meta_io import read_meta
 
 
-def test_new_creates_directory_and_meta(tmp_jh) -> None:
-    result = CliRunner().invoke(
-        app,
+def test_new_creates_directory_and_meta(tmp_jh, invoke) -> None:
+    result = invoke(
         [
             "new",
             "--company",
@@ -25,7 +21,7 @@ def test_new_creates_directory_and_meta(tmp_jh) -> None:
             "2026-05-18",
             "--today",
             "2026-05-11",
-        ],
+        ]
     )
     assert result.exit_code == 0, result.output
     opp_dir = tmp_jh.db_path / "opportunities" / "2026-05-foo-corp-engineering-manager"
@@ -41,9 +37,8 @@ def test_new_creates_directory_and_meta(tmp_jh) -> None:
     assert opp.source == "LinkedIn"
 
 
-def test_new_creates_git_commit(tmp_jh) -> None:
-    result = CliRunner().invoke(
-        app,
+def test_new_creates_git_commit(tmp_jh, invoke) -> None:
+    result = invoke(
         ["new", "--company", "Foo", "--role", "EM", "--today", "2026-05-11"],
     )
     assert result.exit_code == 0, result.output
@@ -51,13 +46,11 @@ def test_new_creates_git_commit(tmp_jh) -> None:
     assert "new: 2026-05-foo-em" in log
 
 
-def test_new_no_commit_flag_skips_git(tmp_jh) -> None:
-    result = CliRunner().invoke(
-        app,
+def test_new_no_commit_flag_skips_git(tmp_jh, invoke) -> None:
+    result = invoke(
         ["new", "--company", "Foo", "--role", "EM", "--today", "2026-05-11", "--no-commit"],
     )
     assert result.exit_code == 0, result.output
-    # No commit was made: git log exits non-zero when there are no commits.
     log_result = subprocess.run(
         ["git", "-C", str(tmp_jh.db_path), "log", "--oneline"],
         capture_output=True,

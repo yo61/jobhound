@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import re
+import sys
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Annotated
 
-import typer
+from cyclopts import Parameter
 
 from jobhound.config import load_config
 from jobhound.git import commit_change, ensure_repo
@@ -35,15 +37,14 @@ def _write_skeletons(opp_dir: Path) -> None:
 
 
 def run(
-    company: str = typer.Option(..., "--company", help="Company name."),
-    role: str = typer.Option(..., "--role", help="Role title."),
-    source: str = typer.Option("(unspecified)", "--source"),
-    next_action: str = typer.Option("Initial review of role and company", "--next-action"),
-    next_action_due: str | None = typer.Option(None, "--next-action-due"),
-    today: str | None = typer.Option(
-        None, "--today", hidden=True, help="Override today's date (testing only)."
-    ),
-    no_commit: bool = typer.Option(False, "--no-commit"),
+    *,
+    company: str,
+    role: str,
+    source: str = "(unspecified)",
+    next_action: str = "Initial review of role and company",
+    next_action_due: str | None = None,
+    today: Annotated[str | None, Parameter(show=False)] = None,
+    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Create a new opportunity at status `prospect`."""
     cfg = load_config()
@@ -56,8 +57,8 @@ def run(
     slug = _build_slug(today_date, company, role)
     opp_dir = paths.opportunities_dir / slug
     if opp_dir.exists():
-        typer.echo(f"opportunity already exists: {opp_dir}", err=True)
-        raise typer.Exit(code=1)
+        print(f"opportunity already exists: {opp_dir}", file=sys.stderr)
+        raise SystemExit(1)
     opp_dir.mkdir(parents=True)
     _write_skeletons(opp_dir)
 
@@ -78,4 +79,4 @@ def run(
     )
     write_meta(opp, opp_dir / "meta.toml")
     commit_change(paths.db_root, f"new: {slug}", enabled=cfg.auto_commit and not no_commit)
-    typer.echo(f"Created {opp_dir.relative_to(paths.db_root)}")
+    print(f"Created {opp_dir.relative_to(paths.db_root)}")

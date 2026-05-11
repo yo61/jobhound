@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
+from typing import Annotated
 
-import typer
+from cyclopts import Parameter
 
 from jobhound.config import load_config
 from jobhound.git import commit_change, ensure_repo
@@ -28,19 +30,19 @@ def _correspondence_filename(when: date, channel: str, direction: str, who: str)
 
 
 def run(
-    slug_query: str = typer.Argument(..., metavar="SLUG"),
-    channel: str = typer.Option(..., "--channel", help="email | linkedin | call | meeting | other"),
-    direction: str = typer.Option(..., "--direction", help="from | to"),
-    who: str = typer.Option(..., "--who"),
-    body: Path = typer.Option(  # noqa: B008
-        ..., "--body", exists=True, file_okay=True, dir_okay=False
-    ),
-    next_status: str = typer.Option("stay", "--next-status"),
-    next_action: str | None = typer.Option(None, "--next-action"),
-    next_action_due: str | None = typer.Option(None, "--next-action-due"),
-    force: bool = typer.Option(False, "--force"),
-    today: str | None = typer.Option(None, "--today", hidden=True),
-    no_commit: bool = typer.Option(False, "--no-commit"),
+    slug_query: str,
+    /,
+    *,
+    channel: str,
+    direction: str,
+    who: str,
+    body: Path,
+    next_status: str = "stay",
+    next_action: str | None = None,
+    next_action_due: str | None = None,
+    force: bool = False,
+    today: Annotated[str | None, Parameter(show=False)] = None,
+    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Record an interaction (correspondence) and update status + next action."""
     cfg = load_config()
@@ -50,8 +52,12 @@ def run(
     today_date = date.fromisoformat(today) if today else date.today()
 
     if direction not in {"from", "to"}:
-        typer.echo(f"--direction must be 'from' or 'to', got {direction!r}", err=True)
-        raise typer.Exit(code=1)
+        print(f"--direction must be 'from' or 'to', got {direction!r}", file=sys.stderr)
+        raise SystemExit(1)
+
+    if not body.is_file():
+        print(f"--body file not found: {body}", file=sys.stderr)
+        raise SystemExit(1)
 
     opp_dir = resolve_slug(slug_query, paths.opportunities_dir)
     opp = read_meta(opp_dir / "meta.toml")
@@ -60,8 +66,8 @@ def run(
         try:
             require_transition(opp.status, next_status, verb="log")
         except InvalidTransitionError as exc:
-            typer.echo(str(exc), err=True)
-            raise typer.Exit(code=1) from exc
+            print(str(exc), file=sys.stderr)
+            raise SystemExit(1) from exc
 
     corr_dir = opp_dir / "correspondence"
     corr_dir.mkdir(exist_ok=True)
@@ -88,4 +94,4 @@ def run(
         f"log: {opp.slug} {arrow}",
         enabled=cfg.auto_commit and not no_commit,
     )
-    typer.echo(f"logged: {opp.slug} {arrow}")
+    print(f"logged: {opp.slug} {arrow}")

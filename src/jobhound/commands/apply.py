@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import replace
 from datetime import date
+from typing import Annotated
 
-import typer
+from cyclopts import Parameter
 
 from jobhound.config import load_config
 from jobhound.git import commit_change, ensure_repo
@@ -16,12 +18,14 @@ from jobhound.transitions import InvalidTransitionError, require_transition
 
 
 def run(
-    slug_query: str = typer.Argument(..., metavar="SLUG"),
-    on: str | None = typer.Option(None, "--on", help="Date submitted (default today)."),
-    next_action: str = typer.Option(..., "--next-action"),
-    next_action_due: str = typer.Option(..., "--next-action-due"),
-    today: str | None = typer.Option(None, "--today", hidden=True),
-    no_commit: bool = typer.Option(False, "--no-commit"),
+    slug_query: str,
+    /,
+    *,
+    on: str | None = None,
+    next_action: str,
+    next_action_due: str,
+    today: Annotated[str | None, Parameter(show=False)] = None,
+    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Mark the application as submitted."""
     cfg = load_config()
@@ -37,8 +41,8 @@ def run(
     try:
         require_transition(opp.status, "applied", verb="apply")
     except InvalidTransitionError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(code=1) from exc
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1) from exc
 
     updated = replace(
         opp,
@@ -54,4 +58,4 @@ def run(
         f"apply: {opp.slug}",
         enabled=cfg.auto_commit and not no_commit,
     )
-    typer.echo(f"applied: {opp.slug}")
+    print(f"applied: {opp.slug}")

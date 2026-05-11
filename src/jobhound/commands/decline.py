@@ -20,7 +20,6 @@ def run(
     run_transition(
         slug_query=slug_query,
         verb="decline",
-        target_status="declined",
         today=today,
         no_commit=no_commit,
     )

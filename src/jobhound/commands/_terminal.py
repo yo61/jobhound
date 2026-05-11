@@ -23,12 +23,10 @@ def run_transition(
     *,
     slug_query: str,
     verb: str,
-    target_status: str,  # kept for backwards compat with callers; unused here
     today: str | None,
     no_commit: bool,
 ) -> None:
     """Move an opportunity to its terminal status via the entity method."""
-    del target_status  # the entity method enforces the target
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     today_date = date.fromisoformat(today) if today else date.today()

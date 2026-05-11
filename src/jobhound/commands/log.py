@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 import sys
-from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from typing import Annotated
@@ -14,7 +13,7 @@ from cyclopts import Parameter
 from jobhound.config import load_config
 from jobhound.paths import paths_from_config
 from jobhound.repository import OpportunityRepository
-from jobhound.transitions import InvalidTransitionError, require_transition
+from jobhound.transitions import InvalidTransitionError
 
 _NAME_SLUG = re.compile(r"[^a-z0-9]+")
 
@@ -55,30 +54,26 @@ def run(
         raise SystemExit(1)
 
     opp, opp_dir = repo.find(slug_query)
-
-    if not force:
-        try:
-            require_transition(opp.status, next_status, verb="log")
-        except InvalidTransitionError as exc:
-            print(str(exc), file=sys.stderr)
-            raise SystemExit(1) from exc
+    due = date.fromisoformat(next_action_due) if next_action_due else None
+    try:
+        updated = opp.log_interaction(
+            today=today_date,
+            next_status=next_status,
+            next_action=next_action,
+            next_action_due=due,
+            force=force,
+        )
+    except InvalidTransitionError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1) from exc
 
     corr_dir = opp_dir / "correspondence"
     corr_dir.mkdir(exist_ok=True)
     corr_path = corr_dir / _correspondence_filename(today_date, channel, direction, who)
     corr_path.write_text(body.read_text())
 
-    new_status = opp.status if next_status == "stay" else next_status
-    due = date.fromisoformat(next_action_due) if next_action_due else opp.next_action_due
-    action = next_action if next_action is not None else opp.next_action
-
-    updated = replace(
-        opp,
-        status=new_status,
-        last_activity=today_date,
-        next_action=action,
-        next_action_due=due,
+    arrow = (
+        f"{opp.status} → {updated.status}" if updated.status != opp.status else "(no status change)"
     )
-    arrow = f"{opp.status} → {new_status}" if new_status != opp.status else "(no status change)"
     repo.save(updated, opp_dir, message=f"log: {opp.slug} {arrow}", no_commit=no_commit)
     print(f"logged: {opp.slug} {arrow}")

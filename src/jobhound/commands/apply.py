@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import replace
 from datetime import date
 from typing import Annotated
 
@@ -12,7 +11,7 @@ from cyclopts import Parameter
 from jobhound.config import load_config
 from jobhound.paths import paths_from_config
 from jobhound.repository import OpportunityRepository
-from jobhound.transitions import InvalidTransitionError, require_transition
+from jobhound.transitions import InvalidTransitionError
 
 
 def run(
@@ -35,18 +34,15 @@ def run(
 
     opp, opp_dir = repo.find(slug_query)
     try:
-        require_transition(opp.status, "applied", verb="apply")
+        updated = opp.apply(
+            applied_on=applied_on,
+            today=today_date,
+            next_action=next_action,
+            next_action_due=due,
+        )
     except InvalidTransitionError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc
 
-    updated = replace(
-        opp,
-        status="applied",
-        applied_on=applied_on,
-        last_activity=today_date,
-        next_action=next_action,
-        next_action_due=due,
-    )
     repo.save(updated, opp_dir, message=f"apply: {opp.slug}", no_commit=no_commit)
     print(f"applied: {opp.slug}")

@@ -3,35 +3,43 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import replace
 from datetime import date
 
 from jobhound.config import load_config
+from jobhound.opportunities import Opportunity
 from jobhound.paths import paths_from_config
 from jobhound.repository import OpportunityRepository
-from jobhound.transitions import InvalidTransitionError, require_transition
+from jobhound.transitions import InvalidTransitionError
+
+_METHODS = {
+    "withdraw": Opportunity.withdraw,
+    "ghost": Opportunity.ghost,
+    "accept": Opportunity.accept,
+    "decline": Opportunity.decline,
+}
 
 
 def run_transition(
     *,
     slug_query: str,
     verb: str,
-    target_status: str,
+    target_status: str,  # kept for backwards compat with callers; unused here
     today: str | None,
     no_commit: bool,
 ) -> None:
-    """Move an opportunity to `target_status`. Used by withdraw/ghost/accept/decline."""
+    """Move an opportunity to its terminal status via the entity method."""
+    del target_status  # the entity method enforces the target
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     today_date = date.fromisoformat(today) if today else date.today()
     opp, opp_dir = repo.find(slug_query)
 
+    method = _METHODS[verb]
     try:
-        require_transition(opp.status, target_status, verb=verb)
+        updated = method(opp, today=today_date)
     except InvalidTransitionError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc
 
-    updated = replace(opp, status=target_status, last_activity=today_date)
     repo.save(updated, opp_dir, message=f"{verb}: {opp.slug}", no_commit=no_commit)
     print(f"{verb}: {opp.slug}")

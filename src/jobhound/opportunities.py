@@ -6,7 +6,7 @@ Ported from the old repo's `opportunities.py`. The TOML layer hands us native
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -29,6 +29,18 @@ ALL_STATUSES: tuple[str, ...] = ACTIVE_STATUSES + CLOSED_STATUSES
 
 STALE_DAYS: int = 14
 GHOSTED_DAYS: int = 21
+
+
+def _require_transition(current: str, target: str, *, verb: str) -> None:
+    """Local indirection that defers the import of `transitions.require_transition`.
+
+    The module-level cycle (transitions.py imports ACTIVE_STATUSES from here) means
+    we can't import at module top. Each call is cached by sys.modules after the
+    first hit, so the overhead is negligible.
+    """
+    from jobhound.transitions import require_transition
+
+    require_transition(current, target, verb=verb)
 
 
 @dataclass(frozen=True)
@@ -69,6 +81,70 @@ class Opportunity:
     def looks_ghosted(self, today: date) -> bool:
         days = self.days_since_activity(today)
         return self.is_active and days is not None and days >= GHOSTED_DAYS
+
+    # ---- behaviour: state transitions --------------------------------------
+
+    def apply(
+        self,
+        *,
+        applied_on: date,
+        today: date,
+        next_action: str,
+        next_action_due: date,
+    ) -> Opportunity:
+        """Submit the application. Requires status `prospect`."""
+        _require_transition(self.status, "applied", verb="apply")
+        return replace(
+            self,
+            status="applied",
+            applied_on=applied_on,
+            last_activity=today,
+            next_action=next_action,
+            next_action_due=next_action_due,
+        )
+
+    def log_interaction(
+        self,
+        *,
+        today: date,
+        next_status: str,
+        next_action: str | None,
+        next_action_due: date | None,
+        force: bool,
+    ) -> Opportunity:
+        """Record an interaction. `next_status='stay'` keeps the current status."""
+        if not force:
+            _require_transition(self.status, next_status, verb="log")
+        new_status = self.status if next_status == "stay" else next_status
+        return replace(
+            self,
+            status=new_status,
+            last_activity=today,
+            next_action=next_action if next_action is not None else self.next_action,
+            next_action_due=(
+                next_action_due if next_action_due is not None else self.next_action_due
+            ),
+        )
+
+    def withdraw(self, *, today: date) -> Opportunity:
+        """Move to status `withdrawn`. Requires an active status."""
+        _require_transition(self.status, "withdrawn", verb="withdraw")
+        return replace(self, status="withdrawn", last_activity=today)
+
+    def ghost(self, *, today: date) -> Opportunity:
+        """Move to status `ghosted`. Requires an active status."""
+        _require_transition(self.status, "ghosted", verb="ghost")
+        return replace(self, status="ghosted", last_activity=today)
+
+    def accept(self, *, today: date) -> Opportunity:
+        """Move to status `accepted`. Requires status `offer`."""
+        _require_transition(self.status, "accepted", verb="accept")
+        return replace(self, status="accepted", last_activity=today)
+
+    def decline(self, *, today: date) -> Opportunity:
+        """Move to status `declined`. Requires status `offer`."""
+        _require_transition(self.status, "declined", verb="decline")
+        return replace(self, status="declined", last_activity=today)
 
 
 def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opportunity:

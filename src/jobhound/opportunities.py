@@ -36,7 +36,6 @@ class Opportunity:
     tags: tuple[str, ...] = field(default_factory=tuple)
     contacts: tuple[Contact, ...] = field(default_factory=tuple)
     links: dict[str, Any] = field(default_factory=dict)
-    path: Path | None = None
 
     @property
     def is_active(self) -> bool:
@@ -169,5 +168,4 @@ def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opp
         tags=tuple(data.get("tags") or ()),
         contacts=tuple(Contact.from_dict(c) for c in (data.get("contacts") or ())),
         links=dict(data.get("links") or {}),
-        path=path,
     )

@@ -1,25 +1,19 @@
-"""`jh edit` — open meta.toml in $EDITOR with validation loop.
-
-Ported from internals/scripts/edit_opportunity.py in the old repo; same
-validation-loop pattern, but reading/writing TOML and using slug resolution.
-"""
+"""`jh edit` — open meta.toml in $EDITOR with validation loop."""
 
 from __future__ import annotations
 
 import os
 import shlex
 import subprocess
-from dataclasses import replace
 from pathlib import Path
 from typing import Annotated
 
 from cyclopts import Parameter
 
 from jobhound.config import load_config
-from jobhound.git import commit_change, ensure_repo
-from jobhound.meta_io import ValidationError, read_meta, write_meta
+from jobhound.meta_io import ValidationError, read_meta
 from jobhound.paths import paths_from_config
-from jobhound.slug import resolve_slug
+from jobhound.repository import OpportunityRepository
 
 _ERROR_PREFIX = "# ERROR:"
 
@@ -53,16 +47,6 @@ def _open_editor(argv: list[str], path: Path) -> None:
     subprocess.run([*argv, str(path)], check=True)
 
 
-def _maybe_rename(opp_dir: Path, new_slug: str) -> Path:
-    if opp_dir.name == new_slug:
-        return opp_dir
-    dst = opp_dir.parent / new_slug
-    if dst.exists():
-        raise FileExistsError(f"target folder already exists: {dst}")
-    opp_dir.rename(dst)
-    return dst
-
-
 def run(
     slug_query: str,
     /,
@@ -71,10 +55,8 @@ def run(
 ) -> None:
     """Open meta.toml in $EDITOR; validate on save; rename on slug change."""
     cfg = load_config()
-    paths = paths_from_config(cfg)
-    ensure_repo(paths.db_root)
-
-    opp_dir = resolve_slug(slug_query, paths.opportunities_dir)
+    repo = OpportunityRepository(paths_from_config(cfg), cfg)
+    _, opp_dir = repo.find(slug_query)
     meta = opp_dir / "meta.toml"
     editor_argv = _editor_argv(cfg.editor)
 
@@ -94,13 +76,6 @@ def run(
         if cleaned != after:
             meta.write_text(cleaned)
             opp = read_meta(meta)
-        final_dir = _maybe_rename(opp_dir, opp.slug)
-        if final_dir is not opp_dir:
-            write_meta(replace(opp, slug=opp.slug), final_dir / "meta.toml")
-        commit_change(
-            paths.db_root,
-            f"edit: {opp.slug}",
-            enabled=cfg.auto_commit and not no_commit,
-        )
-        print(f"Updated {final_dir.relative_to(paths.db_root)}")
+        final_dir = repo.save(opp, opp_dir, message=f"edit: {opp.slug}", no_commit=no_commit)
+        print(f"Updated {final_dir.relative_to(repo.paths.db_root)}")
         return

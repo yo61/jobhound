@@ -5,16 +5,14 @@ from __future__ import annotations
 import re
 import sys
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Annotated
 
 from cyclopts import Parameter
 
 from jobhound.config import load_config
-from jobhound.git import commit_change, ensure_repo
-from jobhound.meta_io import write_meta
 from jobhound.opportunities import Opportunity
 from jobhound.paths import Paths, paths_from_config
+from jobhound.repository import OpportunityRepository
 
 _SLUG_BAD = re.compile(r"[^a-z0-9]+")
 
@@ -26,14 +24,6 @@ def _slugify(text: str) -> str:
 
 def _build_slug(today: date, company: str, role: str) -> str:
     return f"{today:%Y-%m}-{_slugify(company)}-{_slugify(role)}"
-
-
-def _write_skeletons(opp_dir: Path) -> None:
-    (opp_dir / "notes.md").write_text("")
-    (opp_dir / "research.md").write_text(
-        "# Research\n\n## Company\n\n## Role\n\n## Why apply\n\n## Why not\n"
-    )
-    (opp_dir / "correspondence").mkdir()
 
 
 def run(
@@ -50,17 +40,11 @@ def run(
     cfg = load_config()
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
-    ensure_repo(paths.db_root)
+    repo = OpportunityRepository(paths, cfg)
 
     today_date = date.fromisoformat(today) if today else date.today()
     due = date.fromisoformat(next_action_due) if next_action_due else today_date + timedelta(days=7)
     slug = _build_slug(today_date, company, role)
-    opp_dir = paths.opportunities_dir / slug
-    if opp_dir.exists():
-        print(f"opportunity already exists: {opp_dir}", file=sys.stderr)
-        raise SystemExit(1)
-    opp_dir.mkdir(parents=True)
-    _write_skeletons(opp_dir)
 
     opp = Opportunity(
         slug=slug,
@@ -77,6 +61,9 @@ def run(
         next_action=next_action,
         next_action_due=due,
     )
-    write_meta(opp, opp_dir / "meta.toml")
-    commit_change(paths.db_root, f"new: {slug}", enabled=cfg.auto_commit and not no_commit)
+    try:
+        opp_dir = repo.create(opp, message=f"new: {slug}", no_commit=no_commit)
+    except FileExistsError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1) from exc
     print(f"Created {opp_dir.relative_to(paths.db_root)}")

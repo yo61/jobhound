@@ -1,5 +1,7 @@
 """Tests for jh note, jh priority, jh tag."""
 
+from datetime import date
+
 from jobhound.meta_io import read_meta
 from jobhound.priority import Priority
 
@@ -20,7 +22,7 @@ def test_note_bumps_last_activity(tmp_jh, invoke) -> None:
     _seed(invoke)
     invoke(["note", "foo", "--msg", "x", "--today", "2026-05-11"])
     opp = read_meta(tmp_jh.db_path / "opportunities" / "2026-05-foo-em" / "meta.toml")
-    assert opp.last_activity.isoformat() == "2026-05-11"
+    assert opp.last_activity == date(2026, 5, 11)
 
 
 def test_priority_sets_value(tmp_jh, invoke) -> None:

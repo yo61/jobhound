@@ -1,6 +1,7 @@
 """Tests for `jh apply`."""
 
 import subprocess
+from datetime import date
 
 from jobhound.meta_io import read_meta
 
@@ -32,10 +33,10 @@ def test_apply_advances_to_applied(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
     opp = read_meta(tmp_jh.db_path / "opportunities" / "2026-05-foo-em" / "meta.toml")
     assert opp.status == "applied"
-    assert opp.applied_on.isoformat() == "2026-05-12"
-    assert opp.last_activity.isoformat() == "2026-05-12"
+    assert opp.applied_on == date(2026, 5, 12)
+    assert opp.last_activity == date(2026, 5, 12)
     assert opp.next_action == "Wait for screen"
-    assert opp.next_action_due.isoformat() == "2026-05-26"
+    assert opp.next_action_due == date(2026, 5, 26)
 
 
 def test_apply_commits(tmp_jh, invoke) -> None:

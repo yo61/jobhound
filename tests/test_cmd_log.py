@@ -1,6 +1,7 @@
 """Tests for `jh log` (flag-driven path only)."""
 
 import subprocess
+from datetime import date
 
 from jobhound.meta_io import read_meta
 
@@ -56,7 +57,7 @@ def test_log_writes_correspondence_and_advances_status(tmp_jh, invoke, tmp_path)
 
     opp = read_meta(opp_dir / "meta.toml")
     assert opp.status == "screen"
-    assert opp.last_activity.isoformat() == "2026-05-11"
+    assert opp.last_activity == date(2026, 5, 11)
     assert opp.next_action == "Confirm screening date"
 
 

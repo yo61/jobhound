@@ -7,10 +7,8 @@ from dataclasses import replace
 from datetime import date
 
 from jobhound.config import load_config
-from jobhound.git import commit_change, ensure_repo
-from jobhound.meta_io import read_meta, write_meta
 from jobhound.paths import paths_from_config
-from jobhound.slug import resolve_slug
+from jobhound.repository import OpportunityRepository
 from jobhound.transitions import InvalidTransitionError, require_transition
 
 
@@ -24,12 +22,9 @@ def run_transition(
 ) -> None:
     """Move an opportunity to `target_status`. Used by withdraw/ghost/accept/decline."""
     cfg = load_config()
-    paths = paths_from_config(cfg)
-    ensure_repo(paths.db_root)
-
+    repo = OpportunityRepository(paths_from_config(cfg), cfg)
     today_date = date.fromisoformat(today) if today else date.today()
-    opp_dir = resolve_slug(slug_query, paths.opportunities_dir)
-    opp = read_meta(opp_dir / "meta.toml")
+    opp, opp_dir = repo.find(slug_query)
 
     try:
         require_transition(opp.status, target_status, verb=verb)
@@ -38,10 +33,5 @@ def run_transition(
         raise SystemExit(1) from exc
 
     updated = replace(opp, status=target_status, last_activity=today_date)
-    write_meta(updated, opp_dir / "meta.toml")
-    commit_change(
-        paths.db_root,
-        f"{verb}: {opp.slug}",
-        enabled=cfg.auto_commit and not no_commit,
-    )
+    repo.save(updated, opp_dir, message=f"{verb}: {opp.slug}", no_commit=no_commit)
     print(f"{verb}: {opp.slug}")

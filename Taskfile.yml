@@ -30,6 +30,7 @@ tasks:
   dev:test:
     desc: Run the pytest suite
     cmds:
+      - chflags -R nohidden .venv 2>/dev/null || true
       - uv run pytest
 
   dev:check:

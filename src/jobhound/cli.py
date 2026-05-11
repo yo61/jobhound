@@ -5,6 +5,7 @@ from __future__ import annotations
 import typer
 
 from jobhound import __version__
+from jobhound.commands import new as cmd_new
 
 app = typer.Typer(
     name="jh",
@@ -32,4 +33,4 @@ def _root(
     """Root callback; reserved for future global options."""
 
 
-# Commands are registered below as Phase 2+ tasks add them.
+app.command(name="new")(cmd_new.run)

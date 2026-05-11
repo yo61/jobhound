@@ -5,6 +5,7 @@ from __future__ import annotations
 import typer
 
 from jobhound import __version__
+from jobhound.commands import apply as cmd_apply
 from jobhound.commands import new as cmd_new
 
 app = typer.Typer(
@@ -34,3 +35,4 @@ def _root(
 
 
 app.command(name="new")(cmd_new.run)
+app.command(name="apply")(cmd_apply.run)

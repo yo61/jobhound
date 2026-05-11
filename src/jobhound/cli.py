@@ -7,8 +7,10 @@ from cyclopts import App
 from jobhound import __version__
 from jobhound.commands import accept as cmd_accept
 from jobhound.commands import apply as cmd_apply
+from jobhound.commands import archive as cmd_archive
 from jobhound.commands import contact as cmd_contact
 from jobhound.commands import decline as cmd_decline
+from jobhound.commands import delete as cmd_delete
 from jobhound.commands import edit as cmd_edit
 from jobhound.commands import ghost as cmd_ghost
 from jobhound.commands import link as cmd_link
@@ -17,6 +19,7 @@ from jobhound.commands import log as cmd_log
 from jobhound.commands import new as cmd_new
 from jobhound.commands import note as cmd_note
 from jobhound.commands import priority as cmd_priority
+from jobhound.commands import sync as cmd_sync
 from jobhound.commands import tag as cmd_tag
 from jobhound.commands import withdraw as cmd_withdraw
 
@@ -40,3 +43,6 @@ app.command(cmd_link.run, name="link")
 app.command(cmd_contact.run, name="contact")
 app.command(cmd_list.run, name="list")
 app.command(cmd_edit.run, name="edit")
+app.command(cmd_archive.run, name="archive")
+app.command(cmd_delete.run, name="delete")
+app.command(cmd_sync.run, name="sync")

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Annotated
 
 from cyclopts import Parameter
@@ -24,8 +23,6 @@ def run(
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     opp, opp_dir = repo.find(slug_query)
-    links = dict(opp.links)
-    links[name] = url
-    updated = replace(opp, links=links)
+    updated = opp.with_link(name=name, url=url)
     repo.save(updated, opp_dir, message=f"link: {opp.slug} {name}", no_commit=no_commit)
     print(f"link {opp.slug}: {name} = {url}")

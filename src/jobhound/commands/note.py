@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from datetime import date
 from typing import Annotated
 
@@ -31,6 +30,10 @@ def run(
     existing = notes.read_text() if notes.exists() else ""
     notes.write_text(existing + f"- {today_date.isoformat()} {msg}\n")
 
-    updated = replace(opp, last_activity=today_date)
-    repo.save(updated, opp_dir, message=f"note: {opp.slug}", no_commit=no_commit)
+    repo.save(
+        opp.touch(today=today_date),
+        opp_dir,
+        message=f"note: {opp.slug}",
+        no_commit=no_commit,
+    )
     print(f"noted: {opp.slug}")

@@ -30,6 +30,8 @@ ALL_STATUSES: tuple[str, ...] = ACTIVE_STATUSES + CLOSED_STATUSES
 STALE_DAYS: int = 14
 GHOSTED_DAYS: int = 21
 
+_PRIORITIES: frozenset[str] = frozenset({"high", "medium", "low"})
+
 
 def _require_transition(current: str, target: str, *, verb: str) -> None:
     """Local indirection that defers the import of `transitions.require_transition`.
@@ -145,6 +147,36 @@ class Opportunity:
         """Move to status `declined`. Requires status `offer`."""
         _require_transition(self.status, "declined", verb="decline")
         return replace(self, status="declined", last_activity=today)
+
+    # ---- behaviour: field-shaped operations --------------------------------
+
+    def touch(self, *, today: date) -> Opportunity:
+        """Bump `last_activity` without changing status."""
+        return replace(self, last_activity=today)
+
+    def with_tags(self, *, add: set[str], remove: set[str]) -> Opportunity:
+        """Apply tag add/remove deltas; resulting tag tuple is sorted and deduped."""
+        tags = tuple(sorted((set(self.tags) | add) - remove))
+        return replace(self, tags=tags)
+
+    def with_priority(self, priority: str) -> Opportunity:
+        """Set priority to one of high/medium/low."""
+        if priority not in _PRIORITIES:
+            raise ValueError(f"priority must be one of {sorted(_PRIORITIES)}, got {priority!r}")
+        return replace(self, priority=priority)
+
+    def with_contact(self, contact: dict[str, str]) -> Opportunity:
+        """Append a contact entry. `name` is required and non-empty."""
+        name = contact.get("name")
+        if not name:
+            raise ValueError("contact must have a non-empty 'name'")
+        return replace(self, contacts=(*self.contacts, dict(contact)))
+
+    def with_link(self, *, name: str, url: str) -> Opportunity:
+        """Set or replace a link entry."""
+        links = dict(self.links)
+        links[name] = url
+        return replace(self, links=links)
 
 
 def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opportunity:

@@ -184,3 +184,58 @@ def test_decline_rejects_non_offer() -> None:
     opp = _prospect()
     with pytest.raises(InvalidTransitionError):
         opp.decline(today=date(2026, 5, 6))
+
+
+def test_touch_bumps_last_activity_only() -> None:
+    opp = _prospect()
+    after = opp.touch(today=date(2026, 5, 9))
+    assert after.last_activity == date(2026, 5, 9)
+    assert after.status == opp.status
+
+
+def test_with_tags_adds_and_removes() -> None:
+    opp = _prospect()
+    after = opp.with_tags(add={"remote", "uk"}, remove=set())
+    assert after.tags == ("remote", "uk")
+    after2 = after.with_tags(add=set(), remove={"uk"})
+    assert after2.tags == ("remote",)
+
+
+def test_with_tags_dedupes_and_sorts() -> None:
+    opp = _prospect()
+    # Apply tags in two passes to verify the result is deduped and sorted.
+    after = opp.with_tags(add={"b", "a"}, remove=set())
+    after2 = after.with_tags(add={"b"}, remove=set())
+    assert after2.tags == ("a", "b")
+
+
+def test_with_priority_rejects_unknown() -> None:
+    opp = _prospect()
+    with pytest.raises(ValueError):
+        opp.with_priority("urgent")
+
+
+def test_with_priority_sets_value() -> None:
+    opp = _prospect()
+    after = opp.with_priority("high")
+    assert after.priority == "high"
+
+
+def test_with_contact_appends() -> None:
+    opp = _prospect()
+    after = opp.with_contact({"name": "Jane", "role": "Recruiter"})
+    assert after.contacts == ({"name": "Jane", "role": "Recruiter"},)
+
+
+def test_with_contact_requires_name() -> None:
+    opp = _prospect()
+    with pytest.raises(ValueError):
+        opp.with_contact({"role": "Recruiter"})
+
+
+def test_with_link_sets_or_overwrites() -> None:
+    opp = _prospect()
+    after = opp.with_link(name="jd", url="https://example.com/jd")
+    assert after.links == {"jd": "https://example.com/jd"}
+    after2 = after.with_link(name="jd", url="https://example.com/jd2")
+    assert after2.links == {"jd": "https://example.com/jd2"}

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Annotated
 
 from cyclopts import Parameter
@@ -36,6 +35,6 @@ def run(
         entry["company"] = company
     if note is not None:
         entry["note"] = note
-    updated = replace(opp, contacts=(*opp.contacts, entry))
+    updated = opp.with_contact(entry)
     repo.save(updated, opp_dir, message=f"contact: {opp.slug} {name}", no_commit=no_commit)
     print(f"contact added: {opp.slug} {name}")

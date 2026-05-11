@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import replace
 from typing import Annotated
 
 from cyclopts import Parameter
@@ -31,11 +30,10 @@ def run(
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     opp, opp_dir = repo.find(slug_query)
-    tags = tuple(sorted((set(opp.tags) | add_set) - remove_set))
-    updated = replace(opp, tags=tags)
+    updated = opp.with_tags(add=add_set, remove=remove_set)
 
     summary = " ".join(
         [*(f"+{t}" for t in sorted(add_set)), *(f"-{t}" for t in sorted(remove_set))]
     )
     repo.save(updated, opp_dir, message=f"tag: {opp.slug} {summary}", no_commit=no_commit)
-    print(f"tags {opp.slug}: {tags}")
+    print(f"tags {opp.slug}: {updated.tags}")

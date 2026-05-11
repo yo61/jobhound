@@ -7,13 +7,12 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from jobhound.priority import Priority
 from jobhound.status import Status
 from jobhound.transitions import require_transition
 
 STALE_DAYS: int = 14
 GHOSTED_DAYS: int = 21
-
-_PRIORITIES: frozenset[str] = frozenset({"high", "medium", "low"})
 
 
 @dataclass(frozen=True)
@@ -24,7 +23,7 @@ class Opportunity:
     company: str
     role: str
     status: Status
-    priority: str
+    priority: Priority
     source: str | None
     location: str | None
     comp_range: str | None
@@ -130,11 +129,9 @@ class Opportunity:
         tags = tuple(sorted((set(self.tags) | add) - remove))
         return replace(self, tags=tags)
 
-    def with_priority(self, priority: str) -> Opportunity:
+    def with_priority(self, priority: Priority | str) -> Opportunity:
         """Set priority to one of high/medium/low."""
-        if priority not in _PRIORITIES:
-            raise ValueError(f"priority must be one of {sorted(_PRIORITIES)}, got {priority!r}")
-        return replace(self, priority=priority)
+        return replace(self, priority=Priority(priority))
 
     def with_contact(self, contact: dict[str, str]) -> Opportunity:
         """Append a contact entry. `name` is required and non-empty."""
@@ -162,7 +159,7 @@ def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opp
         company=data["company"],
         role=data["role"],
         status=status,
-        priority=data.get("priority", "medium"),
+        priority=Priority(data.get("priority", "medium")),
         source=data.get("source"),
         location=data.get("location"),
         comp_range=data.get("comp_range"),

@@ -3,6 +3,7 @@
 import pytest
 
 from jobhound.meta_io import read_meta
+from jobhound.priority import Priority
 
 
 def _seed(invoke) -> None:
@@ -28,7 +29,7 @@ def test_edit_updates_priority(tmp_jh, invoke, monkeypatch) -> None:
     result = invoke(["edit", "foo"])
     assert result.exit_code == 0, result.output
     opp = read_meta(tmp_jh.db_path / "opportunities" / "2026-05-foo-em" / "meta.toml")
-    assert opp.priority == "high"
+    assert opp.priority == Priority.HIGH
 
 
 def test_edit_rename_on_slug_change(tmp_jh, invoke, monkeypatch) -> None:

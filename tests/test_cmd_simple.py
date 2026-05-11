@@ -1,6 +1,7 @@
 """Tests for jh note, jh priority, jh tag."""
 
 from jobhound.meta_io import read_meta
+from jobhound.priority import Priority
 
 
 def _seed(invoke) -> None:
@@ -27,7 +28,7 @@ def test_priority_sets_value(tmp_jh, invoke) -> None:
     result = invoke(["priority", "foo", "--to", "high"])
     assert result.exit_code == 0, result.output
     opp = read_meta(tmp_jh.db_path / "opportunities" / "2026-05-foo-em" / "meta.toml")
-    assert opp.priority == "high"
+    assert opp.priority == Priority.HIGH
 
 
 def test_priority_rejects_invalid_value(tmp_jh, invoke) -> None:

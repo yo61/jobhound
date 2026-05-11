@@ -7,6 +7,7 @@ import pytest
 
 from jobhound.meta_io import ValidationError, read_meta, validate, write_meta
 from jobhound.opportunities import Opportunity
+from jobhound.priority import Priority
 from jobhound.status import Status
 
 
@@ -16,7 +17,7 @@ def _full_opp(slug: str = "2026-05-foo-engineer") -> Opportunity:
         company="Foo",
         role="Engineer",
         status=Status.APPLIED,
-        priority="medium",
+        priority=Priority.MEDIUM,
         source="LinkedIn",
         location="UK",
         comp_range="£100k",
@@ -82,7 +83,7 @@ def test_write_omits_none_fields(tmp_path: Path) -> None:
         company="F",
         role="E",
         status=Status.APPLIED,
-        priority="medium",
+        priority=Priority.MEDIUM,
         source=None,
         location=None,
         comp_range=None,

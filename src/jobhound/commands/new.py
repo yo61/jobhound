@@ -12,6 +12,7 @@ from cyclopts import Parameter
 from jobhound.config import load_config
 from jobhound.opportunities import Opportunity
 from jobhound.paths import Paths, paths_from_config
+from jobhound.priority import Priority
 from jobhound.repository import OpportunityRepository
 from jobhound.status import Status
 
@@ -52,7 +53,7 @@ def run(
         company=company,
         role=role,
         status=Status.PROSPECT,
-        priority="medium",
+        priority=Priority.MEDIUM,
         source=source,
         location=None,
         comp_range=None,

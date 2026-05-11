@@ -7,6 +7,7 @@ from datetime import date
 import pytest
 
 from jobhound.opportunities import Opportunity
+from jobhound.priority import Priority
 from jobhound.status import Status
 from jobhound.transitions import InvalidTransitionError
 
@@ -17,7 +18,7 @@ def _prospect() -> Opportunity:
         company="Acme",
         role="Engineer",
         status=Status.PROSPECT,
-        priority="medium",
+        priority=Priority.MEDIUM,
         source=None,
         location=None,
         comp_range=None,
@@ -219,7 +220,7 @@ def test_with_priority_rejects_unknown() -> None:
 def test_with_priority_sets_value() -> None:
     opp = _prospect()
     after = opp.with_priority("high")
-    assert after.priority == "high"
+    assert after.priority == Priority.HIGH
 
 
 def test_with_contact_appends() -> None:

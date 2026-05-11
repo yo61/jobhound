@@ -10,6 +10,7 @@ from jobhound.opportunities import (
     Opportunity,
     opportunity_from_dict,
 )
+from jobhound.priority import Priority
 from jobhound.status import Status
 
 
@@ -29,7 +30,7 @@ def test_required_fields_only() -> None:
     assert opp.company == "Foo"
     assert opp.role == "Engineer"
     assert opp.status == "applied"
-    assert opp.priority == "medium"  # default
+    assert opp.priority == Priority.MEDIUM  # default
 
 
 def test_unknown_status_raises() -> None:

@@ -11,6 +11,7 @@ import pytest
 from jobhound.config import Config
 from jobhound.opportunities import Opportunity
 from jobhound.paths import Paths, paths_from_config
+from jobhound.priority import Priority
 from jobhound.repository import OpportunityRepository
 from jobhound.slug import SlugNotFoundError
 from jobhound.status import Status
@@ -26,7 +27,7 @@ def _make_opp(slug: str = "2026-05-acme-eng") -> Opportunity:
         company="Acme",
         role="Engineer",
         status=Status.PROSPECT,
-        priority="medium",
+        priority=Priority.MEDIUM,
         source=None,
         location=None,
         comp_range=None,
@@ -84,11 +85,11 @@ def test_save_persists_changes(tmp_path: Path) -> None:
     repo.create(_make_opp(), message="new", no_commit=True)
     opp, opp_dir = repo.find("acme")
 
-    updated = replace(opp, priority="high")
+    updated = replace(opp, priority=Priority.HIGH)
     repo.save(updated, opp_dir, message="priority: acme high", no_commit=True)
 
     reloaded, _ = repo.find("acme")
-    assert reloaded.priority == "high"
+    assert reloaded.priority == Priority.HIGH
 
 
 def test_save_renames_dir_when_slug_changes(tmp_path: Path) -> None:

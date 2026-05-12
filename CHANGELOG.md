@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/yo61/jobhound/compare/v0.2.0...v0.3.0) (2026-05-12)
+
+
+### Features
+
+* lower minimum Python to 3.11 ([2e75e95](https://github.com/yo61/jobhound/commit/2e75e959ac123239b0e31d98224155f5378bc9c7))
+
+
+### Documentation
+
+* add README for PyPI long description and quick-start usage ([2ba0a42](https://github.com/yo61/jobhound/commit/2ba0a42c9ce48dae77f8172332e5b72e52931ba5))
+
 ## [0.2.0](https://github.com/yo61/jobhound/compare/jobhound-v0.1.0...jobhound-v0.2.0) (2026-05-12)
 
 

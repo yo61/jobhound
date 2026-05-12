@@ -8,7 +8,7 @@
 
 **Tech Stack:** Markdown docs + `uv run jh ...` for the smoke test + `XDG_DATA_HOME` env override for isolation.
 
-**Reference:** The 2026-05-11 DDD refactor lives in `docs/plans/2026-05-11-ddd-refactor.md` (now complete) and commits `0190278..d101bc4` on `main`.
+**Reference:** The 2026-05-11 DDD refactor lives in `docs/plans/2026-05-11-ddd-refactor.md` (now complete) and commits `9b99dc9..65f7ff9` on `main` (SHAs updated 2026-05-13 after Conventional Commits history rewrite; the original SHAs were `0190278..d101bc4`).
 
 **Repo state when starting:** On `main`, 142 tests passing, no remote, working directory clean. Per `feedback_commit_on_main_no_remote.md`, commit directly on `main`.
 
@@ -289,7 +289,7 @@ Nothing — this is the first decision logged in this project.
   re-exports, three missed test-fixture updates.
 - Final reviewer flagged three follow-ups (dead `target_status` param,
   dead `Opportunity.path` field, `.isoformat()` on `date | None`); all
-  resolved in commits `8bbe231`, `97c82b1`, `d101bc4`.
+  resolved in commits `891989d`, `c783084`, `65f7ff9` (SHAs updated 2026-05-13 after history rewrite).
 ```
 
 - [ ] **Step 3: Verify the file**

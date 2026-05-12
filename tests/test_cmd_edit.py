@@ -11,8 +11,12 @@ def _seed(invoke) -> None:
 
 
 def _set_editor_to_sed(monkeypatch: pytest.MonkeyPatch, sed_expr: str) -> None:
-    """Set $EDITOR to a script that runs `sed -i '' <expr> <file>` (BSD sed)."""
-    monkeypatch.setenv("EDITOR", f"sed -i '' -e {sed_expr!r}")
+    """Set $EDITOR to `sed -i.bak <expr> <file>`. The `-i.bak` form (writing
+    a .bak sibling) is the only `-i` invocation accepted by both BSD/macOS
+    sed and GNU/Linux sed; `-i ''` is BSD-only and `-i` with no arg is
+    GNU-only. The .bak artefact is harmless in the test's tmp directory.
+    """
+    monkeypatch.setenv("EDITOR", f"sed -i.bak -e {sed_expr!r}")
 
 
 def test_edit_no_changes_is_noop(tmp_jh, invoke, monkeypatch) -> None:

@@ -10,17 +10,27 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name:        ${{ steps.rp.outputs.tag_name }}
     steps:
+      # Mint a short-lived App token so PRs opened by release-please look like
+      # the semantic-release-pusher App rather than github-actions[bot], which
+      # lets `pull_request` workflow events fire on them. Without this, the
+      # Release PR has no CI checks and branch protection blocks the merge.
+      - id: create_token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3  # v3
+        with:
+          client-id: ${{ secrets.SEMANTIC_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SEMANTIC_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
       - uses: googleapis/release-please-action@8b8fd2cc23b2e18957157a9d923d75aa0c6f6ad5  # v4
         id: rp
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          token: ${{ steps.create_token.outputs.token }}
 
   publish:
     needs: release-please

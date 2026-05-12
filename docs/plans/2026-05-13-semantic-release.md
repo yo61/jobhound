@@ -168,7 +168,7 @@ Stop here. Do not proceed to Task 2 until the user explicitly approves.
 
 ## Task 2 [user-driven]: Execute the history rewrite
 
-**Goal:** Apply the approved map. After this task, `main` has ~47 conventional commits.
+**Goal:** Apply the approved map. After this task, `main` has 51 conventional commits (53 input − 3 squashes + 1 split).
 
 **Files:** modifies `.git` (no source files).
 
@@ -181,7 +181,7 @@ test -f docs/plans/2026-05-13-history-rewrite-map.md && echo "map present" || ec
 git log --oneline | wc -l
 ```
 
-Expected: empty output from `git status`; "map present"; "50".
+Expected: empty output from `git status`; "map present"; "53" (50 from the spec + 3 commits — spec, plan, and the map commit itself — that landed before execution).
 
 - [ ] **Step 2: Tag the pre-conventional safety net**
 
@@ -220,7 +220,7 @@ Expected: empty output. Any lines printed are non-conforming subjects that the u
 git log --oneline | wc -l
 ```
 
-Expected: 47. If different, the map was followed incorrectly. Investigate before continuing.
+Expected: 51. If different, the map was followed incorrectly. Investigate before continuing.
 
 - [ ] **Step 6: Verify the code still works**
 
@@ -297,7 +297,7 @@ git commit -m "docs: update SHA references after history rewrite"
 - [ ] **Step 6: Verify**
 
 ```bash
-git log --oneline | wc -l        # expect 48 (47 + this docs commit)
+git log --oneline | wc -l        # expect 52 (51 + this docs commit)
 git log -1 --format='%s'         # expect "docs: update SHA references after history rewrite"
 task dev:check                   # expect pass
 ```

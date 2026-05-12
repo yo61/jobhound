@@ -1,5 +1,7 @@
 """Smoke tests for the cyclopts app skeleton."""
 
+import jobhound
+
 
 def test_help_lists_commands(invoke) -> None:
     """`--help` succeeds and mentions the program name."""
@@ -9,6 +11,7 @@ def test_help_lists_commands(invoke) -> None:
 
 
 def test_version_flag(invoke) -> None:
+    """`--version` prints the package version (sourced from pyproject)."""
     result = invoke(["--version"])
     assert result.exit_code == 0
-    assert "0.1.0" in result.output
+    assert jobhound.__version__ in result.output

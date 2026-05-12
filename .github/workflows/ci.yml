@@ -9,9 +9,13 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: Lint, typecheck, test
+  check-matrix:
+    name: py${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
@@ -19,12 +23,21 @@ jobs:
       - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
         with:
           enable-cache: true
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
       - uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611  # v2.0.0
         with:
           version: 3.x
       - run: uv sync
       - run: task dev:check
+
+  check:
+    name: Lint, typecheck, test
+    needs: check-matrix
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.check-matrix.result != 'success'
+        run: exit 1
 
   commitlint:
     name: Conventional Commits

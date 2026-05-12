@@ -5,7 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from jobhound.config import Config, xdg_cache_home, xdg_state_home
+from xdg_base_dirs import xdg_cache_home, xdg_state_home
+
+from jobhound.config import Config
 
 
 @dataclass(frozen=True)

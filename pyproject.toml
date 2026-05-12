@@ -8,6 +8,7 @@ dependencies = [
     "questionary>=2.0",
     "tomli-w>=1.0",
     "rich>=13",
+    "xdg-base-dirs>=6",
 ]
 
 [dependency-groups]

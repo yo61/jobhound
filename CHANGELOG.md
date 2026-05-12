@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.3.0](https://github.com/yo61/jobhound/compare/v0.2.0...v0.3.0) (2026-05-12)
+
+
+### Features
+
+* add auto-commit helper ([734c1fa](https://github.com/yo61/jobhound/commit/734c1faef8a018bcca459fa22113b92b89f02677))
+* add Config loader with XDG-strict paths ([b47bfc5](https://github.com/yo61/jobhound/commit/b47bfc5bcfcaa8fc3dd20468f2ece947a0206cca))
+* add jh apply command and transitions module ([5e402a6](https://github.com/yo61/jobhound/commit/5e402a6e37286a10078c1552abbcdfac441e305e))
+* add jh archive, delete, sync commands ([ec8423a](https://github.com/yo61/jobhound/commit/ec8423a1f6a7dffef7f927e5cd7d942838a15407))
+* add jh edit command with validation loop ([0cddf87](https://github.com/yo61/jobhound/commit/0cddf8781fc1b9ab44d658ca9c469ddd989cda69))
+* add jh link and contact commands ([1806566](https://github.com/yo61/jobhound/commit/18065667410be80d6955c327b709d4c09d19c17e))
+* add jh list command ([1596f36](https://github.com/yo61/jobhound/commit/1596f3644d2160971a57e6b1628749f588ce0740))
+* add jh log command ([5f4d405](https://github.com/yo61/jobhound/commit/5f4d405ee71435e46b57102b34b2a572f9be41ff))
+* add jh new command ([85a56b2](https://github.com/yo61/jobhound/commit/85a56b23a26b5f0a74250f8bb190edbadf2816eb))
+* add jh note, priority, tag commands ([38daf05](https://github.com/yo61/jobhound/commit/38daf05b82bb58b03c774d16bae0ca259ce4a745))
+* add jh withdraw, ghost, accept, decline commands ([5cd852b](https://github.com/yo61/jobhound/commit/5cd852b0a6672b0c17e05dc20edbec501b623a6a))
+* add meta.toml read/write/validate ([0f24d65](https://github.com/yo61/jobhound/commit/0f24d651d329893a1c85bf6c7686d9918e5340af))
+* add Opportunity dataclass ([8c5f233](https://github.com/yo61/jobhound/commit/8c5f23344de67d21eef97d0a24946508833a72d3))
+* add Paths dataclass ([51589c9](https://github.com/yo61/jobhound/commit/51589c9c1fa8b2335eeb904e3a679b622041e16a))
+* add prompt helpers and date parser ([936f5bc](https://github.com/yo61/jobhound/commit/936f5bc3d0c8c3a846735d8457aed73a65a9501e))
+* add slug resolver ([afc0f2d](https://github.com/yo61/jobhound/commit/afc0f2d123b7d415e412c2086560f8057e5755b1))
+* add typer app skeleton and shared test fixture ([2a1c87d](https://github.com/yo61/jobhound/commit/2a1c87df4ee312ec8c209c7b19d7d671ba856651))
+
+
+### Bug Fixes
+
+* drop None values from opportunity links at parse time ([ea6daa0](https://github.com/yo61/jobhound/commit/ea6daa02bda21115d2e57d13061bfa108ffe7c73))
+
+
+### Documentation
+
+* add DDD refactor plan ([902d865](https://github.com/yo61/jobhound/commit/902d8651aef6157fe4cd3073c912c89754be362f))
+* add history rewrite map and align plan commit counts ([5f1af1b](https://github.com/yo61/jobhound/commit/5f1af1b7aef2014b7b5a3924dcf3d0595b9e7414))
+* add jh-cli design spec and implementation plan ([b62b81e](https://github.com/yo61/jobhound/commit/b62b81ec585aef083f0fbd1ca826e5447d0c3a48))
+* add post-refactor housekeeping plan ([f7c1145](https://github.com/yo61/jobhound/commit/f7c114528bcc8b7d7c53ba6e67ce3a794f209ae4))
+* add semantic release & PyPI publishing design spec ([ac91edb](https://github.com/yo61/jobhound/commit/ac91edb6a623ccb6fd60d889e9de75969fb78b36))
+* add semantic release implementation plan ([6d882b6](https://github.com/yo61/jobhound/commit/6d882b65f74f6554b69cadc2339801feeec94674))
+* convert remaining plan snippets from typer to cyclopts ([82166b9](https://github.com/yo61/jobhound/commit/82166b9efc6685da232894669d1052b8c8dddacb))
+* log DDD refactor decision ([c9a4824](https://github.com/yo61/jobhound/commit/c9a4824222e6dcf61e36b8025f4fbfcbf83361f8))
+* log YAML-to-TOML migration decision ([b7141c0](https://github.com/yo61/jobhound/commit/b7141c0955e85a187866fc684913437f7a9eb17c))
+* seed quality/criteria.md from DDD refactor review findings ([1e6ecca](https://github.com/yo61/jobhound/commit/1e6ecca833612a3f59fccf55945405aafbe76c67))
+* update SHA references after history rewrite ([3b9a4ab](https://github.com/yo61/jobhound/commit/3b9a4ab923d8b940a56c731e02af10ec63793cac))
+
 ## [0.2.0](https://github.com/yo61/jobhound/compare/jobhound-v0.1.0...jobhound-v0.2.0) (2026-05-12)
 
 

@@ -22,12 +22,17 @@ jh log acme --channel email --direction to --who recruiter \
 jh note acme --msg "Recruiter mentioned a hybrid setup"
 jh withdraw acme
 jh list
+jh show acme                # human-readable detail; --json for the envelope
+jh export --active-only     # bulk JSON envelope to stdout
 ```
 
 Each command is a verb on a single opportunity. Run `jh --help` for the
 full set: `new`, `apply`, `log`, `withdraw`, `ghost`, `accept`, `decline`,
 `note`, `priority`, `tag`, `link`, `contact`, `list`, `edit`, `archive`,
-`delete`, `sync`.
+`delete`, `sync`, `show`, `export`.
+
+`jh export` filters: `--status` and `--priority` (comma-separated or
+repeatable), `--slug` (substring), `--active-only`, `--include-archived`.
 
 ## Storage
 

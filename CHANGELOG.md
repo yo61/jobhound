@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.0](https://github.com/yo61/jobhound/compare/v0.3.0...v0.4.0) (2026-05-13)
+
+
+### Features
+
+* **application:** add JSON converters for snapshots and stats ([99432bb](https://github.com/yo61/jobhound/commit/99432bb7c8bd1e0ceabd2d19fbfe9043a4d4c292))
+* **application:** add list_envelope and show_envelope builders ([f969be6](https://github.com/yo61/jobhound/commit/f969be611f2548e9fb84937862b02392db725438))
+* **application:** add OpportunityQuery.files and .read_file with traversal guard ([4bc2be8](https://github.com/yo61/jobhound/commit/4bc2be89f702fd0ca553b23d7719d9e7e2dc4203))
+* **application:** add OpportunityQuery.find and .list with filters ([12dd902](https://github.com/yo61/jobhound/commit/12dd902d32afab6dc091e493f4d17a203dac42bc))
+* **application:** add OpportunityQuery.stats with funnel and sources ([d5f4de5](https://github.com/yo61/jobhound/commit/d5f4de582818c3304332e934944a1610a308fce3))
+* **application:** add read-side snapshot dataclasses ([11ae52d](https://github.com/yo61/jobhound/commit/11ae52d9d83947bbd9536298a8ca5cbaa4a5ee39))
+* **cli:** add jh export command with filter flags ([7a1290d](https://github.com/yo61/jobhound/commit/7a1290de87506af5514828e8d8c5da86a36e8256))
+* **cli:** add jh show command with --json output ([a435261](https://github.com/yo61/jobhound/commit/a4352616051317bfc0412cb702279eb36c90b4dd))
+
+
+### Documentation
+
+* add phase 3a implementation plan ([34531ef](https://github.com/yo61/jobhound/commit/34531efdac0fc8b723d3bedf427b6abee4dda3b9))
+* document jh show + jh export and drop phase 3a pickup notes ([0b43074](https://github.com/yo61/jobhound/commit/0b4307450ab8ac62c33a9859712579a5d93ca8e0))
+* spec phase 3a read API + DDD reorganisation ([dd09043](https://github.com/yo61/jobhound/commit/dd090438ec05b7e74f20d7035757de3c8d12610b))
+
 ## [0.3.0](https://github.com/yo61/jobhound/compare/v0.2.0...v0.3.0) (2026-05-12)
 
 

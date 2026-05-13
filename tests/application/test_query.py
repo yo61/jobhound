@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from pathlib import Path
+
 import pytest
 
 from jobhound.application.query import Filters, OpportunityQuery
@@ -115,3 +118,65 @@ def test_list_returns_sorted_by_slug(query_paths: Paths) -> None:
     snaps = q.list(today=TODAY)
     slugs = [s.opportunity.slug for s in snaps]
     assert slugs == sorted(slugs)
+
+
+def test_files_lists_top_level_and_correspondence(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    entries = q.files("acme")
+    names = sorted(e.name for e in entries)
+    assert names == ["correspondence/intro.md", "cv.md", "meta.toml", "notes.md"]
+    for e in entries:
+        assert e.size > 0
+        assert e.mtime.tzinfo is not None
+        # tz-aware UTC: offset matches UTC's
+        assert e.mtime.utcoffset() == datetime.now(UTC).utcoffset()
+
+
+def test_files_only_meta_when_dir_minimal(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    entries = q.files("beta")
+    names = sorted(e.name for e in entries)
+    assert names == ["meta.toml"]
+
+
+def test_files_excludes_hidden_files(query_paths: Paths) -> None:
+    (query_paths.opportunities_dir / "2026-05-acme-em" / ".DS_Store").write_text("noise")
+    q = OpportunityQuery(query_paths)
+    names = {e.name for e in q.files("acme")}
+    assert ".DS_Store" not in names
+
+
+def test_read_file_returns_bytes(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    data = q.read_file("acme", "notes.md")
+    assert isinstance(data, bytes)
+    assert data == b"notes\n"
+
+
+def test_read_file_correspondence_subpath(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    data = q.read_file("acme", "correspondence/intro.md")
+    assert data == b"hi\n"
+
+
+def test_read_file_rejects_traversal_dotdot(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    with pytest.raises(ValueError, match="must be inside"):
+        q.read_file("acme", "../../../etc/passwd")
+
+
+def test_read_file_rejects_absolute_path(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    with pytest.raises(ValueError, match="must be inside"):
+        q.read_file("acme", "/etc/passwd")
+
+
+def test_read_file_rejects_symlink_escape(query_paths: Paths, tmp_path: Path) -> None:
+    """A symlink pointing outside the opp dir is rejected even with a plain filename."""
+    secret = tmp_path / "secret.txt"
+    secret.write_text("nope")
+    link = query_paths.opportunities_dir / "2026-05-acme-em" / "evil"
+    link.symlink_to(secret)
+    q = OpportunityQuery(query_paths)
+    with pytest.raises(ValueError, match="must be inside"):
+        q.read_file("acme", "evil")

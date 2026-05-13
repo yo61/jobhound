@@ -12,6 +12,7 @@ from jobhound.commands import contact as cmd_contact
 from jobhound.commands import decline as cmd_decline
 from jobhound.commands import delete as cmd_delete
 from jobhound.commands import edit as cmd_edit
+from jobhound.commands import export as cmd_export
 from jobhound.commands import ghost as cmd_ghost
 from jobhound.commands import link as cmd_link
 from jobhound.commands import list_ as cmd_list
@@ -48,3 +49,4 @@ app.command(cmd_archive.run, name="archive")
 app.command(cmd_delete.run, name="delete")
 app.command(cmd_sync.run, name="sync")
 app.command(cmd_show.run, name="show")
+app.command(cmd_export.run, name="export")

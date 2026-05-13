@@ -6,10 +6,10 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.config import load_config
-from jobhound.contact import Contact
-from jobhound.paths import paths_from_config
-from jobhound.repository import OpportunityRepository
+from jobhound.domain.contact import Contact
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.paths import paths_from_config
+from jobhound.infrastructure.repository import OpportunityRepository
 
 
 def run(

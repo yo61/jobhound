@@ -5,8 +5,8 @@ from __future__ import annotations
 import subprocess
 import sys
 
-from jobhound.config import load_config
-from jobhound.paths import paths_from_config
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.paths import paths_from_config
 
 
 def run() -> None:

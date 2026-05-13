@@ -2,7 +2,7 @@
 
 import subprocess
 
-from jobhound.meta_io import read_meta
+from jobhound.infrastructure.meta_io import read_meta
 
 
 def test_new_creates_directory_and_meta(tmp_jh, invoke) -> None:

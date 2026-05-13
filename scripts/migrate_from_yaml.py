@@ -15,10 +15,10 @@ from pathlib import Path
 
 import yaml
 
-from jobhound.config import load_config
-from jobhound.meta_io import validate, write_meta
-from jobhound.opportunities import Opportunity
-from jobhound.paths import paths_from_config
+from jobhound.domain.opportunities import Opportunity
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.meta_io import validate, write_meta
+from jobhound.infrastructure.paths import paths_from_config
 
 SOURCE_ROOT = Path("~/Documents/Projects/Job Hunting 2026-04").expanduser()
 SOURCE_OPPS = SOURCE_ROOT / "opportunities"

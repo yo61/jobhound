@@ -2,8 +2,8 @@
 
 import pytest
 
-from jobhound.status import Status
-from jobhound.transitions import (
+from jobhound.domain.status import Status
+from jobhound.domain.transitions import (
     InvalidTransitionError,
     log_options,
     require_transition,

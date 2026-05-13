@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from jobhound.config import Config
-from jobhound.opportunities import Opportunity
-from jobhound.paths import Paths, paths_from_config
-from jobhound.priority import Priority
-from jobhound.repository import OpportunityRepository
-from jobhound.slug import SlugNotFoundError
-from jobhound.status import Status
+from jobhound.domain.opportunities import Opportunity
+from jobhound.domain.priority import Priority
+from jobhound.domain.slug import SlugNotFoundError
+from jobhound.domain.status import Status
+from jobhound.infrastructure.config import Config
+from jobhound.infrastructure.paths import Paths, paths_from_config
+from jobhound.infrastructure.repository import OpportunityRepository
 
 
 def _make_config(tmp_path: Path) -> Config:

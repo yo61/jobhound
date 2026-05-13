@@ -7,9 +7,9 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.config import load_config
-from jobhound.paths import Paths, paths_from_config
-from jobhound.repository import OpportunityRepository
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.paths import Paths, paths_from_config
+from jobhound.infrastructure.repository import OpportunityRepository
 
 
 def run(

@@ -6,10 +6,10 @@ from datetime import date
 
 import pytest
 
-from jobhound.opportunities import Opportunity
-from jobhound.priority import Priority
-from jobhound.status import Status
-from jobhound.transitions import InvalidTransitionError
+from jobhound.domain.opportunities import Opportunity
+from jobhound.domain.priority import Priority
+from jobhound.domain.status import Status
+from jobhound.domain.transitions import InvalidTransitionError
 
 
 def _prospect() -> Opportunity:
@@ -224,7 +224,7 @@ def test_with_priority_sets_value() -> None:
 
 
 def test_with_contact_appends() -> None:
-    from jobhound.contact import Contact
+    from jobhound.domain.contact import Contact
 
     opp = _prospect()
     after = opp.with_contact(Contact(name="Jane", role="Recruiter"))
@@ -232,7 +232,7 @@ def test_with_contact_appends() -> None:
 
 
 def test_with_contact_requires_name() -> None:
-    from jobhound.contact import Contact
+    from jobhound.domain.contact import Contact
 
     with pytest.raises(ValueError):
         Contact(name="")

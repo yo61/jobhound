@@ -8,8 +8,8 @@ from typing import Any
 
 import tomli_w
 
-from jobhound.opportunities import Opportunity, opportunity_from_dict
-from jobhound.slug_value import Slug
+from jobhound.domain.opportunities import Opportunity, opportunity_from_dict
+from jobhound.domain.slug_value import Slug
 
 
 class ValidationError(Exception):

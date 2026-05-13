@@ -7,10 +7,10 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from jobhound.contact import Contact
-from jobhound.priority import Priority
-from jobhound.status import Status
-from jobhound.transitions import require_transition
+from jobhound.domain.contact import Contact
+from jobhound.domain.priority import Priority
+from jobhound.domain.status import Status
+from jobhound.domain.transitions import require_transition
 
 STALE_DAYS: int = 14
 GHOSTED_DAYS: int = 21

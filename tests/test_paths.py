@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from jobhound.config import Config
-from jobhound.paths import Paths, paths_from_config
+from jobhound.infrastructure.config import Config
+from jobhound.infrastructure.paths import Paths, paths_from_config
 
 
 def test_paths_layout(tmp_path: Path) -> None:

@@ -2,7 +2,7 @@
 
 import subprocess
 
-from jobhound.meta_io import read_meta
+from jobhound.infrastructure.meta_io import read_meta
 
 
 def _seed(tmp_path, invoke, target_status: str) -> None:

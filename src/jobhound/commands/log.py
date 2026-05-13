@@ -10,10 +10,10 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.config import load_config
-from jobhound.paths import paths_from_config
-from jobhound.repository import OpportunityRepository
-from jobhound.transitions import InvalidTransitionError
+from jobhound.domain.transitions import InvalidTransitionError
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.paths import paths_from_config
+from jobhound.infrastructure.repository import OpportunityRepository
 
 _NAME_SLUG = re.compile(r"[^a-z0-9]+")
 

@@ -6,7 +6,7 @@ from datetime import date
 
 import pytest
 
-from jobhound.slug_value import Slug
+from jobhound.domain.slug_value import Slug
 
 
 def test_create_accepts_valid() -> None:

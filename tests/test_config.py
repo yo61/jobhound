@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from jobhound.config import load_config
+from jobhound.infrastructure.config import load_config
 
 
 @pytest.fixture

@@ -2,8 +2,8 @@
 
 import pytest
 
-from jobhound.meta_io import read_meta
-from jobhound.priority import Priority
+from jobhound.domain.priority import Priority
+from jobhound.infrastructure.meta_io import read_meta
 
 
 def _seed(invoke) -> None:

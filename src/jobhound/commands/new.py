@@ -8,13 +8,13 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.config import load_config
-from jobhound.opportunities import Opportunity
-from jobhound.paths import Paths, paths_from_config
-from jobhound.priority import Priority
-from jobhound.repository import OpportunityRepository
-from jobhound.slug_value import Slug
-from jobhound.status import Status
+from jobhound.domain.opportunities import Opportunity
+from jobhound.domain.priority import Priority
+from jobhound.domain.slug_value import Slug
+from jobhound.domain.status import Status
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.paths import Paths, paths_from_config
+from jobhound.infrastructure.repository import OpportunityRepository
 
 
 def run(

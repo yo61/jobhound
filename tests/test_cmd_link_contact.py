@@ -1,7 +1,7 @@
 """Tests for jh link and jh contact."""
 
-from jobhound.contact import Contact
-from jobhound.meta_io import read_meta
+from jobhound.domain.contact import Contact
+from jobhound.infrastructure.meta_io import read_meta
 
 
 def _seed(invoke) -> None:

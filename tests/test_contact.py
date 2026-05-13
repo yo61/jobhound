@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from jobhound.contact import Contact
+from jobhound.domain.contact import Contact
 
 
 def test_required_name() -> None:

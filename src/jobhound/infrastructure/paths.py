@@ -7,7 +7,7 @@ from pathlib import Path
 
 from xdg_base_dirs import xdg_cache_home, xdg_state_home
 
-from jobhound.config import Config
+from jobhound.infrastructure.config import Config
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from jobhound.slug import AmbiguousSlugError, SlugNotFoundError, resolve_slug
+from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError, resolve_slug
 
 
 def _seed(root: Path, names: list[str]) -> Path:

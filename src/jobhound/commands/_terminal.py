@@ -5,11 +5,11 @@ from __future__ import annotations
 import sys
 from datetime import date
 
-from jobhound.config import load_config
-from jobhound.opportunities import Opportunity
-from jobhound.paths import paths_from_config
-from jobhound.repository import OpportunityRepository
-from jobhound.transitions import InvalidTransitionError
+from jobhound.domain.opportunities import Opportunity
+from jobhound.domain.transitions import InvalidTransitionError
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.paths import paths_from_config
+from jobhound.infrastructure.repository import OpportunityRepository
 
 _METHODS = {
     "withdraw": Opportunity.withdraw,

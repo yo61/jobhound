@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from jobhound.status import STAY, Status
+from jobhound.domain.status import STAY, Status
 
 
 class InvalidTransitionError(Exception):

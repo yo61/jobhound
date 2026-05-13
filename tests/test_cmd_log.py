@@ -3,7 +3,7 @@
 import subprocess
 from datetime import date
 
-from jobhound.meta_io import read_meta
+from jobhound.infrastructure.meta_io import read_meta
 
 
 def _seed_applied(invoke) -> None:

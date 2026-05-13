@@ -10,10 +10,10 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.config import load_config
-from jobhound.meta_io import ValidationError, read_meta
-from jobhound.paths import paths_from_config
-from jobhound.repository import OpportunityRepository
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.meta_io import ValidationError, read_meta
+from jobhound.infrastructure.paths import paths_from_config
+from jobhound.infrastructure.repository import OpportunityRepository
 
 _ERROR_PREFIX = "# ERROR:"
 

@@ -7,10 +7,10 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.config import load_config
-from jobhound.paths import paths_from_config
-from jobhound.priority import Priority
-from jobhound.repository import OpportunityRepository
+from jobhound.domain.priority import Priority
+from jobhound.infrastructure.config import load_config
+from jobhound.infrastructure.paths import paths_from_config
+from jobhound.infrastructure.repository import OpportunityRepository
 
 
 def run(

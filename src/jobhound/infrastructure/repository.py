@@ -12,12 +12,12 @@ import shutil
 from collections.abc import Iterator
 from pathlib import Path
 
-from jobhound.config import Config
-from jobhound.git import commit_change, ensure_repo
-from jobhound.meta_io import read_meta, write_meta
-from jobhound.opportunities import Opportunity
-from jobhound.paths import Paths
-from jobhound.slug import resolve_slug
+from jobhound.domain.opportunities import Opportunity
+from jobhound.domain.slug import resolve_slug
+from jobhound.infrastructure.config import Config
+from jobhound.infrastructure.git import commit_change, ensure_repo
+from jobhound.infrastructure.meta_io import read_meta, write_meta
+from jobhound.infrastructure.paths import Paths
 
 
 class OpportunityRepository:

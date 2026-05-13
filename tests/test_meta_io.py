@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from jobhound.contact import Contact
-from jobhound.meta_io import ValidationError, read_meta, validate, write_meta
-from jobhound.opportunities import Opportunity
-from jobhound.priority import Priority
-from jobhound.status import Status
+from jobhound.domain.contact import Contact
+from jobhound.domain.opportunities import Opportunity
+from jobhound.domain.priority import Priority
+from jobhound.domain.status import Status
+from jobhound.infrastructure.meta_io import ValidationError, read_meta, validate, write_meta
 
 
 def _full_opp(slug: str = "2026-05-foo-engineer") -> Opportunity:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from jobhound.git import commit_change, ensure_repo
+from jobhound.infrastructure.git import commit_change, ensure_repo
 
 
 def _git(*args: str, cwd: Path) -> str:

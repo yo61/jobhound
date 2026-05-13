@@ -4,14 +4,14 @@ from datetime import date
 
 import pytest
 
-from jobhound.opportunities import (
+from jobhound.domain.opportunities import (
     GHOSTED_DAYS,
     STALE_DAYS,
     Opportunity,
     opportunity_from_dict,
 )
-from jobhound.priority import Priority
-from jobhound.status import Status
+from jobhound.domain.priority import Priority
+from jobhound.domain.status import Status
 
 
 def _make(**overrides: object) -> Opportunity:

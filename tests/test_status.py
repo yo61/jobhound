@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from jobhound.status import STAY, Status
+from jobhound.domain.status import STAY, Status
 
 
 def test_string_equality_holds() -> None:

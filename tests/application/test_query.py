@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from jobhound.application.query import Filters, OpportunityQuery
-from jobhound.application.snapshots import OpportunitySnapshot
+from jobhound.application.snapshots import OpportunitySnapshot, Stats
 from jobhound.domain.priority import Priority
 from jobhound.domain.slug import SlugNotFoundError
 from jobhound.domain.status import Status
@@ -180,3 +180,45 @@ def test_read_file_rejects_symlink_escape(query_paths: Paths, tmp_path: Path) ->
     q = OpportunityQuery(query_paths)
     with pytest.raises(ValueError, match="must be inside"):
         q.read_file("acme", "evil")
+
+
+def test_stats_funnel_includes_every_status(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    stats = q.stats()
+    assert isinstance(stats, Stats)
+    assert set(stats.funnel.keys()) == set(Status)
+    assert stats.funnel[Status.APPLIED] == 1
+    assert stats.funnel[Status.SCREEN] == 1
+    assert stats.funnel[Status.REJECTED] == 0
+
+
+def test_stats_sources(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    stats = q.stats()
+    assert stats.sources == {"LinkedIn": 1, "Referral": 1}
+
+
+def test_stats_marks_unspecified_source(query_paths: Paths) -> None:
+    new_dir = query_paths.opportunities_dir / "2026-05-no-source"
+    new_dir.mkdir()
+    (new_dir / "meta.toml").write_text(
+        'company = "X"\nrole = "Y"\nslug = "2026-05-no-source"\n'
+        'status = "applied"\npriority = "medium"\n',
+    )
+    q = OpportunityQuery(query_paths)
+    stats = q.stats()
+    assert stats.sources["(unspecified)"] == 1
+
+
+def test_stats_respects_filters(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    stats = q.stats(Filters(statuses=frozenset({Status.APPLIED})))
+    assert stats.funnel[Status.APPLIED] == 1
+    assert stats.funnel[Status.SCREEN] == 0
+    assert stats.sources == {"LinkedIn": 1}
+
+
+def test_stats_include_archived(query_paths: Paths) -> None:
+    q = OpportunityQuery(query_paths)
+    stats = q.stats(Filters(include_archived=True))
+    assert stats.funnel[Status.REJECTED] == 1

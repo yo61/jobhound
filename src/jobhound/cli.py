@@ -19,6 +19,7 @@ from jobhound.commands import log as cmd_log
 from jobhound.commands import new as cmd_new
 from jobhound.commands import note as cmd_note
 from jobhound.commands import priority as cmd_priority
+from jobhound.commands import show as cmd_show
 from jobhound.commands import sync as cmd_sync
 from jobhound.commands import tag as cmd_tag
 from jobhound.commands import withdraw as cmd_withdraw
@@ -46,3 +47,4 @@ app.command(cmd_edit.run, name="edit")
 app.command(cmd_archive.run, name="archive")
 app.command(cmd_delete.run, name="delete")
 app.command(cmd_sync.run, name="sync")
+app.command(cmd_show.run, name="show")

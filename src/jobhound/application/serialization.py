@@ -11,6 +11,7 @@ HTTP daemon, and any future export format share these helpers.
 from __future__ import annotations
 
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
 from jobhound.application.snapshots import (
@@ -80,4 +81,34 @@ def stats_to_dict(stats: Stats) -> dict[str, Any]:
     return {
         "funnel": {status.value: count for status, count in stats.funnel.items()},
         "sources": dict(stats.sources),
+    }
+
+
+def list_envelope(
+    snapshots: list[OpportunitySnapshot],
+    *,
+    timestamp: datetime,
+    db_root: Path,
+) -> dict[str, Any]:
+    """Build the bulk-export envelope (jh export)."""
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "timestamp": _datetime_to_z(timestamp),
+        "db_root": str(db_root),
+        "opportunities": [snapshot_to_dict(s) for s in snapshots],
+    }
+
+
+def show_envelope(
+    snapshot: OpportunitySnapshot,
+    *,
+    timestamp: datetime,
+    db_root: Path,
+) -> dict[str, Any]:
+    """Build the single-opportunity envelope (jh show --json)."""
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "timestamp": _datetime_to_z(timestamp),
+        "db_root": str(db_root),
+        "opportunity": snapshot_to_dict(snapshot),
     }

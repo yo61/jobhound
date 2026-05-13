@@ -10,6 +10,8 @@ from typing import Any
 from jobhound.application.serialization import (
     SCHEMA_VERSION,
     file_entry_to_dict,
+    list_envelope,
+    show_envelope,
     snapshot_to_dict,
     stats_to_dict,
 )
@@ -157,3 +159,39 @@ def test_snapshot_to_dict_is_json_dumpable() -> None:
     )
     text = json.dumps(snapshot_to_dict(snap))
     assert "2026-05-acme-em" in text
+
+
+def test_list_envelope_shape() -> None:
+    snap = _snapshot()
+    ts = datetime(2026, 5, 12, 14, 23, 45, 121000, tzinfo=UTC)
+    db_root = Path("/Users/test/.local/share/jh")
+    env = list_envelope([snap], timestamp=ts, db_root=db_root)
+    assert env["schema_version"] == SCHEMA_VERSION
+    assert env["timestamp"] == "2026-05-12T14:23:45.121000Z"
+    assert env["db_root"] == "/Users/test/.local/share/jh"
+    assert isinstance(env["opportunities"], list)
+    assert env["opportunities"][0]["slug"] == "2026-05-acme-em"
+
+
+def test_list_envelope_empty_opportunities() -> None:
+    ts = datetime(2026, 5, 12, 14, 0, 0, tzinfo=UTC)
+    env = list_envelope([], timestamp=ts, db_root=Path("/x"))
+    assert env["opportunities"] == []
+
+
+def test_show_envelope_uses_singular_key() -> None:
+    snap = _snapshot()
+    ts = datetime(2026, 5, 12, 14, 0, 0, tzinfo=UTC)
+    env = show_envelope(snap, timestamp=ts, db_root=Path("/x"))
+    assert "opportunity" in env
+    assert "opportunities" not in env
+    assert env["opportunity"]["slug"] == "2026-05-acme-em"
+
+
+def test_envelopes_are_json_dumpable() -> None:
+    snap = _snapshot()
+    ts = datetime(2026, 5, 12, 14, 0, 0, tzinfo=UTC)
+    list_text = json.dumps(list_envelope([snap], timestamp=ts, db_root=Path("/x")))
+    show_text = json.dumps(show_envelope(snap, timestamp=ts, db_root=Path("/x")))
+    assert "2026-05-acme-em" in list_text
+    assert "2026-05-acme-em" in show_text

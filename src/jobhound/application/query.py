@@ -12,7 +12,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import TypeAlias
 
-from jobhound.application.snapshots import ComputedFlags, FileEntry, OpportunitySnapshot
+from jobhound.application.snapshots import ComputedFlags, FileEntry, OpportunitySnapshot, Stats
 from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.priority import Priority
 from jobhound.domain.slug import SlugNotFoundError, resolve_slug
@@ -147,3 +147,18 @@ class OpportunityQuery:
                 f"filename must be inside the opportunity directory: {filename}",
             )
         return target.read_bytes()
+
+    def stats(self, filters: Filters = _NO_FILTERS) -> Stats:
+        """Aggregate counts over the (filtered) opportunity set.
+
+        Funnel + sources are time-independent, so the `today` passed to
+        list() here is irrelevant for the result.
+        """
+        snaps = self.list(filters, today=date.today())
+        funnel: dict[Status, int] = {status: 0 for status in Status}
+        sources: dict[str, int] = {}
+        for snap in snaps:
+            funnel[snap.opportunity.status] += 1
+            key = snap.opportunity.source or "(unspecified)"
+            sources[key] = sources.get(key, 0) + 1
+        return Stats(funnel=funnel, sources=sources)

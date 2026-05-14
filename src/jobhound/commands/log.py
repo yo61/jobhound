@@ -10,11 +10,12 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.application import lifecycle_service
+from jobhound.application import file_service, lifecycle_service
 from jobhound.domain.transitions import InvalidTransitionError
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
+from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
 _NAME_SLUG = re.compile(r"[^a-z0-9]+")
 
@@ -45,6 +46,7 @@ def run(
     """Record an interaction (correspondence) and update status + next action."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
+    store = GitLocalFileStore(repo.paths)
     today_date = date.fromisoformat(today) if today else date.today()
 
     if direction not in {"from", "to"}:
@@ -56,13 +58,14 @@ def run(
 
     due = date.fromisoformat(next_action_due) if next_action_due else None
 
-    # Write the correspondence file BEFORE the service call so the service's
-    # repo.save (which uses `git add -A`) picks it up in the same commit.
     _, opp_dir = repo.find(slug_query)
-    corr_dir = opp_dir / "correspondence"
-    corr_dir.mkdir(exist_ok=True)
-    corr_path = corr_dir / _correspondence_filename(today_date, channel, direction, who)
-    corr_path.write_text(body.read_text())
+    corr_name = _correspondence_filename(today_date, channel, direction, who)
+    file_service.write(
+        store,
+        opp_dir.name,
+        f"correspondence/{corr_name}",
+        body.read_bytes(),
+    )
 
     try:
         before, after, _ = lifecycle_service.log_interaction(

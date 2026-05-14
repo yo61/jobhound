@@ -33,7 +33,7 @@ from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-app = App(name="file", help="Manage files inside an opportunity directory.")
+app = App(name="file", help="Manage files inside an opportunity.")
 
 
 def _store_and_slug(slug_query: str) -> tuple[GitLocalFileStore, str]:
@@ -86,7 +86,7 @@ def _handle_error(exc: Exception) -> None:
 
 @app.command(name="list")
 def list_(slug: str, /) -> None:
-    """List files inside an opportunity directory."""
+    """List files inside an opportunity."""
     try:
         store, canonical = _store_and_slug(slug)
         entries = file_service.list_(store, canonical)

@@ -55,6 +55,12 @@ In scope:
 - Five new MCP tools (`write_file`, `import_file`, `export_file`,
   `append_file`, `delete_file`), plus moving the existing `list_files`
   and `read_file` from `mcp/tools/reads.py` to `mcp/tools/files.py`.
+- A matching CLI subcommand group `jh file {list, show, write, append,
+  delete}` so users get the same capability without ever needing to
+  reach into the underlying storage directly. **This is essential for
+  backend portability** — with a non-FS adapter (S3, sqlite, remote
+  git), there is no local path the user could `cp` or `cat`; the CLI
+  must mediate.
 - Migration of `ops_service.add_note` and `commands/log.py`'s
   correspondence-write to use the new service.
 - Optimistic-concurrency conflict detection on every write, with 3-way
@@ -67,8 +73,6 @@ Out of scope (deferred):
 - `OpportunityRepository`-as-port refactor — same Protocol pattern
   applied to `meta.toml` reads/writes, archive, and delete. Bigger;
   separate spec.
-- CLI file commands (`jh file list/show/add/rm`). CLI users have
-  `ls`/`cat`/`cp`/`rm`; a `jh file` wrapper adds no ergonomics.
 - Subdirectory listing API (`list_dir(subpath)`). Existing `list_files`
   is already recursive.
 - Quota / size limits.
@@ -118,6 +122,13 @@ src/jobhound/
     ...
 
   commands/
+    file.py                     # NEW — `jh file` subcommand group:
+                                #   jh file list   <slug>
+                                #   jh file show   <slug> <name> [--out <path>]
+                                #   jh file write  <slug> <name> {--content <s> | --from <p>}
+                                #                                [--overwrite] [--base-revision <r>]
+                                #   jh file append <slug> <name> {--content <s> | --from <p>}
+                                #   jh file delete <slug> <name> [--base-revision <r>]
     log.py                      # MIGRATED — correspondence write delegates
                                 # to file_service.write
 ```
@@ -240,6 +251,42 @@ data root that may not exist yet) creates a chicken-and-egg problem.
 documented exception. A comment in the code points at this spec.
 Auditing pass (Step 6 of §Sequencing) treats this as a known
 exclusion.
+
+### CLI subcommand surface
+
+The CLI is a peer adapter to the MCP server: both call `file_service`,
+neither talks directly to the storage backend. **This is what makes the
+`FileStore` Protocol genuinely portable** — when an S3 or sqlite
+adapter ships, `jh file show acme cv.md` still works, with no user
+intervention beyond installing the right backend config.
+
+| Command | Args / flags | Maps to |
+|---|---|---|
+| `jh file list <slug>` | (none) | `file_service.list` |
+| `jh file show <slug> <name>` | `--out <path>` (when set, exports rather than printing); `--rev <r>` to retrieve a specific revision (future, not v1) | `file_service.read` or `.export` |
+| `jh file write <slug> <name>` | `--content <str>` xor `--from <path>`; `--overwrite` opt-in; `--base-revision <r>` for scripted-edit flows | `file_service.write` or `.import_` |
+| `jh file append <slug> <name>` | `--content <str>` xor `--from <path>` | `file_service.append` |
+| `jh file delete <slug> <name>` | `--base-revision <r>` opt; `--yes` to skip confirmation prompt | `file_service.delete` |
+
+Conflict-detection behaviour from the user's terminal:
+
+- **`conflict_text` from `jh file write`**: prints conflict-marker output
+  to stderr, exits non-zero. User can manually merge and retry, or
+  re-read with `jh file show ... --out /tmp/x` and edit.
+- **`conflict_binary`**: prints `conflict_binary: current revision <X>,
+  size <Y>, last modified <Z>. Suggested alt: <name>. Re-run with
+  --overwrite to clobber, or use --from <path>` to stderr. Exits
+  non-zero.
+- **`file_exists` (write without `--base-revision`, no `--overwrite`)**:
+  prints helpful error pointing at `--overwrite`.
+- **`meta_toml_protected`**: prints `jh: meta.toml is protected; use one
+  of: jh apply, jh log, jh priority, ...` and exits non-zero.
+
+The CLI does NOT track `base_revision` automatically — users who want
+optimistic concurrency from the shell are scripting, and scripts can
+capture revisions from `jh file show` output (revision is printed to
+stderr or as part of a structured output mode). For interactive use,
+`--overwrite` is the escape hatch and the user takes the risk.
 
 ### MCP tool surface
 
@@ -469,6 +516,7 @@ Tests split along the port/adapter line.
 | `GitLocalFileStore` (adapter — translates protocol to FS + git) | Against `tmp_path` git-init'd data root | `git_local_store` |
 | `revisions.py` (NewType wrapper) | Pure unit tests | none |
 | MCP `mcp/tools/files.py` | `call_tool` pattern (existing) with `InMemoryFileStore` | `mcp_paths` + `in_memory_store` |
+| CLI `commands/file.py` | `invoke` fixture (existing) with `tmp_jh` — exercises the git-local adapter end-to-end since the CLI is the user-facing peer | `tmp_jh` + `invoke` |
 | Stdio integration smoke | One stdio round-trip for a file API call | existing `stdio` fixture |
 | Existing service tests (`add_note`, `log_interaction`) | Continue passing through the migration | both fixtures |
 
@@ -530,11 +578,15 @@ tests/
   mcp/
     test_tools_files.py              # ~15 tests: one happy + one error per tool
     conftest.py                      # adds in_memory_store fixture
+
+  test_cmd_file.py                   # ~10 tests: jh file list/show/write/
+                                     # append/delete, plus conflict-error
+                                     # surfacing
 ```
 
 ### Estimated count
 
-~52–57 new tests. Current suite is 307; after this spec lands, ~360.
+~62–67 new tests (the file_service tests + adapter tests + MCP tool tests + ~10 new CLI command tests). Current suite is 307; after this spec lands, ~370.
 
 ### What we don't test heavily
 
@@ -581,39 +633,52 @@ alone, fully tested.
 
 After this step, the AI has the full file API. MCP tool count: 32 → 37.
 
-**Step 4 — Migrate `ops_service.add_note` to use `file_service.append`.**
+**Step 4 — CLI file subcommand group.**
+
+- Add `commands/file.py` with the 5 subcommands
+  (`list`/`show`/`write`/`append`/`delete`).
+- Register the subcommand group in `cli.py` (cyclopts supports nested
+  app construction).
+- Each subcommand calls `file_service.<op>` with a `GitLocalFileStore`
+  built from `paths_from_config`.
+
+After this step, the CLI is a peer adapter to MCP. Backend portability
+is real.
+
+**Step 5 — Migrate `ops_service.add_note` to use `file_service.append`.**
 
 First existing service to drop direct FS access. `test_ops_service.py`
 must stay green (with the two-commits-per-call adjustment if any test
 asserted on commit count).
 
-**Step 5 — Migrate `commands/log.py` correspondence-write to use
+**Step 6 — Migrate `commands/log.py` correspondence-write to use
 `file_service.write`.**
 
-Same shape as Step 4.
+Same shape as Step 5.
 
-**Step 6 — Audit + flag remaining direct-FS access.**
+**Step 7 — Audit + flag remaining direct-FS access.**
 
 Grep `src/jobhound/` for direct file ops. Any remaining inside
 `commands/` or `application/` (excluding `repository.create`
 scaffolding) is a bug.
 
-**Step 7 — Docs.**
+**Step 8 — Docs.**
 
-Update `README.md`'s "AI integration (MCP)" section to mention the
-file tools.
+Update `README.md` with both the new MCP file tools AND the `jh file`
+subcommand group.
 
 ### PR shape
 
 Recommended: **two PRs**.
 
-- **PR A:** Steps 1–3 (foundations + MCP tools, no existing-code
-  changes). Lands the new API surface. AI gains all 7 file tools.
-- **PR B:** Steps 4–7 (the migrations + audit + docs). Converts legacy
+- **PR A:** Steps 1–4 (foundations + MCP tools + CLI subcommands).
+  Lands the full peer-adapter surface — both AI and CLI use the new
+  service. No existing-code changes yet.
+- **PR B:** Steps 5–8 (the migrations + audit + docs). Converts legacy
   callers; cleans up the last direct-FS access.
 
-This sequencing lets the AI use the API the moment PR A lands, without
-time pressure on the migration work.
+This sequencing lets both adapters (MCP and CLI) use the API the
+moment PR A lands, without time pressure on the migration work.
 
 ## Open questions for review
 
@@ -642,7 +707,10 @@ None at the time of writing. The Q&A that produced this spec resolved:
   without touching application or MCP layers.
 - **`repository.create` scaffolding** stays direct as a documented
   exception (chicken-and-egg with the data root not yet existing).
-- **CLI file commands** explicitly not added (shell tools cover it).
+- **CLI file commands** added as a peer adapter (`jh file
+  list/show/write/append/delete`) — essential for backend portability
+  (with non-FS adapters, the user can't reach the store directly via
+  shell).
 - **No `no_commit`** in this spec; broader removal is task #43.
 - **Timestamp migration** (task #35) is independent.
 

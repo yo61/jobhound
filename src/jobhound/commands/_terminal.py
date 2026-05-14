@@ -5,17 +5,17 @@ from __future__ import annotations
 import sys
 from datetime import date
 
-from jobhound.domain.opportunities import Opportunity
+from jobhound.application import lifecycle_service
 from jobhound.domain.transitions import InvalidTransitionError
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 
-_METHODS = {
-    "withdraw": Opportunity.withdraw,
-    "ghost": Opportunity.ghost,
-    "accept": Opportunity.accept,
-    "decline": Opportunity.decline,
+_SERVICES = {
+    "withdraw": lifecycle_service.withdraw_from,
+    "ghost": lifecycle_service.mark_ghosted,
+    "accept": lifecycle_service.accept_offer,
+    "decline": lifecycle_service.decline_offer,
 }
 
 
@@ -26,18 +26,16 @@ def run_transition(
     today: str | None,
     no_commit: bool,
 ) -> None:
-    """Move an opportunity to its terminal status via the entity method."""
+    """Move an opportunity to its terminal status via the application service."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     today_date = date.fromisoformat(today) if today else date.today()
-    opp, opp_dir = repo.find(slug_query)
 
-    method = _METHODS[verb]
+    service_fn = _SERVICES[verb]
     try:
-        updated = method(opp, today=today_date)
+        _, after, _ = service_fn(repo, slug_query, today=today_date, no_commit=no_commit)
     except InvalidTransitionError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc
 
-    repo.save(updated, opp_dir, message=f"{verb}: {opp.slug}", no_commit=no_commit)
-    print(f"{verb}: {opp.slug}")
+    print(f"{verb}: {after.slug}")

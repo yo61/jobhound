@@ -80,6 +80,23 @@ def test_remove_tag(tmp_path: Path) -> None:
     assert after.tags == ("fintech",)
 
 
+def test_add_contact_with_company_and_note(tmp_path: Path) -> None:
+    repo = _seeded_repo(tmp_path)
+    _, after, _ = relation_service.add_contact(
+        repo,
+        "acme",
+        name="Jane Doe",
+        role="Recruiter",
+        channel="email",
+        company="Acme HR",
+        note="warm intro",
+    )
+    c = after.contacts[0]
+    assert c.name == "Jane Doe"
+    assert c.company == "Acme HR"
+    assert c.note == "warm intro"
+
+
 def test_add_contact_appends(tmp_path: Path) -> None:
     repo = _seeded_repo(tmp_path)
     _, after, _ = relation_service.add_contact(

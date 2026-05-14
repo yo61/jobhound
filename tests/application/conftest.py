@@ -7,4 +7,12 @@ It builds a `tmp_path` data root with three opportunities:
 - one archived ("gamma", in archive/)
 """
 
+import pytest
+
 from tests.conftest import TODAY  # noqa: F401  re-export for tests that import it directly
+from tests.storage.in_memory import InMemoryFileStore
+
+
+@pytest.fixture
+def in_memory_store() -> InMemoryFileStore:
+    return InMemoryFileStore()

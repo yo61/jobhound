@@ -7,6 +7,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from jobhound.application import field_service
 from jobhound.domain.priority import Priority
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
@@ -28,9 +29,5 @@ def run(
         raise SystemExit(1) from None
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
-    opp, opp_dir = repo.find(slug_query)
-    updated = opp.with_priority(priority)
-    repo.save(
-        updated, opp_dir, message=f"priority: {opp.slug} {priority.value}", no_commit=no_commit
-    )
-    print(f"priority {opp.slug}: {priority.value}")
+    _, after, _ = field_service.set_priority(repo, slug_query, priority, no_commit=no_commit)
+    print(f"priority {after.slug}: {after.priority.value}")

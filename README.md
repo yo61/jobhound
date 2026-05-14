@@ -41,6 +41,55 @@ Per-opportunity data is stored under `$XDG_DATA_HOME/jh/` (defaults to
 correspondence. The data root is a git repo with auto-commits on every
 state change — your history is auditable and you can push it anywhere.
 
+## AI integration (MCP)
+
+`jh` ships a Model Context Protocol server so AI clients (Claude
+Desktop, Claude Code, Continue, Zed, …) can read and modify your job
+hunt directly. All 32 CLI verbs are exposed as MCP tools.
+
+Install the optional extra:
+
+```bash
+uv tool install 'jobhound[mcp]'
+```
+
+Then point your MCP client at the server. For Claude Desktop, add to
+`claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "jobhound": {
+      "command": "jh",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+For zero-install discovery (no `uv tool install` needed):
+
+```json
+{
+  "mcpServers": {
+    "jobhound": {
+      "command": "uvx",
+      "args": ["--from", "jobhound[mcp]", "jh-mcp"]
+    }
+  }
+}
+```
+
+The same pattern works for Claude Code (`.mcp.json`), Continue, Zed,
+and any other MCP-spec-compliant client.
+
+By default the AI gets full CLI parity — including writes. Most MCP
+clients show each tool call to the user before executing it; that's
+the consent layer. The one tool that requires explicit
+double-confirmation is `delete_opportunity`, which needs `confirm=true`
+in the call args (otherwise it returns a preview only, no side
+effects).
+
 ## Status
 
 Pre-1.0. The CLI surface is stable; semantic-versioned releases via

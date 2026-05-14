@@ -414,3 +414,49 @@ def test_append_rejects_hidden(in_memory_store: InMemoryFileStore) -> None:
 def test_append_commit_message_format(in_memory_store: InMemoryFileStore) -> None:
     append(in_memory_store, "acme", "notes.md", b"x")
     assert in_memory_store.commit_log == ["file: append acme/notes.md"]
+
+
+# ---- delete tests (Task 8: three-case delete) ---------------------------
+
+from jobhound.application.file_service import DeleteStaleBaseError, delete  # noqa: E402
+
+
+def test_delete_succeeds_no_base_revision(in_memory_store: InMemoryFileStore) -> None:
+    in_memory_store.write("acme", "cv.md", b"x", commit_message="seed")
+    revision = delete(in_memory_store, "acme", "cv.md")
+    assert not in_memory_store.exists("acme", "cv.md")
+    assert revision  # truthy — was the pre-deletion revision
+
+
+def test_delete_missing_raises(in_memory_store: InMemoryFileStore) -> None:
+    with pytest.raises(FileNotFoundError):
+        delete(in_memory_store, "acme", "missing.md")
+
+
+def test_delete_with_matching_base_revision_succeeds(in_memory_store: InMemoryFileStore) -> None:
+    in_memory_store.write("acme", "cv.md", b"x", commit_message="seed")
+    rev = in_memory_store.compute_revision("acme", "cv.md")
+    delete(in_memory_store, "acme", "cv.md", base_revision=rev)
+    assert not in_memory_store.exists("acme", "cv.md")
+
+
+def test_delete_with_stale_base_revision_raises(in_memory_store: InMemoryFileStore) -> None:
+    in_memory_store.write("acme", "cv.md", b"v1", commit_message="seed")
+    rev1 = in_memory_store.compute_revision("acme", "cv.md")
+    in_memory_store.write("acme", "cv.md", b"v2", commit_message="other")
+    with pytest.raises(DeleteStaleBaseError) as exc:
+        delete(in_memory_store, "acme", "cv.md", base_revision=rev1)
+    assert exc.value.filename == "cv.md"
+    assert exc.value.base_revision == rev1
+    assert exc.value.current_revision != rev1
+
+
+def test_delete_rejects_meta_toml(in_memory_store: InMemoryFileStore) -> None:
+    with pytest.raises(MetaTomlProtectedError):
+        delete(in_memory_store, "acme", "meta.toml")
+
+
+def test_delete_commit_message_format(in_memory_store: InMemoryFileStore) -> None:
+    in_memory_store.write("acme", "cv.md", b"x", commit_message="seed")
+    delete(in_memory_store, "acme", "cv.md")
+    assert in_memory_store.commit_log[-1] == "file: delete acme/cv.md"

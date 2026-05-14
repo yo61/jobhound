@@ -198,6 +198,21 @@ class BinaryConflictError(FileServiceError):
         self.suggested_alt_name = suggested_alt_name
 
 
+class DeleteStaleBaseError(FileServiceError):
+    """Delete with a stale base_revision — disk has changed since AI read."""
+
+    def __init__(
+        self,
+        filename: str,
+        base_revision: Revision,
+        current_revision: Revision,
+    ) -> None:
+        super().__init__(f"delete with stale base revision: {filename}")
+        self.filename = filename
+        self.base_revision = base_revision
+        self.current_revision = current_revision
+
+
 class BaseRevisionUnrecoverableError(FileServiceError):
     """Base revision bytes cannot be retrieved from the store.
 
@@ -448,3 +463,31 @@ def import_(
         base_revision=base_revision,
         overwrite=overwrite,
     )
+
+
+def delete(
+    store: FileStore,
+    slug: str,
+    filename: str,
+    *,
+    base_revision: Revision | None = None,
+) -> Revision:
+    """Delete a file. Returns the revision it was at before deletion.
+
+    With `base_revision`: refuse if revisions don't match (stale view).
+    Without `base_revision`: delete unconditionally if file exists.
+    Raises FileNotFoundError if the file does not exist.
+    Raises DeleteStaleBaseError if `base_revision` is provided but stale.
+    """
+    _validate_filename(filename, for_write=True)
+    if not store.exists(slug, filename):
+        raise FileNotFoundError(f"{slug}/{filename}")
+    current = store.compute_revision(slug, filename)
+    if base_revision is not None and base_revision != current:
+        raise DeleteStaleBaseError(filename, base_revision, current)
+    store.delete(
+        slug,
+        filename,
+        commit_message=f"file: delete {slug}/{filename}",
+    )
+    return current

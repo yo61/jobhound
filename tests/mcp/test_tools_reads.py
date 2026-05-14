@@ -89,3 +89,23 @@ def test_read_file_traversal_returns_error(
 ) -> None:
     payload = json.loads(read_file(repo, "acme", "../../../etc/passwd"))
     assert payload["error"]["code"] == "path_outside_opp_dir"
+
+
+def test_list_opportunities_returns_error_on_corrupt_meta(
+    mcp_paths: Paths,
+    repo: OpportunityRepository,
+) -> None:
+    bad = mcp_paths.opportunities_dir / "2026-05-acme-em" / "meta.toml"
+    bad.write_text("this is not valid toml at all [[[")
+    payload = json.loads(list_opportunities(repo))
+    assert payload["error"]["code"] == "validation_error"
+
+
+def test_get_stats_returns_error_on_corrupt_meta(
+    mcp_paths: Paths,
+    repo: OpportunityRepository,
+) -> None:
+    bad = mcp_paths.opportunities_dir / "2026-05-acme-em" / "meta.toml"
+    bad.write_text("this is not valid toml at all [[[")
+    payload = json.loads(get_stats(repo))
+    assert payload["error"]["code"] == "validation_error"

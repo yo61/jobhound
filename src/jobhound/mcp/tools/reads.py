@@ -74,7 +74,10 @@ def list_opportunities(
     )
     if isinstance(f, dict):  # error response
         return json.dumps(f)
-    snaps = _query(repo).list(f, today=date.today())
+    try:
+        snaps = _query(repo).list(f, today=date.today())
+    except Exception as exc:
+        return json.dumps(exception_to_response(exc, tool="list_opportunities"))
     envelope = list_envelope(
         snaps,
         timestamp=datetime.now(UTC),
@@ -115,7 +118,10 @@ def get_stats(
     )
     if isinstance(f, dict):
         return json.dumps(f)
-    stats = _query(repo).stats(f)
+    try:
+        stats = _query(repo).stats(f)
+    except Exception as exc:
+        return json.dumps(exception_to_response(exc, tool="get_stats"))
     return json.dumps(stats_to_dict(stats))
 
 

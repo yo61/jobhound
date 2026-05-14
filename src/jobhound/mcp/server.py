@@ -30,8 +30,6 @@ def build_server() -> FastMCP:
     """Build a FastMCP app with all tools registered.
 
     Lazy-imports the SDK so the package is usable without the [mcp] extra.
-    Tools modules (Tasks 9-13) will be imported and registered here as
-    they land. For now this returns a bare FastMCP app with no tools.
     """
     _require_mcp_sdk()
     from mcp.server.fastmcp import FastMCP
@@ -42,9 +40,6 @@ def build_server() -> FastMCP:
 
     app = FastMCP(name="jobhound")
 
-    # Tool modules register their tools by calling app.tool() on their handlers.
-    # Each register_*(app, repo) function is added in Tasks 9-13.
-    # Uncomment each as the corresponding task lands:
     from jobhound.mcp.tools import reads
 
     reads.register(app, repo)

@@ -50,3 +50,13 @@ app.command(cmd_delete.run, name="delete")
 app.command(cmd_sync.run, name="sync")
 app.command(cmd_show.run, name="show")
 app.command(cmd_export.run, name="export")
+
+
+def _run_mcp() -> None:
+    """Entry point for `jh mcp` — starts the MCP server on stdio."""
+    from jobhound.mcp.server import main as mcp_main
+
+    mcp_main()
+
+
+app.command(_run_mcp, name="mcp")

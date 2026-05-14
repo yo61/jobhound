@@ -7,6 +7,7 @@ from typing import Annotated
 import questionary
 from cyclopts import Parameter
 
+from jobhound.application import ops_service
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
@@ -25,12 +26,16 @@ def run(
     """
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
-    _, opp_dir = repo.find(slug_query)
     if not yes:
+        _, opp_dir = repo.find(slug_query)
         confirm = questionary.confirm(f"Delete {opp_dir.name}?", default=False).ask()
         if not confirm:
             print("aborted")
             raise SystemExit(1)
-    name = opp_dir.name
-    repo.delete(opp_dir, no_commit=no_commit)
-    print(f"deleted: {name}")
+    result = ops_service.delete_opportunity(
+        repo,
+        slug_query,
+        confirm=True,
+        no_commit=no_commit,
+    )
+    print(f"deleted: {result.opp_dir.name}")

@@ -39,6 +39,22 @@ def remove_tag(
     return before, after, opp_dir
 
 
+def set_tags(
+    repo: OpportunityRepository,
+    slug: str,
+    *,
+    add: set[str],
+    remove: set[str],
+    no_commit: bool = False,
+) -> tuple[Opportunity, Opportunity, Path]:
+    """Apply add/remove tag deltas in one save. Matches `jh tag`'s batched form."""
+    before, opp_dir = repo.find(slug)
+    after = before.with_tags(add=add, remove=remove)
+    summary = " ".join([*(f"+{t}" for t in sorted(add)), *(f"-{t}" for t in sorted(remove))])
+    repo.save(after, opp_dir, message=f"tag: {after.slug} {summary}", no_commit=no_commit)
+    return before, after, opp_dir
+
+
 def add_contact(
     repo: OpportunityRepository,
     slug: str,

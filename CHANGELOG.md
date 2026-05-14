@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.5.0](https://github.com/yo61/jobhound/compare/v0.4.0...v0.5.0) (2026-05-14)
+
+
+### Features
+
+* **application:** add field_service for single-field setters ([d434938](https://github.com/yo61/jobhound/commit/d4349388deb1ebec864b1a79ba85b382cf999d24))
+* **application:** add lifecycle_service for state-transition orchestration ([98a734e](https://github.com/yo61/jobhound/commit/98a734e8a77fdc2619e41191e5101da177d820a4))
+* **application:** add ops_service for notes/archive/delete/sync ([7965c82](https://github.com/yo61/jobhound/commit/7965c82d547501aee2ba06d10bbf6c4311fffd80))
+* **application:** add relation_service for tags/contacts/links ([d2e45e2](https://github.com/yo61/jobhound/commit/d2e45e24e57a29543360027356d417a95bf49891))
+* **application:** thread no_commit through lifecycle_service functions ([254d2e3](https://github.com/yo61/jobhound/commit/254d2e30213f28061273fd6aed623b8b663ed6b1))
+* **cli:** register jh mcp subcommand ([aa6385a](https://github.com/yo61/jobhound/commit/aa6385a3d89cd55f3bb49aba36d338b68e98d505))
+* **domain:** carry structured candidates/query on slug exceptions ([fb0ed0e](https://github.com/yo61/jobhound/commit/fb0ed0e7c88ea4b8492840c64a05bf1b796c2138))
+* **mcp:** add converters (compute_diff + mutation_response) ([07f7fe2](https://github.com/yo61/jobhound/commit/07f7fe29983866cd0b709e337fdb4cadd06afd27))
+* **mcp:** add error mapping + extend InvalidTransitionError with structured fields ([5789c2a](https://github.com/yo61/jobhound/commit/5789c2a1df98ae0a2991e6519135a379e1ecbc3a))
+* **mcp:** add field tools (set_company/role/priority/status/...; touch) ([8a36c18](https://github.com/yo61/jobhound/commit/8a36c1833b3e1d9ab2713c3ffca26d8288930160))
+* **mcp:** add lifecycle tools (new/apply/log/withdraw/ghost/accept/decline) ([98283cd](https://github.com/yo61/jobhound/commit/98283cd0d320a2f48a57123669dc578f93b75343))
+* **mcp:** add ops tools (add_note/archive/delete/sync) ([15873bb](https://github.com/yo61/jobhound/commit/15873bb99a114e2a68a6d57575f56471b04e7cdb))
+* **mcp:** add read tools (list/get/stats/files/read_file) ([b588cd7](https://github.com/yo61/jobhound/commit/b588cd7960c797f0381c8571ca73e618132efd73))
+* **mcp:** add relation tools (add_tag/remove_tag/add_contact/set_link) ([10a3ce5](https://github.com/yo61/jobhound/commit/10a3ce53b235ac9fcf1c5125d82c859e88f2e576))
+* **mcp:** scaffold FastMCP server with lazy SDK import ([f4fee10](https://github.com/yo61/jobhound/commit/f4fee10a863a8511de6380898acd2d4af286c672))
+
+
+### Bug Fixes
+
+* **phase4:** address final-review findings ([b90fdaa](https://github.com/yo61/jobhound/commit/b90fdaa0d3ccbec0a6116f18db690ae0bacb4c9c))
+
+
+### Documentation
+
+* add phase 4 implementation plan ([7dc5ba3](https://github.com/yo61/jobhound/commit/7dc5ba3e47f81760bfe8054ed5702ad7236ad2d0))
+* document jh mcp + uvx jh-mcp install paths ([e935add](https://github.com/yo61/jobhound/commit/e935add17e9ae35d56d7733e5400fd81f0b1f67f))
+* spec phase 4 MCP server design ([8d08096](https://github.com/yo61/jobhound/commit/8d080960beba5abd4572068bdbf7beed9dceb074))
+* tighten phase 4 spec on DDD layering ([db60aa1](https://github.com/yo61/jobhound/commit/db60aa113c634a46886214577fc644cacd1f3b8d))
+
 ## [0.4.0](https://github.com/yo61/jobhound/compare/v0.3.0...v0.4.0) (2026-05-13)
 
 

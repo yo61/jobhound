@@ -374,6 +374,32 @@ def write(
     )
 
 
+def export(
+    store: FileStore,
+    slug: str,
+    filename: str,
+    dst_path: Path,
+    *,
+    overwrite: bool = False,
+) -> Revision:
+    """Copy a file's content to `dst_path`. Returns the revision at
+    time of export (so the AI can use it as `base_revision` later).
+
+    Auto-creates `dst_path`'s parent directory if missing.
+    Raises FileExistsError if `dst_path` exists and `overwrite=False`.
+    Raises FileNotFoundError if the source file doesn't exist.
+
+    `meta.toml` is allowed (reads are unrestricted).
+    """
+    _validate_filename(filename, for_write=False)
+    if dst_path.exists() and not overwrite:
+        raise FileExistsError(f"dst_path exists: {dst_path}")
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    content = store.read(slug, filename)
+    dst_path.write_bytes(content)
+    return store.compute_revision(slug, filename)
+
+
 def import_(
     store: FileStore,
     slug: str,

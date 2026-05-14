@@ -7,7 +7,7 @@ not call a separate `commit` — there is no transaction primitive.
 
 from __future__ import annotations
 
-from typing import Protocol, TypeAlias
+from typing import Protocol, TypeAlias, runtime_checkable
 
 from jobhound.application.revisions import Revision
 from jobhound.application.snapshots import FileEntry
@@ -16,6 +16,23 @@ from jobhound.application.snapshots import FileEntry
 # inside the class body, breaking static resolution of `list[FileEntry]`.
 # Mirrors the same pattern in jobhound.application.query.
 FileEntryList: TypeAlias = list[FileEntry]
+
+
+@runtime_checkable
+class RevisionReadable(Protocol):
+    """Optional capability: retrieve file bytes by a past revision ID.
+
+    Both GitLocalFileStore and InMemoryFileStore implement this. Adapters
+    that do not (e.g. a read-only S3 store) simply omit the method and
+    the write service falls back gracefully.
+    """
+
+    def read_by_revision(self, revision: Revision) -> bytes:
+        """Return bytes that were stored at `revision`.
+
+        Raises KeyError or FileNotFoundError if the revision is unknown.
+        """
+        ...
 
 
 class FileStore(Protocol):

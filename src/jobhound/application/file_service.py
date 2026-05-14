@@ -15,11 +15,18 @@ adapters translate them into protocol-appropriate responses.
 
 from __future__ import annotations
 
+import subprocess
+import tempfile
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from datetime import datetime
+from pathlib import Path, PurePosixPath
 
 from jobhound.application.revisions import Revision
-from jobhound.infrastructure.storage.protocols import FileEntryList, FileStore
+from jobhound.infrastructure.storage.protocols import (
+    FileEntryList,
+    FileStore,
+    RevisionReadable,
+)
 
 # Tools that the AI should call instead of write_file on meta.toml.
 _META_USE_INSTEAD: tuple[str, ...] = (
@@ -130,3 +137,215 @@ def read(
 def list_(store: FileStore, slug: str) -> FileEntryList:
     """List non-hidden, non-meta.toml files under the opp dir."""
     return store.list(slug)
+
+
+# ---- Write exceptions ---------------------------------------------------
+
+
+class FileExistsConflictError(FileServiceError):
+    """Case 2: file exists, no overwrite intent."""
+
+    def __init__(self, filename: str, current_revision: Revision) -> None:
+        super().__init__(f"file exists: {filename}")
+        self.filename = filename
+        self.current_revision = current_revision
+
+
+class FileDisappearedError(FileServiceError):
+    """Case 4: file the AI was editing no longer exists."""
+
+    def __init__(self, filename: str, base_revision: Revision) -> None:
+        super().__init__(f"file disappeared while editing: {filename}")
+        self.filename = filename
+        self.base_revision = base_revision
+
+
+class TextConflictError(FileServiceError):
+    """Case 6, text path: 3-way merge failed."""
+
+    def __init__(
+        self,
+        filename: str,
+        base_revision: Revision,
+        theirs_revision: Revision,
+        conflict_markers: str,
+    ) -> None:
+        super().__init__(f"text merge conflict on {filename}")
+        self.filename = filename
+        self.base_revision = base_revision
+        self.theirs_revision = theirs_revision
+        self.conflict_markers = conflict_markers
+
+
+class BinaryConflictError(FileServiceError):
+    """Case 6, binary path: divergent binary file, no merge possible."""
+
+    def __init__(
+        self,
+        filename: str,
+        base_revision: Revision,
+        current_revision: Revision,
+        current_size: int,
+        current_mtime: datetime,
+        suggested_alt_name: str,
+    ) -> None:
+        super().__init__(f"binary conflict on {filename}")
+        self.filename = filename
+        self.base_revision = base_revision
+        self.current_revision = current_revision
+        self.current_size = current_size
+        self.current_mtime = current_mtime
+        self.suggested_alt_name = suggested_alt_name
+
+
+# ---- Write helpers ------------------------------------------------------
+
+
+def _suggest_alt_name(filename: str) -> str:
+    """E.g. 'cv.pdf' → 'cv-ai-draft.pdf'."""
+    path = PurePosixPath(filename)
+    return str(path.with_stem(f"{path.stem}-ai-draft"))
+
+
+def _is_text(content: bytes) -> bool:
+    """Heuristic: null bytes → binary (mirrors git's own test).
+
+    Checks the first 8 KB, consistent with git's binary sniff window.
+    """
+    sniff = content[:8192]
+    if b"\x00" in sniff:
+        return False
+    try:
+        sniff.decode("utf-8")
+        return True
+    except UnicodeDecodeError:
+        return False
+
+
+def _three_way_merge(base: bytes, ours: bytes, theirs: bytes) -> tuple[bytes, bool]:
+    """Run `git merge-file --stdout` on the three sides.
+
+    Returns (merged_content, clean_bool). On non-clean merges, merged_content
+    contains conflict markers and clean_bool is False.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        tmpdir = Path(tmp)
+        base_p = tmpdir / "base"
+        ours_p = tmpdir / "ours"
+        theirs_p = tmpdir / "theirs"
+        base_p.write_bytes(base)
+        ours_p.write_bytes(ours)
+        theirs_p.write_bytes(theirs)
+        result = subprocess.run(
+            ["git", "merge-file", "--stdout", str(ours_p), str(base_p), str(theirs_p)],
+            capture_output=True,
+        )
+        return result.stdout, result.returncode == 0
+
+
+def _resolve_base_content(
+    store: FileStore,
+    base_revision: Revision,
+    current_content: bytes,
+) -> bytes:
+    """Reconstruct the bytes at `base_revision`.
+
+    Both adapters implement RevisionReadable; if absent, fall back to
+    current_content (base==theirs → merge-file produces ours cleanly).
+    """
+    if isinstance(store, RevisionReadable):
+        try:
+            return store.read_by_revision(base_revision)
+        except Exception:  # broad catch: any adapter error falls back gracefully
+            return current_content
+    return current_content
+
+
+# ---- Public write operation ---------------------------------------------
+
+
+def write(
+    store: FileStore,
+    slug: str,
+    filename: str,
+    content: bytes,
+    *,
+    base_revision: Revision | None = None,
+    overwrite: bool = False,
+) -> WriteResult:
+    """Write a file with optimistic-concurrency conflict detection.
+
+    Implements the six-case decision matrix from the spec.
+    """
+    _validate_filename(filename, for_write=True)
+    commit_msg = f"file: write {slug}/{filename}"
+
+    file_exists = store.exists(slug, filename)
+
+    if base_revision is None:
+        if not file_exists:
+            # Case 1: clean create
+            store.write(slug, filename, content, commit_message=commit_msg)
+            return WriteResult(
+                revision=store.compute_revision(slug, filename),
+                merged=False,
+            )
+        if not overwrite:
+            # Case 2: refuse — file exists but caller didn't declare overwrite intent
+            raise FileExistsConflictError(
+                filename,
+                store.compute_revision(slug, filename),
+            )
+        # Case 3: blind overwrite
+        store.write(slug, filename, content, commit_message=commit_msg)
+        return WriteResult(
+            revision=store.compute_revision(slug, filename),
+            merged=False,
+        )
+
+    # base_revision provided — caller is updating a file they previously read
+    if not file_exists:
+        # Case 4: file disappeared between read and write
+        raise FileDisappearedError(filename, base_revision)
+
+    current_revision = store.compute_revision(slug, filename)
+    if current_revision == base_revision:
+        # Case 5: clean edit — no concurrent modification
+        store.write(slug, filename, content, commit_message=commit_msg)
+        return WriteResult(
+            revision=store.compute_revision(slug, filename),
+            merged=False,
+        )
+
+    # Case 6: concurrent modification — branch on text vs binary
+    current_content = store.read(slug, filename)
+    if not _is_text(current_content):
+        entries = store.list(slug)
+        entry = next((e for e in entries if e.name == filename), None)
+        current_size = entry.size if entry else len(current_content)
+        # tz=None: fallback only; real entry always carries UTC mtime from adapter
+        current_mtime = entry.mtime if entry else datetime.now(tz=None)
+        raise BinaryConflictError(
+            filename,
+            base_revision,
+            current_revision,
+            current_size=current_size,
+            current_mtime=current_mtime,
+            suggested_alt_name=_suggest_alt_name(filename),
+        )
+
+    # Text conflict: attempt 3-way merge
+    base_content = _resolve_base_content(store, base_revision, current_content)
+    merged, clean = _three_way_merge(base_content, content, current_content)
+    if clean:
+        store.write(slug, filename, merged, commit_message=commit_msg)
+        return WriteResult(
+            revision=store.compute_revision(slug, filename),
+            merged=True,
+        )
+    raise TextConflictError(
+        filename,
+        base_revision,
+        current_revision,
+        conflict_markers=merged.decode("utf-8", errors="replace"),
+    )

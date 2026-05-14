@@ -23,6 +23,7 @@ class InMemoryFileStore:
     def __init__(self) -> None:
         self._files: dict[tuple[str, str], bytes] = {}
         self._mtimes: dict[tuple[str, str], datetime] = {}
+        self._content_by_revision: dict[str, bytes] = {}
         self.commit_log: list[str] = []  # observable for tests
 
     def list(self, opp_slug: str) -> FileEntryList:
@@ -59,6 +60,8 @@ class InMemoryFileStore:
     ) -> None:
         self._files[(opp_slug, filename)] = content
         self._mtimes[(opp_slug, filename)] = datetime.now(UTC)
+        h = hashlib.sha1(content).hexdigest()
+        self._content_by_revision[h] = content
         self.commit_log.append(commit_message)
 
     def append(
@@ -70,9 +73,16 @@ class InMemoryFileStore:
         commit_message: str,
     ) -> None:
         existing = self._files.get((opp_slug, filename), b"")
-        self._files[(opp_slug, filename)] = existing + content
+        new_content = existing + content
+        self._files[(opp_slug, filename)] = new_content
         self._mtimes[(opp_slug, filename)] = datetime.now(UTC)
+        h = hashlib.sha1(new_content).hexdigest()
+        self._content_by_revision[h] = new_content
         self.commit_log.append(commit_message)
+
+    def read_by_revision(self, revision: Revision) -> bytes:
+        """Return the content that was at this revision. Raises KeyError if unknown."""
+        return self._content_by_revision[revision]
 
     def delete(
         self,

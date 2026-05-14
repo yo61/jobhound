@@ -138,3 +138,15 @@ class GitLocalFileStore:
             check=True,
         )
         return Revision(result.stdout.strip())
+
+    def read_by_revision(self, revision: Revision) -> bytes:
+        """Resolve blob content via `git cat-file -p <sha>`.
+
+        Works for any blob SHA that has ever been committed in the repo.
+        """
+        result = subprocess.run(
+            ["git", "-C", str(self._paths.db_root), "cat-file", "-p", str(revision)],
+            capture_output=True,
+            check=True,
+        )
+        return result.stdout

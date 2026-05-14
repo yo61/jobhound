@@ -10,6 +10,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from jobhound.application import lifecycle_service
 from jobhound.domain.transitions import InvalidTransitionError
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
@@ -53,27 +54,34 @@ def run(
         print(f"--body file not found: {body}", file=sys.stderr)
         raise SystemExit(1)
 
-    opp, opp_dir = repo.find(slug_query)
     due = date.fromisoformat(next_action_due) if next_action_due else None
-    try:
-        updated = opp.log_interaction(
-            today=today_date,
-            next_status=next_status,
-            next_action=next_action,
-            next_action_due=due,
-            force=force,
-        )
-    except InvalidTransitionError as exc:
-        print(str(exc), file=sys.stderr)
-        raise SystemExit(1) from exc
 
+    # Write the correspondence file BEFORE the service call so the service's
+    # repo.save (which uses `git add -A`) picks it up in the same commit.
+    _, opp_dir = repo.find(slug_query)
     corr_dir = opp_dir / "correspondence"
     corr_dir.mkdir(exist_ok=True)
     corr_path = corr_dir / _correspondence_filename(today_date, channel, direction, who)
     corr_path.write_text(body.read_text())
 
+    try:
+        before, after, _ = lifecycle_service.log_interaction(
+            repo,
+            slug_query,
+            next_status=next_status,
+            next_action=next_action,
+            next_action_due=due,
+            today=today_date,
+            force=force,
+            no_commit=no_commit,
+        )
+    except InvalidTransitionError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1) from exc
+
     arrow = (
-        f"{opp.status} → {updated.status}" if updated.status != opp.status else "(no status change)"
+        f"{before.status} → {after.status}"
+        if after.status != before.status
+        else "(no status change)"
     )
-    repo.save(updated, opp_dir, message=f"log: {opp.slug} {arrow}", no_commit=no_commit)
-    print(f"logged: {opp.slug} {arrow}")
+    print(f"logged: {after.slug} {arrow}")

@@ -374,6 +374,25 @@ def write(
     )
 
 
+def append(
+    store: FileStore,
+    slug: str,
+    filename: str,
+    content: bytes,
+) -> Revision:
+    """Append bytes to a file (create if missing). No conflict detection
+    — concatenation is associative. Returns the new revision.
+    """
+    _validate_filename(filename, for_write=True)
+    store.append(
+        slug,
+        filename,
+        content,
+        commit_message=f"file: append {slug}/{filename}",
+    )
+    return store.compute_revision(slug, filename)
+
+
 def export(
     store: FileStore,
     slug: str,

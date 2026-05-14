@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/yo61/jobhound/compare/v0.6.0...v0.6.1) (2026-05-14)
+
+
+### Documentation
+
+* document jh file commands + MCP file tools (37 tools) ([d7412ba](https://github.com/yo61/jobhound/commit/d7412ba641f1158943dbbb375cd22ad2442912f4))
+
 ## [0.6.0](https://github.com/yo61/jobhound/compare/v0.5.1...v0.6.0) (2026-05-14)
 
 

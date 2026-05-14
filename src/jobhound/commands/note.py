@@ -7,6 +7,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from jobhound.application import ops_service
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
@@ -20,20 +21,15 @@ def run(
     today: Annotated[str | None, Parameter(show=False)] = None,
     no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
-    """Append a timestamped one-liner to <slug>/notes.md and bump last_activity."""
+    """Append a dated one-liner to <slug>/notes.md and bump last_activity."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     today_date = date.fromisoformat(today) if today else date.today()
-
-    opp, opp_dir = repo.find(slug_query)
-    notes = opp_dir / "notes.md"
-    existing = notes.read_text() if notes.exists() else ""
-    notes.write_text(existing + f"- {today_date.isoformat()} {msg}\n")
-
-    repo.save(
-        opp.touch(today=today_date),
-        opp_dir,
-        message=f"note: {opp.slug}",
+    _, after, _ = ops_service.add_note(
+        repo,
+        slug_query,
+        msg=msg,
+        today=today_date,
         no_commit=no_commit,
     )
-    print(f"noted: {opp.slug}")
+    print(f"noted: {after.slug}")

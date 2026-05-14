@@ -57,7 +57,7 @@ class OpportunityQuery:
         arch_dir = self._paths.archive_dir
         if arch_dir.exists():
             return resolve_slug(slug, arch_dir), True
-        raise SlugNotFoundError(f"no opportunity matches {slug!r}")
+        raise SlugNotFoundError(f"no opportunity matches {slug!r}", query=slug)
 
     def _snapshot(
         self,

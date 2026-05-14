@@ -8,9 +8,17 @@ from pathlib import Path
 class SlugNotFoundError(Exception):
     """Raised when no opportunity matches the user's input."""
 
+    def __init__(self, message: str, *, query: str = "") -> None:
+        super().__init__(message)
+        self.query = query
+
 
 class AmbiguousSlugError(Exception):
     """Raised when more than one opportunity matches."""
+
+    def __init__(self, message: str, *, candidates: tuple[str, ...] = ()) -> None:
+        super().__init__(message)
+        self.candidates = candidates
 
 
 def resolve_slug(query: str, opportunities_dir: Path) -> Path:
@@ -29,6 +37,9 @@ def resolve_slug(query: str, opportunities_dir: Path) -> Path:
     if len(substring) == 1:
         return substring[0]
     if not substring:
-        raise SlugNotFoundError(f"no opportunity matches {query!r}")
+        raise SlugNotFoundError(f"no opportunity matches {query!r}", query=query)
     matches = "\n  ".join(p.name for p in substring)
-    raise AmbiguousSlugError(f"{query!r} matches multiple opportunities:\n  {matches}")
+    raise AmbiguousSlugError(
+        f"{query!r} matches multiple opportunities:\n  {matches}",
+        candidates=tuple(p.name for p in substring),
+    )

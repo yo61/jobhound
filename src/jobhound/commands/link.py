@@ -6,6 +6,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from jobhound.application import relation_service
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
@@ -22,7 +23,11 @@ def run(
     """Add or update a link."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
-    opp, opp_dir = repo.find(slug_query)
-    updated = opp.with_link(name=name, url=url)
-    repo.save(updated, opp_dir, message=f"link: {opp.slug} {name}", no_commit=no_commit)
-    print(f"link {opp.slug}: {name} = {url}")
+    _, after, _ = relation_service.set_link(
+        repo,
+        slug_query,
+        name=name,
+        url=url,
+        no_commit=no_commit,
+    )
+    print(f"link {after.slug}: {name} = {url}")

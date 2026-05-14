@@ -7,6 +7,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from jobhound.application import ops_service
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import Paths, paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
@@ -23,10 +24,13 @@ def run(
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    _, opp_dir = repo.find(slug_query)
     try:
-        repo.archive(opp_dir, no_commit=no_commit)
+        _, _, new_dir = ops_service.archive_opportunity(
+            repo,
+            slug_query,
+            no_commit=no_commit,
+        )
     except FileExistsError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc
-    print(f"archived: {opp_dir.name}")
+    print(f"archived: {new_dir.name}")

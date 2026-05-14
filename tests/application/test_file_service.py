@@ -381,3 +381,36 @@ def test_export_allows_meta_toml(in_memory_store: InMemoryFileStore, tmp_path: P
     dst = tmp_path / "out.toml"
     export(in_memory_store, "acme", "meta.toml", dst)
     assert b"company" in dst.read_bytes()
+
+
+# ---- append tests (Task 7: additive write, no conflict detection) --------
+
+from jobhound.application.file_service import append  # noqa: E402
+
+
+def test_append_creates_when_missing(in_memory_store: InMemoryFileStore) -> None:
+    revision = append(in_memory_store, "acme", "notes.md", b"first\n")
+    assert in_memory_store.read("acme", "notes.md") == b"first\n"
+    assert revision == in_memory_store.compute_revision("acme", "notes.md")
+
+
+def test_append_appends_to_existing(in_memory_store: InMemoryFileStore) -> None:
+    in_memory_store.write("acme", "notes.md", b"first\n", commit_message="seed")
+    revision = append(in_memory_store, "acme", "notes.md", b"second\n")
+    assert in_memory_store.read("acme", "notes.md") == b"first\nsecond\n"
+    assert revision == in_memory_store.compute_revision("acme", "notes.md")
+
+
+def test_append_rejects_meta_toml(in_memory_store: InMemoryFileStore) -> None:
+    with pytest.raises(MetaTomlProtectedError):
+        append(in_memory_store, "acme", "meta.toml", b"x")
+
+
+def test_append_rejects_hidden(in_memory_store: InMemoryFileStore) -> None:
+    with pytest.raises(InvalidFilenameError):
+        append(in_memory_store, "acme", ".secret", b"x")
+
+
+def test_append_commit_message_format(in_memory_store: InMemoryFileStore) -> None:
+    append(in_memory_store, "acme", "notes.md", b"x")
+    assert in_memory_store.commit_log == ["file: append acme/notes.md"]

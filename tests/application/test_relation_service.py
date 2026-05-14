@@ -80,6 +80,22 @@ def test_remove_tag(tmp_path: Path) -> None:
     assert after.tags == ("fintech",)
 
 
+def test_set_tags_batched(tmp_path: Path) -> None:
+    """set_tags applies add+remove in one save with summary commit message."""
+    repo = _seeded_repo(tmp_path)
+    relation_service.add_tag(repo, "acme", "remote")
+    relation_service.add_tag(repo, "acme", "fintech")
+    _, after, _ = relation_service.set_tags(
+        repo,
+        "acme",
+        add={"senior"},
+        remove={"fintech"},
+    )
+    assert "senior" in after.tags
+    assert "fintech" not in after.tags
+    assert "remote" in after.tags
+
+
 def test_add_contact_with_company_and_note(tmp_path: Path) -> None:
     repo = _seeded_repo(tmp_path)
     _, after, _ = relation_service.add_contact(

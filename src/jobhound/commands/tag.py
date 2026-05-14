@@ -7,6 +7,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from jobhound.application import relation_service
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
@@ -29,11 +30,11 @@ def run(
 
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
-    opp, opp_dir = repo.find(slug_query)
-    updated = opp.with_tags(add=add_set, remove=remove_set)
-
-    summary = " ".join(
-        [*(f"+{t}" for t in sorted(add_set)), *(f"-{t}" for t in sorted(remove_set))]
+    _, after, _ = relation_service.set_tags(
+        repo,
+        slug_query,
+        add=add_set,
+        remove=remove_set,
+        no_commit=no_commit,
     )
-    repo.save(updated, opp_dir, message=f"tag: {opp.slug} {summary}", no_commit=no_commit)
-    print(f"tags {opp.slug}: {updated.tags}")
+    print(f"tags {after.slug}: {after.tags}")

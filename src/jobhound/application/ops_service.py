@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date
 from pathlib import Path
 
 from jobhound.domain.opportunities import Opportunity
@@ -20,22 +20,23 @@ def add_note(
     slug: str,
     *,
     msg: str,
+    today: date,
     no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    """Append a timestamped entry to notes.md.
+    """Append `- <today> <msg>` to notes.md and bump last_activity.
 
-    Returns (before, after, opp_dir) where before == after — notes.md is
-    outside the meta.toml aggregate. The commit captures the notes.md
-    change via repo.save's `git add -A` step.
+    Returns (before, after, opp_dir). `before` is the loaded opp; `after`
+    is the touched opp (last_activity updated to `today`). The CLI and
+    MCP tool share this contract — same notes format, same
+    last_activity behavior.
     """
-    opp, opp_dir = repo.find(slug)
+    before, opp_dir = repo.find(slug)
     notes_path = opp_dir / "notes.md"
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-    entry = f"\n## {timestamp}\n\n{msg}\n"
-    with notes_path.open("a") as fh:
-        fh.write(entry)
-    repo.save(opp, opp_dir, message=f"note: {opp.slug}", no_commit=no_commit)
-    return opp, opp, opp_dir
+    existing = notes_path.read_text() if notes_path.exists() else ""
+    notes_path.write_text(existing + f"- {today.isoformat()} {msg}\n")
+    after = before.touch(today=today)
+    repo.save(after, opp_dir, message=f"note: {after.slug}", no_commit=no_commit)
+    return before, after, opp_dir
 
 
 def archive_opportunity(

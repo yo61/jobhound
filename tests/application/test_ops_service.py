@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from datetime import datetime
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -58,12 +58,19 @@ def _seeded(tmp_path: Path) -> tuple[OpportunityRepository, Paths]:
     return repo, paths
 
 
-def test_add_note_appends_timestamped_entry(tmp_path: Path) -> None:
+def test_add_note_appends_dated_entry(tmp_path: Path) -> None:
     repo, paths = _seeded(tmp_path)
-    ops_service.add_note(repo, "acme", msg="recruiter mentioned hybrid")
+    today = date(2026, 5, 14)
+    ops_service.add_note(repo, "acme", msg="recruiter mentioned hybrid", today=today)
     notes = (paths.opportunities_dir / "2026-05-acme" / "notes.md").read_text()
-    assert "recruiter mentioned hybrid" in notes
-    assert datetime.now().strftime("%Y-%m-%d") in notes
+    assert "- 2026-05-14 recruiter mentioned hybrid" in notes
+
+
+def test_add_note_bumps_last_activity(tmp_path: Path) -> None:
+    repo, _ = _seeded(tmp_path)
+    today = date(2026, 5, 14)
+    _, after, _ = ops_service.add_note(repo, "acme", msg="x", today=today)
+    assert after.last_activity == today
 
 
 def test_archive_moves_to_archive_dir(tmp_path: Path) -> None:
@@ -111,7 +118,7 @@ def test_add_note_no_commit(tmp_path: Path) -> None:
         text=True,
         check=True,
     ).stdout.strip()
-    ops_service.add_note(repo, "acme", msg="quiet note", no_commit=True)
+    ops_service.add_note(repo, "acme", msg="quiet note", today=date.today(), no_commit=True)
     head_after = subprocess.run(
         ["git", "-C", str(repo.paths.db_root), "rev-parse", "HEAD"],
         capture_output=True,

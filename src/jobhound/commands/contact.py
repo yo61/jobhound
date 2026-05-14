@@ -6,7 +6,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.domain.contact import Contact
+from jobhound.application import relation_service
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
@@ -24,16 +24,16 @@ def run(
     no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Add a contact to the contacts list."""
-    contact = Contact(
+    cfg = load_config()
+    repo = OpportunityRepository(paths_from_config(cfg), cfg)
+    _, after, _ = relation_service.add_contact(
+        repo,
+        slug_query,
         name=name,
         role=role_title,
         channel=channel,
         company=company,
         note=note,
+        no_commit=no_commit,
     )
-    cfg = load_config()
-    repo = OpportunityRepository(paths_from_config(cfg), cfg)
-    opp, opp_dir = repo.find(slug_query)
-    updated = opp.with_contact(contact)
-    repo.save(updated, opp_dir, message=f"contact: {opp.slug} {name}", no_commit=no_commit)
-    print(f"contact added: {opp.slug} {name}")
+    print(f"contact added: {after.slug} {name}")

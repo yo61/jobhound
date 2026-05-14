@@ -21,16 +21,16 @@ def test_tool_error_response_shape() -> None:
 
 
 def test_slug_not_found() -> None:
-    resp = exception_to_response(
-        SlugNotFoundError("no opportunity matches 'acm'"),
-        tool="get_opportunity",
-    )
+    exc = SlugNotFoundError("no opportunity matches 'acm'", query="acm")
+    resp = exception_to_response(exc, tool="get_opportunity")
     assert resp["error"]["code"] == "slug_not_found"
+    assert resp["error"]["details"]["query"] == "acm"
 
 
 def test_ambiguous_slug_includes_candidates() -> None:
     exc = AmbiguousSlugError(
         "'acme' matches multiple opportunities:\n  2026-05-acme-em\n  2026-04-acme-staff",
+        candidates=("2026-05-acme-em", "2026-04-acme-staff"),
     )
     resp = exception_to_response(exc, tool="get_opportunity")
     assert resp["error"]["code"] == "ambiguous_slug"

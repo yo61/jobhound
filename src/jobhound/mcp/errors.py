@@ -6,7 +6,6 @@ Returns the dict shape:
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
@@ -17,15 +16,6 @@ from jobhound.infrastructure.meta_io import ValidationError
 def tool_error_response(code: str, message: str, **details: Any) -> dict[str, Any]:
     """Build the MCP error response payload."""
     return {"error": {"code": code, "message": message, "details": details}}
-
-
-def _candidates_from_ambiguous(exc: AmbiguousSlugError) -> list[str]:
-    """Pull the candidate slugs out of the AmbiguousSlugError message.
-
-    The existing slug.py formats them with `\\n  ` between each.
-    """
-    msg = str(exc)
-    return [line.strip() for line in msg.splitlines() if line.strip().startswith("2026-")]
 
 
 def exception_to_response(
@@ -40,15 +30,13 @@ def exception_to_response(
     tuple — used by tools that catch ValueError from `Status(...)` etc.
     """
     if isinstance(exc, SlugNotFoundError):
-        match = re.search(r"matches '(.+?)'", str(exc))
-        query = match.group(1) if match else ""
-        return tool_error_response("slug_not_found", str(exc), query=query)
+        return tool_error_response("slug_not_found", str(exc), query=exc.query)
 
     if isinstance(exc, AmbiguousSlugError):
         return tool_error_response(
             "ambiguous_slug",
             str(exc).split("\n", 1)[0],
-            candidates=_candidates_from_ambiguous(exc),
+            candidates=list(exc.candidates),
         )
 
     if isinstance(exc, InvalidTransitionError):

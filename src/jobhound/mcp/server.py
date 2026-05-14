@@ -45,8 +45,9 @@ def build_server() -> FastMCP:
     # Tool modules register their tools by calling app.tool() on their handlers.
     # Each register_*(app, repo) function is added in Tasks 9-13.
     # Uncomment each as the corresponding task lands:
-    # from jobhound.mcp.tools import reads
-    # reads.register(app, repo)
+    from jobhound.mcp.tools import reads
+
+    reads.register(app, repo)
     # from jobhound.mcp.tools import lifecycle
     # lifecycle.register(app, repo)
     # from jobhound.mcp.tools import fields
@@ -55,10 +56,6 @@ def build_server() -> FastMCP:
     # relations.register(app, repo)
     # from jobhound.mcp.tools import ops
     # ops.register(app, repo)
-
-    # Suppress unused-var warning since `repo` is needed only after tool
-    # modules are uncommented above.
-    _ = repo
 
     return app
 

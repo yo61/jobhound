@@ -22,7 +22,7 @@ def add_tag(
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = before.with_tags(add={tag}, remove=set())
-    repo.save(after, opp_dir, message=f"tag +{tag}: {after.slug}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"tag: {after.slug} +{tag}", no_commit=no_commit)
     return before, after, opp_dir
 
 
@@ -35,7 +35,7 @@ def remove_tag(
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = before.with_tags(add=set(), remove={tag})
-    repo.save(after, opp_dir, message=f"tag -{tag}: {after.slug}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"tag: {after.slug} -{tag}", no_commit=no_commit)
     return before, after, opp_dir
 
 
@@ -50,7 +50,7 @@ def add_contact(
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = before.with_contact(Contact(name=name, role=role, channel=channel))
-    repo.save(after, opp_dir, message=f"contact +{name}: {after.slug}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"contact: {after.slug} {name}", no_commit=no_commit)
     return before, after, opp_dir
 
 
@@ -64,5 +64,5 @@ def set_link(
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = before.with_link(name=name, url=url)
-    repo.save(after, opp_dir, message=f"link {name}: {after.slug}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"link: {after.slug} {name}", no_commit=no_commit)
     return before, after, opp_dir

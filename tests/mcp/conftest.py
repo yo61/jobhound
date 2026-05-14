@@ -3,8 +3,6 @@
 mcp_paths: extends query_paths (from tests/application/conftest.py) with
            a real git-init'd data root, ready for Repository writes.
 repo:      an OpportunityRepository constructed from mcp_paths.
-
-call_tool will be added in Task 9 when the first MCP tools land.
 """
 
 from __future__ import annotations

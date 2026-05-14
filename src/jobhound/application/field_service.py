@@ -60,14 +60,10 @@ def set_priority(
     *,
     no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(
-        repo,
-        slug,
-        "priority",
-        level,
-        f"priority {level.value}",
-        no_commit=no_commit,
-    )
+    before, opp_dir = repo.find(slug)
+    after = replace(before, priority=level)
+    repo.save(after, opp_dir, message=f"priority: {after.slug} {level.value}", no_commit=no_commit)
+    return before, after, opp_dir
 
 
 def set_status(
@@ -78,14 +74,10 @@ def set_status(
     no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     """Bypass transitions — write the status directly. Equivalent to `jh log --force`."""
-    return _set_field(
-        repo,
-        slug,
-        "status",
-        status,
-        f"status {status.value}",
-        no_commit=no_commit,
-    )
+    before, opp_dir = repo.find(slug)
+    after = replace(before, status=status)
+    repo.save(after, opp_dir, message=f"status: {after.slug} {status.value}", no_commit=no_commit)
+    return before, after, opp_dir
 
 
 def set_source(

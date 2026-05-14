@@ -93,16 +93,19 @@ def _validate_filename(filename: str, *, for_write: bool = True) -> None:
     """
     if not filename:
         raise InvalidFilenameError(filename, "empty filename")
-    parts = PurePosixPath(filename).parts
+    pure = PurePosixPath(filename)
+    if pure.is_absolute():
+        raise InvalidFilenameError(filename, "absolute path")
+    parts = pure.parts
     if not parts:
         raise InvalidFilenameError(filename, "no path components")
     if for_write and (filename == "meta.toml" or filename.endswith("/meta.toml")):
         raise MetaTomlProtectedError(filename)
     for part in parts:
-        if part.startswith("."):
-            raise InvalidFilenameError(filename, f"hidden component: {part!r}")
         if part == "..":
             raise InvalidFilenameError(filename, "parent traversal")
+        if part.startswith("."):
+            raise InvalidFilenameError(filename, f"hidden component: {part!r}")
 
 
 # ---- WriteResult --------------------------------------------------------

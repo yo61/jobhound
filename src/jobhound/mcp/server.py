@@ -48,8 +48,9 @@ def build_server() -> FastMCP:
     from jobhound.mcp.tools import reads
 
     reads.register(app, repo)
-    # from jobhound.mcp.tools import lifecycle
-    # lifecycle.register(app, repo)
+    from jobhound.mcp.tools import lifecycle
+
+    lifecycle.register(app, repo)
     # from jobhound.mcp.tools import fields
     # fields.register(app, repo)
     # from jobhound.mcp.tools import relations

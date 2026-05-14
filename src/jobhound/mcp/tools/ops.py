@@ -24,9 +24,12 @@ def add_note(
     msg: str,
     today: str | None = None,
 ) -> str:
+    from jobhound.infrastructure.storage.git_local import GitLocalFileStore
+
     today_d = date.fromisoformat(today) if today else date.today()
+    store = GitLocalFileStore(repo.paths)
     try:
-        before, after, opp_dir = ops_service.add_note(repo, slug, msg=msg, today=today_d)
+        before, after, opp_dir = ops_service.add_note(repo, store, slug, msg=msg, today=today_d)
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="add_note"))
     return json.dumps(mutation_response(before, after, opp_dir, today=today_d))

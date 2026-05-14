@@ -1,8 +1,4 @@
-"""Ops: notes, archive, delete, git sync.
-
-Each function (except delete and sync) accepts `no_commit: bool = False`
-(keyword-only) for symmetry with the other write services.
-"""
+"""Ops: notes, archive, delete, git sync."""
 
 from __future__ import annotations
 
@@ -11,31 +7,34 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from jobhound.application import file_service
 from jobhound.domain.opportunities import Opportunity
 from jobhound.infrastructure.repository import OpportunityRepository
+from jobhound.infrastructure.storage.protocols import FileStore
 
 
 def add_note(
     repo: OpportunityRepository,
+    store: FileStore,
     slug: str,
     *,
     msg: str,
     today: date,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    """Append `- <today> <msg>` to notes.md and bump last_activity.
+    """Append `- <today> <msg>` to notes.md AND bump last_activity.
 
-    Returns (before, after, opp_dir). `before` is the loaded opp; `after`
-    is the touched opp (last_activity updated to `today`). The CLI and
-    MCP tool share this contract — same notes format, same
-    last_activity behavior.
+    Produces TWO commits: one from file_service.append (notes.md), one
+    from repo.save (meta.toml last_activity bump). This is the deliberate
+    trade-off — each mutation is a discrete, auditable git event.
+
+    Returns (before, after, opp_dir).
     """
     before, opp_dir = repo.find(slug)
-    notes_path = opp_dir / "notes.md"
-    existing = notes_path.read_text() if notes_path.exists() else ""
-    notes_path.write_text(existing + f"- {today.isoformat()} {msg}\n")
+    canonical = opp_dir.name
+    line = f"- {today.isoformat()} {msg}\n".encode()
+    file_service.append(store, canonical, "notes.md", line)
     after = before.touch(today=today)
-    repo.save(after, opp_dir, message=f"note: {after.slug}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"note: {after.slug}")
     return before, after, opp_dir
 
 

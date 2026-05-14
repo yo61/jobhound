@@ -39,6 +39,8 @@ def add_contact(
     name: str,
     role: str | None = None,
     channel: str | None = None,
+    company: str | None = None,
+    note: str | None = None,
 ) -> str:
     return _wrap(
         "add_contact",
@@ -48,6 +50,8 @@ def add_contact(
             name=name,
             role=role,
             channel=channel,
+            company=company,
+            note=note,
         ),
     )
 
@@ -76,13 +80,15 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="add_contact",
-        description="Append a contact (name + optional role/channel).",
+        description="Append a contact (name + optional role/channel/company/note).",
     )
     def _ac(
         slug: str,
         name: str,
         role: str | None = None,
         channel: str | None = None,
+        company: str | None = None,
+        note: str | None = None,
     ) -> str:
         return add_contact(
             repo,
@@ -90,6 +96,8 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
             name=name,
             role=role,
             channel=channel,
+            company=company,
+            note=note,
         )
 
     @app.tool(name="set_link", description="Set or overwrite a named link.")

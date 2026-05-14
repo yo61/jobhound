@@ -46,10 +46,20 @@ def add_contact(
     name: str,
     role: str | None,
     channel: str | None,
+    company: str | None = None,
+    note: str | None = None,
     no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
-    after = before.with_contact(Contact(name=name, role=role, channel=channel))
+    after = before.with_contact(
+        Contact(
+            name=name,
+            role=role,
+            channel=channel,
+            company=company,
+            note=note,
+        )
+    )
     repo.save(after, opp_dir, message=f"contact: {after.slug} {name}", no_commit=no_commit)
     return before, after, opp_dir
 

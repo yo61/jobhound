@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.6.0](https://github.com/yo61/jobhound/compare/v0.5.1...v0.6.0) (2026-05-14)
+
+
+### Features
+
+* **application:** file_service.append — additive write, no conflicts ([fd6c75c](https://github.com/yo61/jobhound/commit/fd6c75c13ca76a932f47fff365dad7625a4d8d82))
+* **application:** file_service.delete — three-case decision ([0e8fed4](https://github.com/yo61/jobhound/commit/0e8fed447b7da75eb6003a869776d77fcfd88752))
+* **application:** file_service.export — server copies to AI-provided path ([4c77eaf](https://github.com/yo61/jobhound/commit/4c77eafe80899d7c9ffd6bdf78e6cc30afa0d400))
+* **application:** file_service.import_ — path-based write ([0f5af71](https://github.com/yo61/jobhound/commit/0f5af71b0c9154da43d99bc9c25388131d4dd4f3))
+* **application:** file_service.write — 6-case state machine + 3-way merge ([d8c13f6](https://github.com/yo61/jobhound/commit/d8c13f69dd19a5991089ca479799a67dcb0ddbef))
+* **application:** scaffold file_service with read/list/validation ([51ee2dd](https://github.com/yo61/jobhound/commit/51ee2dd42dfc8cdc5b4fb4670c6484a48998a423))
+* **cli:** add jh file subcommand group (list/show/write/append/delete) ([ae4c8cd](https://github.com/yo61/jobhound/commit/ae4c8cd86d0d62860fc5e1771036982687bfb69c))
+* **mcp:** add file tools (write/import/export/append/delete); move list/read ([d5500bc](https://github.com/yo61/jobhound/commit/d5500bc14eedfce54eac1ea424f97d5182bb12f2))
+* **mcp:** map file_service exceptions to MCP error codes ([b893cef](https://github.com/yo61/jobhound/commit/b893cefa87dd27ee40fb22b48b9b35ebf3883b98))
+* **storage:** add GitLocalFileStore — git-backed FileStore adapter ([b5a5c98](https://github.com/yo61/jobhound/commit/b5a5c98429c2847ab4e40849dafa3c2d410d281a))
+* **storage:** add Revision NewType + FileStore Protocol + InMemoryFileStore ([70aa9cf](https://github.com/yo61/jobhound/commit/70aa9cfb2e5ea3b9f7029d0ca415fcbb1a4ccaa1))
+
+
+### Bug Fixes
+
+* **application:** _validate_filename rejects absolute paths + correct parent-traversal message ([517ef93](https://github.com/yo61/jobhound/commit/517ef9330a3dc1e18483b717800dc63f5308ad44))
+* **application:** file_service.write — merged commit message + explicit base-recovery errors ([44fe620](https://github.com/yo61/jobhound/commit/44fe6203e653fbf003aa696d462c2c8d04a4d5ac))
+
+
+### Documentation
+
+* plan file management API implementation ([a451d6e](https://github.com/yo61/jobhound/commit/a451d6e2d336cabdff8a019bae9e1e57a24500ce))
+* spec — add CLI subcommand group as peer adapter ([b30bd06](https://github.com/yo61/jobhound/commit/b30bd060598722183e88dbac16f35300023ab388))
+* spec file management API + FileStore port ([cf0d217](https://github.com/yo61/jobhound/commit/cf0d21720720fa81efe2b4c43d4f101a69804129))
+
 ## [0.5.1](https://github.com/yo61/jobhound/compare/v0.5.0...v0.5.1) (2026-05-14)
 
 

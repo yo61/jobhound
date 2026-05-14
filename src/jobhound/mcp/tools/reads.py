@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import base64
 import json
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
 from jobhound.application.query import Filters, OpportunityQuery
 from jobhound.application.serialization import (
-    file_entry_to_dict,
     list_envelope,
     show_envelope,
     stats_to_dict,
@@ -125,42 +123,6 @@ def get_stats(
     return json.dumps(stats_to_dict(stats))
 
 
-def list_files(repo: OpportunityRepository, slug: str) -> str:
-    """List every non-hidden file in the opp's directory. Returns JSON array."""
-    try:
-        entries = _query(repo).files(slug)
-    except Exception as exc:
-        return json.dumps(exception_to_response(exc, tool="list_files"))
-    return json.dumps([file_entry_to_dict(e) for e in entries])
-
-
-def read_file(repo: OpportunityRepository, slug: str, filename: str) -> str:
-    """Read a file from the opp's dir. Returns utf-8 text or base64 JSON."""
-    try:
-        raw = _query(repo).read_file(slug, filename)
-    except Exception as exc:
-        return json.dumps(exception_to_response(exc, tool="read_file"))
-    try:
-        text = raw.decode("utf-8")
-        return json.dumps(
-            {
-                "filename": filename,
-                "content": text,
-                "encoding": "utf-8",
-                "size": len(raw),
-            }
-        )
-    except UnicodeDecodeError:
-        return json.dumps(
-            {
-                "filename": filename,
-                "content": base64.b64encode(raw).decode("ascii"),
-                "encoding": "base64",
-                "size": len(raw),
-            }
-        )
-
-
 def register(app: FastMCP, repo: OpportunityRepository) -> None:
     """Register all read tools on the given FastMCP app."""
 
@@ -210,17 +172,3 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
             active_only,
             include_archived,
         )
-
-    @app.tool(
-        name="list_files",
-        description="List every non-hidden file in the opp's directory.",
-    )
-    def _files(slug: str) -> str:
-        return list_files(repo, slug)
-
-    @app.tool(
-        name="read_file",
-        description="Read a file from the opp's dir. Returns utf-8 text or base64.",
-    )
-    def _read(slug: str, filename: str) -> str:
-        return read_file(repo, slug, filename)

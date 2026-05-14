@@ -26,11 +26,11 @@ def _seed(tmp_path, invoke, target_status: str) -> None:
     body_path = tmp_path / "body.md"
     body_path.write_text("hi")
     transitions = {
-        "screen": ["screen"],
-        "interview": ["screen", "interview"],
-        "offer": ["screen", "interview", "offer"],
+        "screen": [("screen", "2026-05-10")],
+        "interview": [("screen", "2026-05-10"), ("interview", "2026-05-11")],
+        "offer": [("screen", "2026-05-10"), ("interview", "2026-05-11"), ("offer", "2026-05-12")],
     }
-    for to_status in transitions[target_status]:
+    for to_status, step_date in transitions[target_status]:
         invoke(
             [
                 "log",
@@ -50,7 +50,7 @@ def _seed(tmp_path, invoke, target_status: str) -> None:
                 "--next-action-due",
                 "2026-05-20",
                 "--today",
-                "2026-05-10",
+                step_date,
             ]
         )
 

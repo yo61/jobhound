@@ -69,9 +69,12 @@ def log_interaction(
         next_action_due=next_action_due,
         force=force,
     )
-    repo.save(
-        after, opp_dir, message=f"log: {after.slug} -> {after.status.value}", no_commit=no_commit
+    arrow = (
+        f"{before.status} → {after.status}"
+        if after.status != before.status
+        else "(no status change)"
     )
+    repo.save(after, opp_dir, message=f"log: {after.slug} {arrow}", no_commit=no_commit)
     return before, after, opp_dir
 
 

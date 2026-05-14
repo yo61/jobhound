@@ -125,6 +125,55 @@ def test_apply_to_raises_invalid_transition_when_not_prospect(tmp_path: Path) ->
         )
 
 
+def test_log_interaction_commit_message_format(tmp_path: Path) -> None:
+    """Commit message must match the CLI's existing format."""
+    repo, paths = _repo(tmp_path)
+    _seed_prospect(repo)
+    lifecycle_service.apply_to(
+        repo,
+        "acme",
+        applied_on=date(2026, 5, 10),
+        today=TODAY,
+        next_action="x",
+        next_action_due=date(2026, 5, 20),
+    )
+    lifecycle_service.log_interaction(
+        repo,
+        "acme",
+        next_status="screen",
+        next_action=None,
+        next_action_due=None,
+        today=TODAY,
+        force=False,
+    )
+    msg = subprocess.run(
+        ["git", "-C", str(paths.db_root), "log", "-1", "--format=%s"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert msg == "log: 2026-05-acme applied → screen"
+
+    # Use a different `today` so the stay call has a real diff (last_activity bumps)
+    # — otherwise the write is idempotent and no new commit lands.
+    lifecycle_service.log_interaction(
+        repo,
+        "acme",
+        next_status="stay",
+        next_action=None,
+        next_action_due=None,
+        today=date(2026, 5, 15),
+        force=False,
+    )
+    msg = subprocess.run(
+        ["git", "-C", str(paths.db_root), "log", "-1", "--format=%s"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert msg == "log: 2026-05-acme (no status change)"
+
+
 def test_log_interaction_advances_status(tmp_path: Path) -> None:
     repo, _ = _repo(tmp_path)
     _seed_prospect(repo)

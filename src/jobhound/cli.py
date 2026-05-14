@@ -24,6 +24,7 @@ from jobhound.commands import show as cmd_show
 from jobhound.commands import sync as cmd_sync
 from jobhound.commands import tag as cmd_tag
 from jobhound.commands import withdraw as cmd_withdraw
+from jobhound.commands.file import app as file_app
 
 app = App(
     name="jh",
@@ -50,6 +51,7 @@ app.command(cmd_delete.run, name="delete")
 app.command(cmd_sync.run, name="sync")
 app.command(cmd_show.run, name="show")
 app.command(cmd_export.run, name="export")
+app.command(file_app)
 
 
 def _run_mcp() -> None:

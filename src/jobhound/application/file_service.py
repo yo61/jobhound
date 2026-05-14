@@ -372,3 +372,34 @@ def write(
         current_revision,
         conflict_markers=merged.decode("utf-8", errors="replace"),
     )
+
+
+def import_(
+    store: FileStore,
+    slug: str,
+    filename: str,
+    src_path: Path,
+    *,
+    base_revision: Revision | None = None,
+    overwrite: bool = False,
+) -> WriteResult:
+    """Write a file with content read from `src_path`.
+
+    Same six-case state machine as `write` — content source is the only
+    difference. Used by MCP `import_file` (binary-safe, avoids streaming
+    through the protocol) and CLI `jh file write --from <path>`.
+
+    Raises FileNotFoundError if `src_path` does not exist or is not a
+    regular file.
+    """
+    if not src_path.is_file():
+        raise FileNotFoundError(f"src_path does not exist: {src_path}")
+    content = src_path.read_bytes()
+    return write(
+        store,
+        slug,
+        filename,
+        content,
+        base_revision=base_revision,
+        overwrite=overwrite,
+    )

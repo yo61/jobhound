@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from jobhound.application import file_service
@@ -274,3 +276,52 @@ def test_write_base_revision_unrecoverable(
         )
     assert exc.value.filename == "notes.md"
     assert exc.value.base_revision == rev1
+
+
+# ---- import_ tests (Task 5: path-based write) ---------------------------
+
+from jobhound.application.file_service import import_  # noqa: E402
+
+
+def test_import_case1_clean_create(in_memory_store: InMemoryFileStore, tmp_path: Path) -> None:
+    """Case 1 via import_: src file → opp file."""
+    src = tmp_path / "draft.md"
+    src.write_bytes(b"v1 from path\n")
+    result = import_(in_memory_store, "acme", "cv.md", src)
+    assert result.merged is False
+    assert in_memory_store.read("acme", "cv.md") == b"v1 from path\n"
+
+
+def test_import_case5_clean_edit(in_memory_store: InMemoryFileStore, tmp_path: Path) -> None:
+    """import_ with matching base_revision succeeds."""
+    in_memory_store.write("acme", "cv.md", b"v1", commit_message="seed")
+    rev1 = in_memory_store.compute_revision("acme", "cv.md")
+    src = tmp_path / "draft.md"
+    src.write_bytes(b"v2")
+    result = import_(in_memory_store, "acme", "cv.md", src, base_revision=rev1)
+    assert result.merged is False
+    assert in_memory_store.read("acme", "cv.md") == b"v2"
+
+
+def test_import_case2_file_exists_no_overwrite(
+    in_memory_store: InMemoryFileStore, tmp_path: Path
+) -> None:
+    in_memory_store.write("acme", "cv.md", b"v1", commit_message="seed")
+    src = tmp_path / "draft.md"
+    src.write_bytes(b"v2")
+    with pytest.raises(FileExistsConflictError):
+        import_(in_memory_store, "acme", "cv.md", src)
+
+
+def test_import_src_path_missing(in_memory_store: InMemoryFileStore, tmp_path: Path) -> None:
+    """If the src_path doesn't exist on disk, FileNotFoundError."""
+    src = tmp_path / "nonexistent.md"
+    with pytest.raises(FileNotFoundError, match="src_path"):
+        import_(in_memory_store, "acme", "cv.md", src)
+
+
+def test_import_rejects_meta_toml(in_memory_store: InMemoryFileStore, tmp_path: Path) -> None:
+    src = tmp_path / "x.toml"
+    src.write_bytes(b'company = "x"')
+    with pytest.raises(MetaTomlProtectedError):
+        import_(in_memory_store, "acme", "meta.toml", src)

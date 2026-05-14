@@ -325,3 +325,59 @@ def test_import_rejects_meta_toml(in_memory_store: InMemoryFileStore, tmp_path: 
     src.write_bytes(b'company = "x"')
     with pytest.raises(MetaTomlProtectedError):
         import_(in_memory_store, "acme", "meta.toml", src)
+
+
+# ---- export tests (Task 6: server-side read → local path) ---------------
+
+from jobhound.application.file_service import export  # noqa: E402
+
+
+def test_export_writes_file_and_returns_revision(
+    in_memory_store: InMemoryFileStore, tmp_path: Path
+) -> None:
+    in_memory_store.write("acme", "cv.md", b"hello\n", commit_message="seed")
+    dst = tmp_path / "out.md"
+    revision = export(in_memory_store, "acme", "cv.md", dst)
+    assert dst.read_bytes() == b"hello\n"
+    assert revision == in_memory_store.compute_revision("acme", "cv.md")
+
+
+def test_export_creates_parent_dirs(in_memory_store: InMemoryFileStore, tmp_path: Path) -> None:
+    in_memory_store.write("acme", "cv.md", b"x", commit_message="seed")
+    dst = tmp_path / "sub" / "deep" / "out.md"
+    export(in_memory_store, "acme", "cv.md", dst)
+    assert dst.read_bytes() == b"x"
+
+
+def test_export_dst_exists_no_overwrite_raises(
+    in_memory_store: InMemoryFileStore, tmp_path: Path
+) -> None:
+    in_memory_store.write("acme", "cv.md", b"x", commit_message="seed")
+    dst = tmp_path / "out.md"
+    dst.write_bytes(b"existing")
+    with pytest.raises(FileExistsError, match="dst_path exists"):
+        export(in_memory_store, "acme", "cv.md", dst)
+
+
+def test_export_dst_exists_overwrite_succeeds(
+    in_memory_store: InMemoryFileStore, tmp_path: Path
+) -> None:
+    in_memory_store.write("acme", "cv.md", b"new", commit_message="seed")
+    dst = tmp_path / "out.md"
+    dst.write_bytes(b"old")
+    export(in_memory_store, "acme", "cv.md", dst, overwrite=True)
+    assert dst.read_bytes() == b"new"
+
+
+def test_export_missing_source_raises(in_memory_store: InMemoryFileStore, tmp_path: Path) -> None:
+    dst = tmp_path / "out.md"
+    with pytest.raises(FileNotFoundError):
+        export(in_memory_store, "acme", "missing.md", dst)
+
+
+def test_export_allows_meta_toml(in_memory_store: InMemoryFileStore, tmp_path: Path) -> None:
+    """meta.toml is exportable (reads are allowed)."""
+    in_memory_store.write("acme", "meta.toml", b'company = "x"', commit_message="seed")
+    dst = tmp_path / "out.toml"
+    export(in_memory_store, "acme", "meta.toml", dst)
+    assert b"company" in dst.read_bytes()

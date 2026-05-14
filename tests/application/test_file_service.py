@@ -54,6 +54,21 @@ def test_validate_rejects_empty() -> None:
         file_service._validate_filename("")
 
 
+def test_validate_rejects_absolute_path() -> None:
+    with pytest.raises(InvalidFilenameError, match="absolute"):
+        file_service._validate_filename("/etc/passwd")
+
+
+def test_validate_rejects_parent_traversal() -> None:
+    with pytest.raises(InvalidFilenameError, match="parent traversal"):
+        file_service._validate_filename("../escape.md")
+
+
+def test_validate_rejects_nested_parent_traversal() -> None:
+    with pytest.raises(InvalidFilenameError, match="parent traversal"):
+        file_service._validate_filename("subdir/../escape.md")
+
+
 def test_validate_allows_normal_and_subdir() -> None:
     file_service._validate_filename("cv.md")
     file_service._validate_filename("correspondence/2026-05-01-intro.md")

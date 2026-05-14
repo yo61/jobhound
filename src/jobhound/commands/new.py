@@ -8,6 +8,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from jobhound.application import lifecycle_service
 from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.priority import Priority
 from jobhound.domain.slug_value import Slug
@@ -53,7 +54,7 @@ def run(
         next_action_due=due,
     )
     try:
-        opp_dir = repo.create(opp, message=f"new: {slug.value}", no_commit=no_commit)
+        _, _, opp_dir = lifecycle_service.create(repo, opp, no_commit=no_commit)
     except FileExistsError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc

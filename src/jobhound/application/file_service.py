@@ -198,6 +198,24 @@ class BinaryConflictError(FileServiceError):
         self.suggested_alt_name = suggested_alt_name
 
 
+class BaseRevisionUnrecoverableError(FileServiceError):
+    """Base revision bytes cannot be retrieved from the store.
+
+    Raised when the store does not implement RevisionReadable, or when
+    read_by_revision raises KeyError / FileNotFoundError (revision evicted
+    or never stored). Callers should report that a merge could not be
+    attempted rather than silently treating current == base.
+    """
+
+    def __init__(self, filename: str, base_revision: Revision) -> None:
+        super().__init__(
+            f"base revision {base_revision[:8]!r} for {filename!r} is unrecoverable;"
+            " merge cannot be attempted"
+        )
+        self.filename = filename
+        self.base_revision = base_revision
+
+
 # ---- Write helpers ------------------------------------------------------
 
 
@@ -246,19 +264,20 @@ def _three_way_merge(base: bytes, ours: bytes, theirs: bytes) -> tuple[bytes, bo
 def _resolve_base_content(
     store: FileStore,
     base_revision: Revision,
-    current_content: bytes,
+    filename: str,
 ) -> bytes:
     """Reconstruct the bytes at `base_revision`.
 
-    Both adapters implement RevisionReadable; if absent, fall back to
-    current_content (base==theirs → merge-file produces ours cleanly).
+    Raises BaseRevisionUnrecoverableError when the store does not implement
+    RevisionReadable, or when read_by_revision raises KeyError /
+    FileNotFoundError (revision unknown or evicted).
     """
-    if isinstance(store, RevisionReadable):
-        try:
-            return store.read_by_revision(base_revision)
-        except Exception:  # broad catch: any adapter error falls back gracefully
-            return current_content
-    return current_content
+    if not isinstance(store, RevisionReadable):
+        raise BaseRevisionUnrecoverableError(filename, base_revision)
+    try:
+        return store.read_by_revision(base_revision)
+    except (KeyError, FileNotFoundError) as exc:
+        raise BaseRevisionUnrecoverableError(filename, base_revision) from exc
 
 
 # ---- Public write operation ---------------------------------------------
@@ -335,10 +354,14 @@ def write(
         )
 
     # Text conflict: attempt 3-way merge
-    base_content = _resolve_base_content(store, base_revision, current_content)
+    base_content = _resolve_base_content(store, base_revision, filename)
     merged, clean = _three_way_merge(base_content, content, current_content)
     if clean:
-        store.write(slug, filename, merged, commit_message=commit_msg)
+        merged_msg = (
+            f"file: write {slug}/{filename}"
+            f" (merged base={base_revision[:8]} theirs={current_revision[:8]})"
+        )
+        store.write(slug, filename, merged, commit_message=merged_msg)
         return WriteResult(
             revision=store.compute_revision(slug, filename),
             merged=True,

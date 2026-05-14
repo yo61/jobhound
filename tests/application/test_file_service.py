@@ -67,6 +67,7 @@ def test_read_allows_meta_toml(in_memory_store: InMemoryFileStore) -> None:
 # ---- write tests (Task 4: 6-case state machine + 3-way merge) -----------
 
 from jobhound.application.file_service import (  # noqa: E402
+    BaseRevisionUnrecoverableError,
     BinaryConflictError,
     FileDisappearedError,
     FileExistsConflictError,
@@ -224,3 +225,52 @@ def test_write_commit_message_format(in_memory_store: InMemoryFileStore) -> None
     """Verify the file_service uses a consistent commit-message shape."""
     write(in_memory_store, "acme", "cv.md", b"v1")
     assert in_memory_store.commit_log == ["file: write acme/cv.md"]
+
+
+def test_write_merged_commit_message_includes_shas(
+    in_memory_store: InMemoryFileStore,
+) -> None:
+    """Issue 1: merged write uses a distinct commit message with short SHAs."""
+    in_memory_store.write("acme", "notes.md", b"line1\nline2\n", commit_message="seed")
+    rev1 = in_memory_store.compute_revision("acme", "notes.md")
+    # Concurrent write — changes a different region so merge is clean
+    in_memory_store.write("acme", "notes.md", b"line1\nline2\nline3\n", commit_message="other")
+    current_rev = in_memory_store.compute_revision("acme", "notes.md")
+    write(
+        in_memory_store,
+        "acme",
+        "notes.md",
+        b"# Notes\nline1\nline2\n",
+        base_revision=rev1,
+    )
+    merged_commit = in_memory_store.commit_log[-1]
+    assert "(merged base=" in merged_commit
+    assert rev1[:8] in merged_commit
+    assert current_rev[:8] in merged_commit
+
+
+def test_write_base_revision_unrecoverable(
+    in_memory_store: InMemoryFileStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Issue 2+3: when read_by_revision fails, BaseRevisionUnrecoverableError is raised."""
+    in_memory_store.write("acme", "notes.md", b"line1\nline2\n", commit_message="seed")
+    rev1 = in_memory_store.compute_revision("acme", "notes.md")
+    # Concurrent write into a different region so it would merge cleanly
+    # — but we want to confirm the error path fires before any merge attempt.
+    in_memory_store.write("acme", "notes.md", b"line1\nline2\nline3\n", commit_message="other")
+
+    def _raise(_rev: object) -> bytes:
+        raise KeyError("revision evicted")
+
+    monkeypatch.setattr(in_memory_store, "read_by_revision", _raise)
+    with pytest.raises(BaseRevisionUnrecoverableError) as exc:
+        write(
+            in_memory_store,
+            "acme",
+            "notes.md",
+            b"# Notes\nline1\nline2\n",
+            base_revision=rev1,
+        )
+    assert exc.value.filename == "notes.md"
+    assert exc.value.base_revision == rev1

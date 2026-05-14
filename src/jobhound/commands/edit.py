@@ -12,9 +12,6 @@ import os
 import shlex
 import subprocess
 from pathlib import Path
-from typing import Annotated
-
-from cyclopts import Parameter
 
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.meta_io import ValidationError, read_meta
@@ -56,8 +53,6 @@ def _open_editor(argv: list[str], path: Path) -> None:
 def run(
     slug_query: str,
     /,
-    *,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Open meta.toml in $EDITOR; validate on save; rename on slug change."""
     cfg = load_config()
@@ -82,6 +77,6 @@ def run(
         if cleaned != after:
             meta.write_text(cleaned)
             opp = read_meta(meta)
-        final_dir = repo.save(opp, opp_dir, message=f"edit: {opp.slug}", no_commit=no_commit)
+        final_dir = repo.save(opp, opp_dir, message=f"edit: {opp.slug}")
         print(f"Updated {final_dir.relative_to(repo.paths.db_root)}")
         return

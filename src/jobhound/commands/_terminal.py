@@ -24,7 +24,6 @@ def run_transition(
     slug_query: str,
     verb: str,
     today: str | None,
-    no_commit: bool,
 ) -> None:
     """Move an opportunity to its terminal status via the application service."""
     cfg = load_config()
@@ -33,7 +32,7 @@ def run_transition(
 
     service_fn = _SERVICES[verb]
     try:
-        _, after, _ = service_fn(repo, slug_query, today=today_date, no_commit=no_commit)
+        _, after, _ = service_fn(repo, slug_query, today=today_date)
     except InvalidTransitionError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc

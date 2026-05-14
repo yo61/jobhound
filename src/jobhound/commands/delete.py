@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 import questionary
-from cyclopts import Parameter
 
 from jobhound.application import ops_service
 from jobhound.infrastructure.config import load_config
@@ -18,7 +15,6 @@ def run(
     /,
     *,
     yes: bool = False,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Delete an opportunity directory (e.g. a duplicate scaffold).
 
@@ -32,10 +28,5 @@ def run(
         if not confirm:
             print("aborted")
             raise SystemExit(1)
-    result = ops_service.delete_opportunity(
-        repo,
-        slug_query,
-        confirm=True,
-        no_commit=no_commit,
-    )
+    result = ops_service.delete_opportunity(repo, slug_query, confirm=True)
     print(f"deleted: {result.opp_dir.name}")

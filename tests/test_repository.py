@@ -46,7 +46,7 @@ def test_create_writes_meta_and_scaffolds_artefacts(tmp_path: Path) -> None:
     repo = OpportunityRepository(paths, cfg)
 
     opp = _make_opp()
-    opp_dir = repo.create(opp, message=f"new: {opp.slug}", no_commit=True)
+    opp_dir = repo.create(opp, message=f"new: {opp.slug}")
 
     assert opp_dir.name == opp.slug
     assert (opp_dir / "meta.toml").is_file()
@@ -60,7 +60,7 @@ def test_find_returns_opp_and_dir(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp(), message="new", no_commit=True)
+    repo.create(_make_opp(), message="new")
 
     opp, opp_dir = repo.find("acme")
     assert opp.company == "Acme"
@@ -82,11 +82,11 @@ def test_save_persists_changes(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp(), message="new", no_commit=True)
+    repo.create(_make_opp(), message="new")
     opp, opp_dir = repo.find("acme")
 
     updated = replace(opp, priority=Priority.HIGH)
-    repo.save(updated, opp_dir, message="priority: acme high", no_commit=True)
+    repo.save(updated, opp_dir, message="priority: acme high")
 
     reloaded, _ = repo.find("acme")
     assert reloaded.priority == Priority.HIGH
@@ -97,11 +97,11 @@ def test_save_renames_dir_when_slug_changes(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp(), message="new", no_commit=True)
+    repo.create(_make_opp(), message="new")
     opp, opp_dir = repo.find("acme")
 
     renamed = replace(opp, slug="2026-05-acme-senior-eng")
-    new_dir = repo.save(renamed, opp_dir, message="edit", no_commit=True)
+    new_dir = repo.save(renamed, opp_dir, message="edit")
 
     assert not opp_dir.exists()
     assert new_dir.name == "2026-05-acme-senior-eng"
@@ -113,13 +113,13 @@ def test_save_rejects_rename_collision(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp("2026-05-acme-eng"), message="new", no_commit=True)
-    repo.create(_make_opp("2026-05-beta-eng"), message="new", no_commit=True)
+    repo.create(_make_opp("2026-05-acme-eng"), message="new")
+    repo.create(_make_opp("2026-05-beta-eng"), message="new")
     opp, opp_dir = repo.find("acme")
 
     collision = replace(opp, slug="2026-05-beta-eng")
     with pytest.raises(FileExistsError):
-        repo.save(collision, opp_dir, message="edit", no_commit=True)
+        repo.save(collision, opp_dir, message="edit")
 
 
 def test_all_iterates_opportunities(tmp_path: Path) -> None:
@@ -127,8 +127,8 @@ def test_all_iterates_opportunities(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp("2026-05-acme-eng"), message="new", no_commit=True)
-    repo.create(_make_opp("2026-05-beta-eng"), message="new", no_commit=True)
+    repo.create(_make_opp("2026-05-acme-eng"), message="new")
+    repo.create(_make_opp("2026-05-beta-eng"), message="new")
 
     slugs = sorted(o.slug for o in repo.all())
     assert slugs == ["2026-05-acme-eng", "2026-05-beta-eng"]
@@ -139,10 +139,10 @@ def test_archive_moves_dir(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp(), message="new", no_commit=True)
+    repo.create(_make_opp(), message="new")
     _, opp_dir = repo.find("acme")
 
-    repo.archive(opp_dir, no_commit=True)
+    repo.archive(opp_dir)
     assert not opp_dir.exists()
     assert (paths.archive_dir / "2026-05-acme-eng" / "meta.toml").is_file()
 
@@ -152,10 +152,10 @@ def test_delete_removes_dir(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp(), message="new", no_commit=True)
+    repo.create(_make_opp(), message="new")
     _, opp_dir = repo.find("acme")
 
-    repo.delete(opp_dir, no_commit=True)
+    repo.delete(opp_dir)
     assert not opp_dir.exists()
 
 
@@ -164,10 +164,10 @@ def test_create_rejects_duplicate(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp(), message="new", no_commit=True)
+    repo.create(_make_opp(), message="new")
 
     with pytest.raises(FileExistsError):
-        repo.create(_make_opp(), message="new", no_commit=True)
+        repo.create(_make_opp(), message="new")
 
 
 def test_archive_rejects_collision(tmp_path: Path) -> None:
@@ -175,15 +175,15 @@ def test_archive_rejects_collision(tmp_path: Path) -> None:
     paths = paths_from_config(cfg)
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
-    repo.create(_make_opp(), message="new", no_commit=True)
+    repo.create(_make_opp(), message="new")
     _, opp_dir = repo.find("acme")
-    repo.archive(opp_dir, no_commit=True)
+    repo.archive(opp_dir)
 
     # Re-create with the same slug, then try to archive again — target exists.
-    repo.create(_make_opp(), message="new", no_commit=True)
+    repo.create(_make_opp(), message="new")
     _, opp_dir2 = repo.find("acme")
     with pytest.raises(FileExistsError):
-        repo.archive(opp_dir2, no_commit=True)
+        repo.archive(opp_dir2)
 
 
 def test_all_empty_dir(tmp_path: Path) -> None:

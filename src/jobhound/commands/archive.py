@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import sys
-from typing import Annotated
-
-from cyclopts import Parameter
 
 from jobhound.application import ops_service
 from jobhound.infrastructure.config import load_config
@@ -16,8 +13,6 @@ from jobhound.infrastructure.repository import OpportunityRepository
 def run(
     slug_query: str,
     /,
-    *,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Move an opportunity to the archive directory."""
     cfg = load_config()
@@ -25,11 +20,7 @@ def run(
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
     try:
-        _, _, new_dir = ops_service.archive_opportunity(
-            repo,
-            slug_query,
-            no_commit=no_commit,
-        )
+        _, _, new_dir = ops_service.archive_opportunity(repo, slug_query)
     except FileExistsError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc

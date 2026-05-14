@@ -41,12 +41,10 @@ def add_note(
 def archive_opportunity(
     repo: OpportunityRepository,
     slug: str,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     """Move opp_dir from opportunities/ to archive/. Returns (opp, opp, new_dir)."""
     opp, opp_dir = repo.find(slug)
-    repo.archive(opp_dir, no_commit=no_commit)
+    repo.archive(opp_dir)
     new_dir = repo.paths.archive_dir / opp_dir.name
     return opp, opp, new_dir
 
@@ -66,14 +64,13 @@ def delete_opportunity(
     slug: str,
     *,
     confirm: bool,
-    no_commit: bool = False,
 ) -> DeleteResult:
     """Return a preview when confirm=False; delete and commit when confirm=True."""
     opp, opp_dir = repo.find(slug)
     file_list = sorted(p.relative_to(opp_dir).as_posix() for p in opp_dir.rglob("*") if p.is_file())
     if not confirm:
         return DeleteResult(deleted=False, opportunity=opp, opp_dir=opp_dir, files=file_list)
-    repo.delete(opp_dir, no_commit=no_commit)
+    repo.delete(opp_dir)
     return DeleteResult(deleted=True, opportunity=opp, opp_dir=opp_dir, files=file_list)
 
 

@@ -14,12 +14,10 @@ def run(
     /,
     *,
     today: Annotated[str | None, Parameter(show=False)] = None,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Withdraw from this process."""
     run_transition(
         slug_query=slug_query,
         verb="withdraw",
         today=today,
-        no_commit=no_commit,
     )

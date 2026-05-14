@@ -334,30 +334,3 @@ def test_decline_offer(tmp_path: Path) -> None:
     )
     _, after, _ = lifecycle_service.decline_offer(repo, "acme", today=TODAY)
     assert after.status == Status.DECLINED
-
-
-def test_apply_to_with_no_commit_does_not_commit(tmp_path: Path) -> None:
-    repo, paths = _repo(tmp_path)
-    _seed_prospect(repo)
-    head_before = subprocess.run(
-        ["git", "-C", str(paths.db_root), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    lifecycle_service.apply_to(
-        repo,
-        "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
-        next_action="x",
-        next_action_due=date(2026, 5, 20),
-        no_commit=True,
-    )
-    head_after = subprocess.run(
-        ["git", "-C", str(paths.db_root), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    assert head_before == head_after

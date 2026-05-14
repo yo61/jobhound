@@ -154,22 +154,3 @@ def test_set_priority_idempotent(tmp_path: Path) -> None:
     field_service.set_priority(repo, "acme", Priority.HIGH)
     before, after, _ = field_service.set_priority(repo, "acme", Priority.HIGH)
     assert before.priority == after.priority == Priority.HIGH
-
-
-def test_set_priority_no_commit(tmp_path: Path) -> None:
-    """`no_commit=True` must not create a new git commit."""
-    repo = _seeded_repo(tmp_path)
-    head_before = subprocess.run(
-        ["git", "-C", str(repo.paths.db_root), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    field_service.set_priority(repo, "acme", Priority.HIGH, no_commit=True)
-    head_after = subprocess.run(
-        ["git", "-C", str(repo.paths.db_root), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    assert head_before == head_after

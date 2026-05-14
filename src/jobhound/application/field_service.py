@@ -1,9 +1,7 @@
 """Single-field setters. Replace the role `jh edit` plays interactively.
 
 Each function does load → replace one field → save. All return
-(before, after, opp_dir). All accept `no_commit: bool = False` so future
-callers can opt out of the auto-commit (matches existing
-OpportunityRepository.save / .create behavior).
+(before, after, opp_dir).
 """
 
 from __future__ import annotations
@@ -24,12 +22,10 @@ def _set_field(
     field_name: str,
     value: object,
     commit_label: str,
-    *,
-    no_commit: bool,
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = replace(before, **{field_name: value})
-    repo.save(after, opp_dir, message=f"{commit_label}: {after.slug}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"{commit_label}: {after.slug}")
     return before, after, opp_dir
 
 
@@ -37,32 +33,26 @@ def set_company(
     repo: OpportunityRepository,
     slug: str,
     value: str,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(repo, slug, "company", value, "company", no_commit=no_commit)
+    return _set_field(repo, slug, "company", value, "company")
 
 
 def set_role(
     repo: OpportunityRepository,
     slug: str,
     value: str,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(repo, slug, "role", value, "role", no_commit=no_commit)
+    return _set_field(repo, slug, "role", value, "role")
 
 
 def set_priority(
     repo: OpportunityRepository,
     slug: str,
     level: Priority,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = replace(before, priority=level)
-    repo.save(after, opp_dir, message=f"priority: {after.slug} {level.value}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"priority: {after.slug} {level.value}")
     return before, after, opp_dir
 
 
@@ -70,13 +60,11 @@ def set_status(
     repo: OpportunityRepository,
     slug: str,
     status: Status,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     """Bypass transitions — write the status directly. Equivalent to `jh log --force`."""
     before, opp_dir = repo.find(slug)
     after = replace(before, status=status)
-    repo.save(after, opp_dir, message=f"status: {after.slug} {status.value}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"status: {after.slug} {status.value}")
     return before, after, opp_dir
 
 
@@ -84,60 +72,48 @@ def set_source(
     repo: OpportunityRepository,
     slug: str,
     value: str | None,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(repo, slug, "source", value, "source", no_commit=no_commit)
+    return _set_field(repo, slug, "source", value, "source")
 
 
 def set_location(
     repo: OpportunityRepository,
     slug: str,
     value: str | None,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(repo, slug, "location", value, "location", no_commit=no_commit)
+    return _set_field(repo, slug, "location", value, "location")
 
 
 def set_comp_range(
     repo: OpportunityRepository,
     slug: str,
     value: str | None,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(repo, slug, "comp_range", value, "comp_range", no_commit=no_commit)
+    return _set_field(repo, slug, "comp_range", value, "comp_range")
 
 
 def set_first_contact(
     repo: OpportunityRepository,
     slug: str,
     value: date | None,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(repo, slug, "first_contact", value, "first_contact", no_commit=no_commit)
+    return _set_field(repo, slug, "first_contact", value, "first_contact")
 
 
 def set_applied_on(
     repo: OpportunityRepository,
     slug: str,
     value: date | None,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(repo, slug, "applied_on", value, "applied_on", no_commit=no_commit)
+    return _set_field(repo, slug, "applied_on", value, "applied_on")
 
 
 def set_last_activity(
     repo: OpportunityRepository,
     slug: str,
     value: date | None,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    return _set_field(repo, slug, "last_activity", value, "last_activity", no_commit=no_commit)
+    return _set_field(repo, slug, "last_activity", value, "last_activity")
 
 
 def set_next_action(
@@ -146,12 +122,11 @@ def set_next_action(
     *,
     text: str | None,
     due: date | None,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     """Set both `next_action` and `next_action_due` in one go (they travel together)."""
     before, opp_dir = repo.find(slug)
     after = replace(before, next_action=text, next_action_due=due)
-    repo.save(after, opp_dir, message=f"next_action: {after.slug}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"next_action: {after.slug}")
     return before, after, opp_dir
 
 
@@ -160,10 +135,9 @@ def touch(
     slug: str,
     *,
     today: date,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     """Bump last_activity to today without changing anything else."""
     before, opp_dir = repo.find(slug)
     after = before.touch(today=today)
-    repo.save(after, opp_dir, message=f"touch: {after.slug}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"touch: {after.slug}")
     return before, after, opp_dir

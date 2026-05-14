@@ -43,7 +43,7 @@ class OpportunityRepository:
                 continue
             yield read_meta(sub / "meta.toml")
 
-    def create(self, opp: Opportunity, *, message: str, no_commit: bool = False) -> Path:
+    def create(self, opp: Opportunity, *, message: str) -> Path:
         """Scaffold a new opportunity directory and write `opp`.
 
         Direct FS writes below are a chicken-and-egg exception: the FileStore
@@ -61,7 +61,7 @@ class OpportunityRepository:
         )
         (opp_dir / "correspondence").mkdir()
         write_meta(opp, opp_dir / "meta.toml")
-        self._commit(message, no_commit=no_commit)
+        self._commit(message)
         return opp_dir
 
     def save(
@@ -70,7 +70,6 @@ class OpportunityRepository:
         opp_dir: Path,
         *,
         message: str,
-        no_commit: bool = False,
     ) -> Path:
         """Persist `opp`. Renames the directory if `opp.slug` no longer matches."""
         if opp_dir.name != opp.slug:
@@ -80,27 +79,27 @@ class OpportunityRepository:
             opp_dir.rename(dst)
             opp_dir = dst
         write_meta(opp, opp_dir / "meta.toml")
-        self._commit(message, no_commit=no_commit)
+        self._commit(message)
         return opp_dir
 
-    def archive(self, opp_dir: Path, *, no_commit: bool = False) -> None:
+    def archive(self, opp_dir: Path) -> None:
         """Move `opp_dir` from opportunities/ to archive/."""
         dst = self.paths.archive_dir / opp_dir.name
         if dst.exists():
             raise FileExistsError(f"archive target already exists: {dst}")
         self.paths.archive_dir.mkdir(parents=True, exist_ok=True)
         shutil.move(opp_dir, dst)
-        self._commit(f"archive: {opp_dir.name}", no_commit=no_commit)
+        self._commit(f"archive: {opp_dir.name}")
 
-    def delete(self, opp_dir: Path, *, no_commit: bool = False) -> None:
+    def delete(self, opp_dir: Path) -> None:
         """Remove `opp_dir` from disk."""
         name = opp_dir.name
         shutil.rmtree(opp_dir)
-        self._commit(f"delete: {name}", no_commit=no_commit)
+        self._commit(f"delete: {name}")
 
-    def _commit(self, message: str, *, no_commit: bool) -> None:
+    def _commit(self, message: str) -> None:
         commit_change(
             self.paths.db_root,
             message,
-            enabled=self.cfg.auto_commit and not no_commit,
+            enabled=self.cfg.auto_commit,
         )

@@ -44,16 +44,3 @@ def test_new_creates_git_commit(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
     log = subprocess.check_output(["git", "-C", str(tmp_jh.db_path), "log", "--oneline"], text=True)
     assert "new: 2026-05-foo-em" in log
-
-
-def test_new_no_commit_flag_skips_git(tmp_jh, invoke) -> None:
-    result = invoke(
-        ["new", "--company", "Foo", "--role", "EM", "--today", "2026-05-11", "--no-commit"],
-    )
-    assert result.exit_code == 0, result.output
-    log_result = subprocess.run(
-        ["git", "-C", str(tmp_jh.db_path), "log", "--oneline"],
-        capture_output=True,
-        text=True,
-    )
-    assert "new:" not in log_result.stdout

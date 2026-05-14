@@ -26,7 +26,6 @@ def run(
     next_action: str = "Initial review of role and company",
     next_action_due: str | None = None,
     today: Annotated[str | None, Parameter(show=False)] = None,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Create a new opportunity at status `prospect`."""
     cfg = load_config()
@@ -54,7 +53,7 @@ def run(
         next_action_due=due,
     )
     try:
-        _, _, opp_dir = lifecycle_service.create(repo, opp, no_commit=no_commit)
+        _, _, opp_dir = lifecycle_service.create(repo, opp)
     except FileExistsError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc

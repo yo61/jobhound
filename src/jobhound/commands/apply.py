@@ -23,7 +23,6 @@ def run(
     next_action: str,
     next_action_due: str,
     today: Annotated[str | None, Parameter(show=False)] = None,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Mark the application as submitted."""
     cfg = load_config()
@@ -41,7 +40,6 @@ def run(
             today=today_date,
             next_action=next_action,
             next_action_due=due,
-            no_commit=no_commit,
         )
     except InvalidTransitionError as exc:
         print(str(exc), file=sys.stderr)

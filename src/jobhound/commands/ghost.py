@@ -14,12 +14,10 @@ def run(
     /,
     *,
     today: Annotated[str | None, Parameter(show=False)] = None,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Mark this opportunity as ghosted (no response, giving up)."""
     run_transition(
         slug_query=slug_query,
         verb="ghost",
         today=today,
-        no_commit=no_commit,
     )

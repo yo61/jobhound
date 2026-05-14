@@ -141,22 +141,3 @@ def test_set_link_overwrites(tmp_path: Path) -> None:
     assert after.links == {"posting": "https://y"}
     _, after, _ = relation_service.set_link(repo, "acme", name="careers", url="https://z")
     assert after.links == {"posting": "https://y", "careers": "https://z"}
-
-
-def test_add_tag_no_commit(tmp_path: Path) -> None:
-    """`no_commit=True` must not create a new git commit."""
-    repo = _seeded_repo(tmp_path)
-    head_before = subprocess.run(
-        ["git", "-C", str(repo.paths.db_root), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    relation_service.add_tag(repo, "acme", "remote", no_commit=True)
-    head_after = subprocess.run(
-        ["git", "-C", str(repo.paths.db_root), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    assert head_before == head_after

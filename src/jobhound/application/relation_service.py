@@ -1,8 +1,4 @@
-"""Relation operations: tags, contacts, links.
-
-Each function accepts `no_commit: bool = False` (keyword-only) so callers
-can opt out of the auto-commit (mirrors OpportunityRepository.save's flag).
-"""
+"""Relation operations: tags, contacts, links."""
 
 from __future__ import annotations
 
@@ -17,12 +13,10 @@ def add_tag(
     repo: OpportunityRepository,
     slug: str,
     tag: str,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = before.with_tags(add={tag}, remove=set())
-    repo.save(after, opp_dir, message=f"tag: {after.slug} +{tag}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"tag: {after.slug} +{tag}")
     return before, after, opp_dir
 
 
@@ -30,12 +24,10 @@ def remove_tag(
     repo: OpportunityRepository,
     slug: str,
     tag: str,
-    *,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = before.with_tags(add=set(), remove={tag})
-    repo.save(after, opp_dir, message=f"tag: {after.slug} -{tag}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"tag: {after.slug} -{tag}")
     return before, after, opp_dir
 
 
@@ -45,13 +37,12 @@ def set_tags(
     *,
     add: set[str],
     remove: set[str],
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     """Apply add/remove tag deltas in one save. Matches `jh tag`'s batched form."""
     before, opp_dir = repo.find(slug)
     after = before.with_tags(add=add, remove=remove)
     summary = " ".join([*(f"+{t}" for t in sorted(add)), *(f"-{t}" for t in sorted(remove))])
-    repo.save(after, opp_dir, message=f"tag: {after.slug} {summary}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"tag: {after.slug} {summary}")
     return before, after, opp_dir
 
 
@@ -64,7 +55,6 @@ def add_contact(
     channel: str | None,
     company: str | None = None,
     note: str | None = None,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = before.with_contact(
@@ -76,7 +66,7 @@ def add_contact(
             note=note,
         )
     )
-    repo.save(after, opp_dir, message=f"contact: {after.slug} {name}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"contact: {after.slug} {name}")
     return before, after, opp_dir
 
 
@@ -86,9 +76,8 @@ def set_link(
     *,
     name: str,
     url: str,
-    no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
     after = before.with_link(name=name, url=url)
-    repo.save(after, opp_dir, message=f"link: {after.slug} {name}", no_commit=no_commit)
+    repo.save(after, opp_dir, message=f"link: {after.slug} {name}")
     return before, after, opp_dir

@@ -41,7 +41,6 @@ def run(
     next_action_due: str | None = None,
     force: bool = False,
     today: Annotated[str | None, Parameter(show=False)] = None,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Record an interaction (correspondence) and update status + next action."""
     cfg = load_config()
@@ -76,7 +75,6 @@ def run(
             next_action_due=due,
             today=today_date,
             force=force,
-            no_commit=no_commit,
         )
     except InvalidTransitionError as exc:
         print(str(exc), file=sys.stderr)

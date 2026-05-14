@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import sys
-from typing import Annotated
-
-from cyclopts import Parameter
 
 from jobhound.application import field_service
 from jobhound.domain.priority import Priority
@@ -19,7 +16,6 @@ def run(
     /,
     *,
     to: str,
-    no_commit: Annotated[bool, Parameter(negative=())] = False,
 ) -> None:
     """Set the priority of an opportunity."""
     try:
@@ -29,5 +25,5 @@ def run(
         raise SystemExit(1) from None
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
-    _, after, _ = field_service.set_priority(repo, slug_query, priority, no_commit=no_commit)
+    _, after, _ = field_service.set_priority(repo, slug_query, priority)
     print(f"priority {after.slug}: {after.priority.value}")

@@ -17,14 +17,19 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
-def add_note(repo: OpportunityRepository, *, slug: str, msg: str) -> str:
+def add_note(
+    repo: OpportunityRepository,
+    *,
+    slug: str,
+    msg: str,
+    today: str | None = None,
+) -> str:
+    today_d = date.fromisoformat(today) if today else date.today()
     try:
-        before, after, opp_dir = ops_service.add_note(repo, slug, msg=msg)
+        before, after, opp_dir = ops_service.add_note(repo, slug, msg=msg, today=today_d)
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="add_note"))
-    return json.dumps(
-        mutation_response(before, after, opp_dir, today=date.today()),
-    )
+    return json.dumps(mutation_response(before, after, opp_dir, today=today_d))
 
 
 def archive_opportunity(repo: OpportunityRepository, *, slug: str) -> str:
@@ -89,10 +94,10 @@ def sync_data(repo: OpportunityRepository, *, direction: str = "pull") -> str:
 def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(
         name="add_note",
-        description="Append a timestamped note to the opp's notes.md.",
+        description="Append a dated note to the opp's notes.md and bump last_activity.",
     )
-    def _n(slug: str, msg: str) -> str:
-        return add_note(repo, slug=slug, msg=msg)
+    def _n(slug: str, msg: str, today: str | None = None) -> str:
+        return add_note(repo, slug=slug, msg=msg, today=today)
 
     @app.tool(
         name="archive_opportunity",

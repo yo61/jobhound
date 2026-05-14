@@ -44,7 +44,13 @@ class OpportunityRepository:
             yield read_meta(sub / "meta.toml")
 
     def create(self, opp: Opportunity, *, message: str, no_commit: bool = False) -> Path:
-        """Scaffold a new opportunity directory and write `opp`."""
+        """Scaffold a new opportunity directory and write `opp`.
+
+        Direct FS writes below are a chicken-and-egg exception: the FileStore
+        requires the slug directory to exist before it can write into it, so the
+        scaffolding must happen here.  See docs/specs/2026-05-14-file-management-design.md
+        §"Out of scope".
+        """
         opp_dir = self.paths.opportunities_dir / opp.slug
         if opp_dir.exists():
             raise FileExistsError(f"opportunity already exists: {opp_dir}")

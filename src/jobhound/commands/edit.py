@@ -1,4 +1,10 @@
-"""`jh edit` — open meta.toml in $EDITOR with validation loop."""
+"""`jh edit` — open meta.toml in $EDITOR with validation loop.
+
+Direct FS access here is an intentional exception: the $EDITOR workflow is an
+interactive read-modify-write loop on a temp path that doesn't fit the
+load-mutate-save shape of file_service.  See docs/specs/2026-05-14-file-management-design.md
+§"Out of scope".
+"""
 
 from __future__ import annotations
 

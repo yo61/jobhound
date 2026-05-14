@@ -34,6 +34,22 @@ full set: `new`, `apply`, `log`, `withdraw`, `ghost`, `accept`, `decline`,
 `jh export` filters: `--status` and `--priority` (comma-separated or
 repeatable), `--slug` (substring), `--active-only`, `--include-archived`.
 
+### Managing opportunity files
+
+`jh file` provides uniform access to files inside an opportunity (CVs,
+research notes, correspondence, etc.). Available subcommands:
+
+- `jh file list <slug>` — list files
+- `jh file show <slug> <name>` — print to stdout; use `--out <path>` to export
+- `jh file write <slug> <name> --content <str>` (or `--from <path>`)
+- `jh file append <slug> <name> --content <str>` (or `--from <path>`)
+- `jh file delete <slug> <name> --yes`
+
+Pass `--base-revision <r>` (the revision string from a prior `jh file show`
+or `jh file write`) to enable optimistic-concurrency conflict detection.
+For text files, a 3-way merge is attempted automatically; binary conflicts
+surface the current file's metadata and suggest an alternate name.
+
 ## Storage
 
 Per-opportunity data is stored under `$XDG_DATA_HOME/jh/` (defaults to
@@ -45,7 +61,13 @@ state change — your history is auditable and you can push it anywhere.
 
 `jh` ships a Model Context Protocol server so AI clients (Claude
 Desktop, Claude Code, Continue, Zed, …) can read and modify your job
-hunt directly. All 32 CLI verbs are exposed as MCP tools.
+hunt directly. 37 MCP tools cover read operations (list, show, stats,
+files, file content), state transitions (apply, log, withdraw, ghost,
+accept, decline), field setters, relation operations (tags, contacts,
+links), opportunity ops (notes, archive, delete), and a uniform file
+API (read, write, import, export, append, delete) with
+optimistic-concurrency conflict detection and 3-way merge for text
+files.
 
 Install the optional extra:
 

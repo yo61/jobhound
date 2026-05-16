@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.0](https://github.com/yo61/jobhound/compare/v0.7.2...v0.8.0) (2026-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* 'jh edit' is gone. Use 'jh set <field>' or hand-edit.
+* every renamed CLI command and MCP tool. See docs/specs/2026-05-16-command-rename-plan.md for the full table.
+
+### Features
+
+* **cli:** add 10 deferred field setters ([e81a511](https://github.com/yo61/jobhound/commit/e81a511fed2b3611b21c3c50857ffaee7e9b8356))
+* **cli:** add jh clear subgroup for nullable fields ([5ced221](https://github.com/yo61/jobhound/commit/5ced221c6c1463ba8b101edb995c1550dcd57143))
+* **cli:** jh remove link + remove_link MCP tool ([34595bb](https://github.com/yo61/jobhound/commit/34595bb0ccff52ddba9b81af07be4f20cae07c8c))
+* command rename per the locked plan (v0.8.0) ([a99d004](https://github.com/yo61/jobhound/commit/a99d004acf5ff191b614e5e576804471d7f9d6d0))
+* jh remove contact + remove_contact MCP tool ([247dbf4](https://github.com/yo61/jobhound/commit/247dbf462827d9b609c046b4142e05ee673bb722))
+* remove jh edit command ([1d04bfa](https://github.com/yo61/jobhound/commit/1d04bfa417ef977b77f36c15cecbf2f2ca8028a4))
+
+
+### Documentation
+
+* terse imperative help text across CLI and MCP ([90b3098](https://github.com/yo61/jobhound/commit/90b3098f39f682438430c22a1d7b27e3d27b4b46))
+
 ## [0.7.2](https://github.com/yo61/jobhound/compare/v0.7.1...v0.7.2) (2026-05-16)
 
 

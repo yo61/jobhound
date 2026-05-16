@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -26,12 +26,27 @@ _LIFECYCLE_DATETIME_FIELDS = (
 
 
 def _validate_tz_aware(data: dict, path: Path | None) -> None:
-    """Reject naive datetimes in lifecycle fields."""
+    """Reject naive datetimes and bare dates in lifecycle fields.
+
+    Bare dates indicate an unmigrated meta.toml from a pre-v0.7.0 data root;
+    surface that with a clear pointer to the migration command instead of
+    letting the bad value crash later in `calendar_days_between` with an
+    opaque `AttributeError: 'datetime.date' object has no attribute 'tzinfo'`.
+    """
     for name in _LIFECYCLE_DATETIME_FIELDS:
         value = data.get(name)
-        if isinstance(value, datetime) and value.tzinfo is None:
+        if value is None:
+            continue
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                raise ValidationError(
+                    f"{name} is timezone-naive in {path}: "
+                    f"every lifecycle field must be tz-aware UTC"
+                )
+        elif isinstance(value, date):
             raise ValidationError(
-                f"{name} is timezone-naive in {path}: every lifecycle field must be tz-aware UTC"
+                f"{name} is a bare date ({value.isoformat()}) in {path}: "
+                f"run `jh migrate utc-timestamps` to convert your data root, then retry."
             )
 
 

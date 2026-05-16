@@ -18,8 +18,17 @@ def to_utc(value: datetime) -> datetime:
 
     A naive datetime is interpreted as the user's local zone, then converted.
     An aware datetime (any zone) is converted to UTC by `.astimezone()`.
+
+    Naive midnight is treated as a *bare-date hint*: the input is interpreted
+    as noon-local on that date instead, then converted to UTC. This keeps the
+    user's calendar date visually intact in the stored UTC string and avoids
+    DST-transition edge cases (transitions happen near midnight, noon is safe).
+    Practically: `datetime.fromisoformat("2026-04-29")` produces naive midnight,
+    which under this rule is stored as noon-local-on-2026-04-29.
     """
     if value.tzinfo is None:
+        if value.hour == 0 and value.minute == 0 and value.second == 0 and value.microsecond == 0:
+            value = value.replace(hour=12)
         value = value.replace(tzinfo=get_localzone())
     return value.astimezone(UTC)
 

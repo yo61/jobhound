@@ -25,7 +25,7 @@ def _write_meta(path: Path, applied_on: object) -> None:
 
 
 def test_migration_converts_bare_date(tmp_path, monkeypatch):
-    """Bare date midnight is converted to UTC using the local timezone."""
+    """Bare date is converted to noon-local→UTC."""
     london = ZoneInfo("Europe/London")
     monkeypatch.setattr("jobhound.migrations.utc_timestamps.get_localzone", lambda: london)
     meta = tmp_path / "opportunities" / "2026-05-14-acme-eng" / "meta.toml"
@@ -38,8 +38,10 @@ def test_migration_converts_bare_date(tmp_path, monkeypatch):
         data = tomllib.load(fh)
     assert isinstance(data["applied_on"], datetime)
     assert data["applied_on"].tzinfo is not None
-    # Europe/London is UTC+1 in BST (May), so midnight local = 23:00 previous day UTC
-    assert data["applied_on"] == datetime(2026, 5, 13, 23, 0, tzinfo=UTC)
+    # Europe/London is UTC+1 in BST (May), so noon local = 11:00 UTC same day.
+    # Storing as noon-local (not midnight-local) keeps the calendar date intact
+    # in the raw UTC string and is DST-safe.
+    assert data["applied_on"] == datetime(2026, 5, 14, 11, 0, tzinfo=UTC)
 
 
 def test_migration_idempotent(tmp_path, monkeypatch):

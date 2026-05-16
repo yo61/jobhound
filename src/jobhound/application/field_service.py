@@ -7,7 +7,7 @@ Each function does load → replace one field → save. All return
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 
 from jobhound.domain.opportunities import Opportunity
@@ -95,7 +95,7 @@ def set_comp_range(
 def set_first_contact(
     repo: OpportunityRepository,
     slug: str,
-    value: date | None,
+    value: datetime | None,
 ) -> tuple[Opportunity, Opportunity, Path]:
     return _set_field(repo, slug, "first_contact", value, "first_contact")
 
@@ -103,7 +103,7 @@ def set_first_contact(
 def set_applied_on(
     repo: OpportunityRepository,
     slug: str,
-    value: date | None,
+    value: datetime | None,
 ) -> tuple[Opportunity, Opportunity, Path]:
     return _set_field(repo, slug, "applied_on", value, "applied_on")
 
@@ -111,7 +111,7 @@ def set_applied_on(
 def set_last_activity(
     repo: OpportunityRepository,
     slug: str,
-    value: date | None,
+    value: datetime | None,
 ) -> tuple[Opportunity, Opportunity, Path]:
     return _set_field(repo, slug, "last_activity", value, "last_activity")
 
@@ -121,7 +121,7 @@ def set_next_action(
     slug: str,
     *,
     text: str | None,
-    due: date | None,
+    due: datetime | None,
 ) -> tuple[Opportunity, Opportunity, Path]:
     """Set both `next_action` and `next_action_due` in one go (they travel together)."""
     before, opp_dir = repo.find(slug)
@@ -134,10 +134,10 @@ def touch(
     repo: OpportunityRepository,
     slug: str,
     *,
-    today: date,
+    now: datetime,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    """Bump last_activity to today without changing anything else."""
+    """Bump last_activity to `now` without changing anything else."""
     before, opp_dir = repo.find(slug)
-    after = before.touch(today=today)
+    after = before.touch(now=now)
     repo.save(after, opp_dir, message=f"touch: {after.slug}")
     return before, after, opp_dir

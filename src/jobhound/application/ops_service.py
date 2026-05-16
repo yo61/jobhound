@@ -34,7 +34,7 @@ def add_note(
     timestamp = _format_z_seconds(now)
     line = f"- {timestamp} {msg}\n".encode()
     file_service.append(store, canonical, "notes.md", line)
-    after = before.touch(now=now)
+    after = before.bump(now=now)
     repo.save(after, opp_dir, message=f"note: {after.slug}")
     return before, after, opp_dir
 

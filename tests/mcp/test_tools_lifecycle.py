@@ -6,19 +6,19 @@ import json
 
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.mcp.tools.lifecycle import (
-    accept_offer,
-    apply_to,
-    decline_offer,
+    accept_opportunity,
+    apply_to_opportunity,
+    create_opportunity,
+    decline_opportunity,
+    ghost_opportunity,
     log_interaction,
-    mark_ghosted,
-    new_opportunity,
-    withdraw_from,
+    withdraw_from_opportunity,
 )
 
 
-def test_new_opportunity_returns_null_changed(repo: OpportunityRepository) -> None:
+def test_create_opportunity_returns_null_changed(repo: OpportunityRepository) -> None:
     payload = json.loads(
-        new_opportunity(
+        create_opportunity(
             repo,
             company="Newco",
             role="Eng",
@@ -31,9 +31,9 @@ def test_new_opportunity_returns_null_changed(repo: OpportunityRepository) -> No
     assert payload["opportunity"]["priority"] == "high"
 
 
-def test_apply_to_returns_diff(repo: OpportunityRepository) -> None:
+def test_apply_to_opportunity_returns_diff(repo: OpportunityRepository) -> None:
     # The seeded acme-em is already APPLIED. Make a fresh prospect.
-    new_opportunity(
+    create_opportunity(
         repo,
         company="Z",
         role="Y",
@@ -41,7 +41,7 @@ def test_apply_to_returns_diff(repo: OpportunityRepository) -> None:
         priority="medium",
     )
     payload = json.loads(
-        apply_to(
+        apply_to_opportunity(
             repo,
             slug="2026-05-prospect",
             next_action="follow up",
@@ -51,12 +51,12 @@ def test_apply_to_returns_diff(repo: OpportunityRepository) -> None:
     assert payload["changed"]["status"] == ["prospect", "applied"]
 
 
-def test_apply_to_invalid_transition_returns_error(
+def test_apply_to_opportunity_invalid_transition_returns_error(
     repo: OpportunityRepository,
 ) -> None:
     # acme is already APPLIED — applying again is illegal
     payload = json.loads(
-        apply_to(
+        apply_to_opportunity(
             repo,
             slug="acme",
             next_action="x",
@@ -77,26 +77,26 @@ def test_log_interaction_advances(repo: OpportunityRepository) -> None:
     assert payload["changed"]["status"] == ["applied", "screen"]
 
 
-def test_withdraw_marks_withdrawn(repo: OpportunityRepository) -> None:
-    payload = json.loads(withdraw_from(repo, slug="acme"))
+def test_withdraw_from_opportunity_marks_withdrawn(repo: OpportunityRepository) -> None:
+    payload = json.loads(withdraw_from_opportunity(repo, slug="acme"))
     assert payload["opportunity"]["status"] == "withdrawn"
 
 
-def test_mark_ghosted(repo: OpportunityRepository) -> None:
-    payload = json.loads(mark_ghosted(repo, slug="acme"))
+def test_ghost_opportunity(repo: OpportunityRepository) -> None:
+    payload = json.loads(ghost_opportunity(repo, slug="acme"))
     assert payload["opportunity"]["status"] == "ghosted"
 
 
-def test_accept_offer_requires_offer_status(
+def test_accept_opportunity_requires_offer_status(
     repo: OpportunityRepository,
 ) -> None:
     # acme is APPLIED, not OFFER
-    payload = json.loads(accept_offer(repo, slug="acme"))
+    payload = json.loads(accept_opportunity(repo, slug="acme"))
     assert payload["error"]["code"] == "invalid_transition"
 
 
-def test_decline_offer_requires_offer_status(
+def test_decline_opportunity_requires_offer_status(
     repo: OpportunityRepository,
 ) -> None:
-    payload = json.loads(decline_offer(repo, slug="acme"))
+    payload = json.loads(decline_opportunity(repo, slug="acme"))
     assert payload["error"]["code"] == "invalid_transition"

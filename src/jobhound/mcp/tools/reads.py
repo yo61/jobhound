@@ -85,12 +85,12 @@ def list_opportunities(
     return json.dumps(envelope)
 
 
-def get_opportunity(repo: OpportunityRepository, slug: str) -> str:
+def show_opportunity(repo: OpportunityRepository, slug: str) -> str:
     """Show one opportunity by slug (fuzzy match). Returns JSON envelope."""
     try:
         snap = _query(repo).find(slug, now=now_utc())
     except Exception as exc:
-        return json.dumps(exception_to_response(exc, tool="get_opportunity"))
+        return json.dumps(exception_to_response(exc, tool="show_opportunity"))
     envelope = show_envelope(
         snap,
         timestamp=datetime.now(UTC),
@@ -99,7 +99,7 @@ def get_opportunity(repo: OpportunityRepository, slug: str) -> str:
     return json.dumps(envelope)
 
 
-def get_stats(
+def show_stats(
     repo: OpportunityRepository,
     statuses: list[str] | None = None,
     priorities: list[str] | None = None,
@@ -120,7 +120,7 @@ def get_stats(
     try:
         stats = _query(repo).stats(f)
     except Exception as exc:
-        return json.dumps(exception_to_response(exc, tool="get_stats"))
+        return json.dumps(exception_to_response(exc, tool="show_stats"))
     return json.dumps(stats_to_dict(stats))
 
 
@@ -148,14 +148,14 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
         )
 
     @app.tool(
-        name="get_opportunity",
+        name="show_opportunity",
         description="Show one opportunity by slug (fuzzy match).",
     )
     def _get(slug: str) -> str:
-        return get_opportunity(repo, slug)
+        return show_opportunity(repo, slug)
 
     @app.tool(
-        name="get_stats",
+        name="show_stats",
         description="Aggregate funnel + sources counts, optionally filtered.",
     )
     def _stats(
@@ -165,7 +165,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
         active_only: bool = False,
         include_archived: bool = False,
     ) -> str:
-        return get_stats(
+        return show_stats(
             repo,
             statuses,
             priorities,

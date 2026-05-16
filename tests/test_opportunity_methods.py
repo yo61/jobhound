@@ -197,9 +197,9 @@ def test_decline_rejects_non_offer() -> None:
         opp.decline(now=MAY_6)
 
 
-def test_touch_bumps_last_activity_only() -> None:
+def test_bump_bumps_last_activity_only() -> None:
     opp = _prospect()
-    after = opp.touch(now=MAY_9)
+    after = opp.bump(now=MAY_9)
     assert after.last_activity == MAY_9
     assert after.status == opp.status
 

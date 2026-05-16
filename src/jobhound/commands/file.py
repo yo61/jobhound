@@ -97,8 +97,8 @@ def list_(slug: str, /) -> None:
         print(f"  {e.name:50s}  {e.size:>8d}  {e.mtime.isoformat()}")
 
 
-@app.command(name="show")
-def show(
+@app.command(name="read")
+def read(
     slug: str,
     name: str,
     /,
@@ -106,7 +106,7 @@ def show(
     out: Annotated[Path | None, Parameter(name=["--out"])] = None,
     overwrite: Annotated[bool, Parameter(name=["--overwrite"], negative=())] = False,
 ) -> None:
-    """Show a file's content. With --out <path>, export it instead."""
+    """Read a file's content. With --out <path>, export it instead."""
     try:
         store, canonical = _store_and_slug(slug)
         if out is not None:
@@ -117,6 +117,33 @@ def show(
             sys.stdout.buffer.write(content)
     except Exception as exc:
         _handle_error(exc)
+
+
+@app.command(name="import")
+def import_(
+    slug: str,
+    local_path: Path,
+    /,
+    *,
+    name: Annotated[str | None, Parameter(name=["--name"])] = None,
+    overwrite: Annotated[bool, Parameter(name=["--overwrite"], negative=())] = False,
+) -> None:
+    """Import a local file into an opportunity. Defaults to the file's basename."""
+    target_name = name if name is not None else local_path.name
+    try:
+        store, canonical = _store_and_slug(slug)
+        result = file_service.import_(
+            store,
+            canonical,
+            target_name,
+            local_path,
+            base_revision=None,
+            overwrite=overwrite,
+        )
+    except Exception as exc:
+        _handle_error(exc)
+        return
+    print(f"imported: {target_name} (revision {result.revision[:8]}, merged={result.merged})")
 
 
 @app.command(name="write")

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.mcp.tools.fields import (
+    bump,
     set_applied_on,
     set_comp_range,
     set_company,
@@ -18,7 +19,6 @@ from jobhound.mcp.tools.fields import (
     set_role,
     set_source,
     set_status,
-    touch,
 )
 
 
@@ -106,8 +106,8 @@ def test_set_next_action(repo: OpportunityRepository) -> None:
     assert payload["opportunity"]["next_action_due"].endswith("Z")
 
 
-def test_touch(repo: OpportunityRepository) -> None:
-    payload = json.loads(touch(repo, slug="acme"))
+def test_bump(repo: OpportunityRepository) -> None:
+    payload = json.loads(bump(repo, slug="acme"))
     today_prefix = datetime.now(UTC).strftime("%Y-%m-%dT")
     assert payload["opportunity"]["last_activity"].startswith(today_prefix)
     assert payload["opportunity"]["last_activity"].endswith("Z")

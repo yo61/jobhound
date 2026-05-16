@@ -215,7 +215,7 @@ def set_next_action(
     )
 
 
-def touch(
+def bump(
     repo: OpportunityRepository,
     *,
     slug: str,
@@ -223,8 +223,8 @@ def touch(
 ) -> str:
     now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC) if today else now_utc()
     return _wrap(
-        "touch",
-        lambda: field_service.touch(repo, slug, now=now),
+        "bump",
+        lambda: field_service.bump(repo, slug, now=now),
         now,
     )
 
@@ -306,8 +306,15 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
         return set_next_action(repo, slug=slug, text=text, due=due)
 
     @app.tool(
-        name="touch",
+        name="bump",
         description="Bump last_activity to today without other change.",
     )
     def _t(slug: str, today: str | None = None) -> str:
-        return touch(repo, slug=slug, today=today)
+        return bump(repo, slug=slug, today=today)
+
+    @app.tool(
+        name="touch",
+        description="Alias for `bump` — kept for backwards compatibility.",
+    )
+    def _t_alias(slug: str, today: str | None = None) -> str:
+        return bump(repo, slug=slug, today=today)

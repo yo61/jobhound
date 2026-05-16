@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tomllib
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,24 @@ from jobhound.domain.slug_value import Slug
 
 class ValidationError(Exception):
     """Raised when a meta.toml fails parsing or schema validation."""
+
+
+_LIFECYCLE_DATETIME_FIELDS = (
+    "first_contact",
+    "applied_on",
+    "last_activity",
+    "next_action_due",
+)
+
+
+def _validate_tz_aware(data: dict, path: Path | None) -> None:
+    """Reject naive datetimes in lifecycle fields."""
+    for name in _LIFECYCLE_DATETIME_FIELDS:
+        value = data.get(name)
+        if isinstance(value, datetime) and value.tzinfo is None:
+            raise ValidationError(
+                f"{name} is timezone-naive in {path}: every lifecycle field must be tz-aware UTC"
+            )
 
 
 _FIELD_ORDER: tuple[str, ...] = (
@@ -47,6 +66,7 @@ def validate(data: dict[str, Any], path: Path | None) -> Opportunity:
     """Parse a meta.toml dict and return the Opportunity (or raise ValidationError)."""
     if not isinstance(data, dict):
         raise ValidationError("meta.toml must be a table at the top level")
+    _validate_tz_aware(data, path)
     try:
         opp = opportunity_from_dict(data, path)
     except KeyError as exc:

@@ -9,12 +9,32 @@ from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 
-app = App(name="remove", help="Remove a tag or other entry from an opportunity.")
+app = App(name="remove", help="Remove a tag or contact from an opportunity.")
 
 
 def _repo() -> OpportunityRepository:
     cfg = load_config()
     return OpportunityRepository(paths_from_config(cfg), cfg)
+
+
+@app.command(name="contact")
+def contact(
+    slug_query: str,
+    /,
+    *,
+    name: str,
+    role: str | None = None,
+    channel: str | None = None,
+) -> None:
+    """Remove a contact."""
+    _, after, _ = relation_service.remove_contact(
+        _repo(),
+        slug_query,
+        name=name,
+        role=role,
+        channel=channel,
+    )
+    print(f"contact removed: {after.slug} {name}")
 
 
 @app.command(name="tag")

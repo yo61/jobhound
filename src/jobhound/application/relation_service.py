@@ -70,6 +70,20 @@ def add_contact(
     return before, after, opp_dir
 
 
+def remove_contact(
+    repo: OpportunityRepository,
+    slug: str,
+    *,
+    name: str,
+    role: str | None,
+    channel: str | None,
+) -> tuple[Opportunity, Opportunity, Path]:
+    before, opp_dir = repo.find(slug)
+    after = before.without_contact(name=name, role=role, channel=channel)
+    repo.save(after, opp_dir, message=f"contact: {after.slug} -{name}")
+    return before, after, opp_dir
+
+
 def set_link(
     repo: OpportunityRepository,
     slug: str,

@@ -138,6 +138,19 @@ class Opportunity:
         """Append a contact entry."""
         return replace(self, contacts=(*self.contacts, contact))
 
+    def without_contact(self, *, name: str, role: str | None, channel: str | None) -> Opportunity:
+        """Remove the contact matching (name, role, channel). Raises if not found."""
+        remaining = tuple(
+            c
+            for c in self.contacts
+            if not (c.name == name and c.role == role and c.channel == channel)
+        )
+        if len(remaining) == len(self.contacts):
+            raise ValueError(
+                f"No contact found with name={name!r}, role={role!r}, channel={channel!r}"
+            )
+        return replace(self, contacts=remaining)
+
     def with_link(self, *, name: str, url: str) -> Opportunity:
         """Set or replace a link entry."""
         links = dict(self.links)

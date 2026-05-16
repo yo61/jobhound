@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.7.0](https://github.com/yo61/jobhound/compare/v0.6.1...v0.7.0) (2026-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **application:** every new notes.md line now starts with an ISO 8601 Z-suffix UTC timestamp prefix (whole seconds): '- 2026-05-14T13:42:00Z msg'. Historical lines are left as written.
+* **application:** serialize lifecycle fields as Z-suffix datetimes (schema v2)
+* **domain:** first_contact, applied_on, last_activity, and next_action_due are now datetime | None (tz-aware UTC). Domain method parameter today: date renamed to now: datetime.
+
+### Features
+
+* **application:** notes.md lines get Z-suffix UTC timestamp prefix ([a77fb21](https://github.com/yo61/jobhound/commit/a77fb215c8a0bb2cf2d818145fc2b37df13162fd))
+* **application:** serialize lifecycle fields as Z-suffix datetimes (schema v2) ([045b486](https://github.com/yo61/jobhound/commit/045b486000c1d4200513aa91ac286f8f63da07cf))
+* **cli:** add 'jh migrate utc-timestamps' command ([2b305dd](https://github.com/yo61/jobhound/commit/2b305ddbb70e195a2e328f934a8e4c142b3e632e))
+* **cli:** commands accept datetime flags via cyclopts native parsing ([fcd83d6](https://github.com/yo61/jobhound/commit/fcd83d69dcb42a88c56d2308c2d0b45c7df4dfee))
+* **deps:** add tzlocal for local-zone awareness ([d5557ea](https://github.com/yo61/jobhound/commit/d5557ea65982a55cab5fe3ef6fa94100951ea273))
+* **domain:** add timekeeping module for UTC/local conversion ([56a799c](https://github.com/yo61/jobhound/commit/56a799ce9a55b1f46886bb7026cf3b182801d4df))
+* **domain:** Opportunity uses tz-aware datetime for lifecycle fields ([98e6d3b](https://github.com/yo61/jobhound/commit/98e6d3b2a09977c7f33046155c593e68e3f57f0d))
+* **domain:** treat naive midnight as noon-local for bare-date hints ([69a2078](https://github.com/yo61/jobhound/commit/69a2078f1c4f1a9f6916a7b43d0baeba082f1e27))
+* **infrastructure:** reject naive datetimes in meta.toml lifecycle fields ([41f0619](https://github.com/yo61/jobhound/commit/41f061932953127ebc16fcaf0a94b8af4dd3df34))
+* jh file open + open_file MCP tool ([6e4507c](https://github.com/yo61/jobhound/commit/6e4507ca10fa4e6fb3cce4ba4c8eae03fc9cb111))
+* **scripts:** add UTC datetime migration for existing meta.toml files ([a440998](https://github.com/yo61/jobhound/commit/a44099856e96a2eeb2dc20a16497c2cb953054c3))
+
+
+### Documentation
+
+* add CLI/MCP command naming review charter ([4107bb1](https://github.com/yo61/jobhound/commit/4107bb1b4b50fedc2b6417c27369e29269344507))
+* add jh file open design spec ([a85aa00](https://github.com/yo61/jobhound/commit/a85aa001294f96f42c721e1954674deb5920ed2c))
+* add shell completion design spec ([9e9ccd9](https://github.com/yo61/jobhound/commit/9e9ccd9d0449ecc92f500d799580d934cab65369))
+* add UTC timestamps migration design spec ([03795e5](https://github.com/yo61/jobhound/commit/03795e5e8382e0c79ffea5bac64aae96f9cb66a4))
+* **plans:** add UTC timestamps implementation plan ([4c48fe2](https://github.com/yo61/jobhound/commit/4c48fe27fdcf3c1dad0f79bf50835eb7f7cd08b1))
+* **plans:** restructure to fixtures-first TDD sequence ([6d37609](https://github.com/yo61/jobhound/commit/6d376097afd74dddd79c23e28814a8831b1ce880))
+* **specs:** command rename plan (locked decisions for v0.8.0) ([22f15cf](https://github.com/yo61/jobhound/commit/22f15cf2d5b20c8587dfcde43dd848a47ba5fc54))
+
 ## [0.6.1](https://github.com/yo61/jobhound/compare/v0.6.0...v0.6.1) (2026-05-14)
 
 

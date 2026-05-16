@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, datetime
 
 import pytest
 
@@ -40,12 +40,12 @@ def test_create_rejects_empty() -> None:
 
 
 def test_build_formats_year_month_company_role() -> None:
-    slug = Slug.build(date(2026, 5, 11), "Acme Corp", "Senior Engineer")
+    slug = Slug.build(datetime(2026, 5, 11, 12, 0, tzinfo=UTC), "Acme Corp", "Senior Engineer")
     assert slug.value == "2026-05-acme-corp-senior-engineer"
 
 
 def test_build_collapses_non_alnum() -> None:
-    slug = Slug.build(date(2026, 5, 11), "A!B@C", "x")
+    slug = Slug.build(datetime(2026, 5, 11, 12, 0, tzinfo=UTC), "A!B@C", "x")
     assert slug.value == "2026-05-a-b-c-x"
 
 

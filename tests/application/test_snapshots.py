@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -30,8 +30,8 @@ def _opp(**overrides: Any) -> Opportunity:
         location=None,
         comp_range=None,
         first_contact=None,
-        applied_on=date(2026, 5, 3),
-        last_activity=date(2026, 5, 10),
+        applied_on=datetime(2026, 5, 3, 12, 0, tzinfo=UTC),
+        last_activity=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
         next_action=None,
         next_action_due=None,
     )

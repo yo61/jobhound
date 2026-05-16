@@ -68,7 +68,7 @@ async def test_call_list_opportunities_over_stdio(
         await session.initialize()
         result = await session.call_tool("list_opportunities", {})
         payload = json.loads(cast(TextContent, result.content[0]).text)
-        assert payload["schema_version"] == 1
+        assert payload["schema_version"] == 2
         assert "opportunities" in payload
 
 

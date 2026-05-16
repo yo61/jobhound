@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 from jobhound.application import field_service
@@ -14,7 +14,7 @@ from jobhound.infrastructure.config import Config
 from jobhound.infrastructure.paths import Paths
 from jobhound.infrastructure.repository import OpportunityRepository
 
-TODAY = date(2026, 5, 14)
+NOW = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
 
 
 def _git_init(db_root: Path) -> None:
@@ -48,8 +48,8 @@ def _seeded_repo(tmp_path: Path) -> OpportunityRepository:
             location=None,
             comp_range=None,
             first_contact=None,
-            applied_on=date(2026, 5, 1),
-            last_activity=date(2026, 5, 10),
+            applied_on=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+            last_activity=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
             next_action=None,
             next_action_due=None,
         ),
@@ -106,20 +106,26 @@ def test_set_comp_range(tmp_path: Path) -> None:
 
 def test_set_first_contact(tmp_path: Path) -> None:
     repo = _seeded_repo(tmp_path)
-    _, after, _ = field_service.set_first_contact(repo, "acme", date(2026, 5, 1))
-    assert after.first_contact == date(2026, 5, 1)
+    _, after, _ = field_service.set_first_contact(
+        repo, "acme", datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
+    )
+    assert after.first_contact == datetime(2026, 5, 1, 12, 0, tzinfo=UTC)
 
 
 def test_set_applied_on(tmp_path: Path) -> None:
     repo = _seeded_repo(tmp_path)
-    _, after, _ = field_service.set_applied_on(repo, "acme", date(2026, 5, 2))
-    assert after.applied_on == date(2026, 5, 2)
+    _, after, _ = field_service.set_applied_on(
+        repo, "acme", datetime(2026, 5, 2, 12, 0, tzinfo=UTC)
+    )
+    assert after.applied_on == datetime(2026, 5, 2, 12, 0, tzinfo=UTC)
 
 
 def test_set_last_activity(tmp_path: Path) -> None:
     repo = _seeded_repo(tmp_path)
-    _, after, _ = field_service.set_last_activity(repo, "acme", date(2026, 5, 11))
-    assert after.last_activity == date(2026, 5, 11)
+    _, after, _ = field_service.set_last_activity(
+        repo, "acme", datetime(2026, 5, 11, 12, 0, tzinfo=UTC)
+    )
+    assert after.last_activity == datetime(2026, 5, 11, 12, 0, tzinfo=UTC)
 
 
 def test_set_next_action(tmp_path: Path) -> None:
@@ -128,10 +134,10 @@ def test_set_next_action(tmp_path: Path) -> None:
         repo,
         "acme",
         text="Send portfolio",
-        due=date(2026, 5, 20),
+        due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
     assert after.next_action == "Send portfolio"
-    assert after.next_action_due == date(2026, 5, 20)
+    assert after.next_action_due == datetime(2026, 5, 20, 12, 0, tzinfo=UTC)
 
 
 def test_set_next_action_none(tmp_path: Path) -> None:
@@ -143,8 +149,8 @@ def test_set_next_action_none(tmp_path: Path) -> None:
 
 def test_touch_bumps_last_activity_only(tmp_path: Path) -> None:
     repo = _seeded_repo(tmp_path)
-    before, after, _ = field_service.touch(repo, "acme", today=TODAY)
-    assert after.last_activity == TODAY
+    before, after, _ = field_service.touch(repo, "acme", now=NOW)
+    assert after.last_activity == NOW
     assert after.status == before.status
     assert after.priority == before.priority
 

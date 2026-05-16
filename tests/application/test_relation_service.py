@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 from jobhound.application import relation_service
@@ -47,8 +47,8 @@ def _seeded_repo(tmp_path: Path) -> OpportunityRepository:
             location=None,
             comp_range=None,
             first_contact=None,
-            applied_on=date(2026, 5, 1),
-            last_activity=date(2026, 5, 10),
+            applied_on=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+            last_activity=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
             next_action=None,
             next_action_due=None,
         ),

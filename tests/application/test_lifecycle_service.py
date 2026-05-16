@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -17,7 +17,7 @@ from jobhound.infrastructure.config import Config
 from jobhound.infrastructure.paths import Paths
 from jobhound.infrastructure.repository import OpportunityRepository
 
-TODAY = date(2026, 5, 14)
+NOW = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
 
 
 def _git_init(db_root: Path) -> None:
@@ -91,15 +91,15 @@ def test_apply_to_loads_mutates_saves(tmp_path: Path) -> None:
     before, after, _ = lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="Follow up",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
     assert before.status == Status.PROSPECT
     assert after.status == Status.APPLIED
-    assert after.applied_on == date(2026, 5, 10)
-    assert after.last_activity == TODAY
+    assert after.applied_on == datetime(2026, 5, 10, 12, 0, tzinfo=UTC)
+    assert after.last_activity == NOW
     assert after.next_action == "Follow up"
 
 
@@ -109,19 +109,19 @@ def test_apply_to_raises_invalid_transition_when_not_prospect(tmp_path: Path) ->
     lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="x",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
     with pytest.raises(InvalidTransitionError):
         lifecycle_service.apply_to(
             repo,
             "acme",
-            applied_on=date(2026, 5, 10),
-            today=TODAY,
+            applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+            now=NOW,
             next_action="x",
-            next_action_due=date(2026, 5, 20),
+            next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
         )
 
 
@@ -132,10 +132,10 @@ def test_log_interaction_commit_message_format(tmp_path: Path) -> None:
     lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="x",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
     lifecycle_service.log_interaction(
         repo,
@@ -143,7 +143,7 @@ def test_log_interaction_commit_message_format(tmp_path: Path) -> None:
         next_status="screen",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
     msg = subprocess.run(
@@ -154,7 +154,7 @@ def test_log_interaction_commit_message_format(tmp_path: Path) -> None:
     ).stdout.strip()
     assert msg == "log: 2026-05-acme applied → screen"
 
-    # Use a different `today` so the stay call has a real diff (last_activity bumps)
+    # Use a different `now` so the stay call has a real diff (last_activity bumps)
     # — otherwise the write is idempotent and no new commit lands.
     lifecycle_service.log_interaction(
         repo,
@@ -162,7 +162,7 @@ def test_log_interaction_commit_message_format(tmp_path: Path) -> None:
         next_status="stay",
         next_action=None,
         next_action_due=None,
-        today=date(2026, 5, 15),
+        now=datetime(2026, 5, 15, 12, 0, tzinfo=UTC),
         force=False,
     )
     msg = subprocess.run(
@@ -180,10 +180,10 @@ def test_log_interaction_advances_status(tmp_path: Path) -> None:
     lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="x",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
     before, after, _ = lifecycle_service.log_interaction(
         repo,
@@ -191,7 +191,7 @@ def test_log_interaction_advances_status(tmp_path: Path) -> None:
         next_status="screen",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
     assert before.status == Status.APPLIED
@@ -204,10 +204,10 @@ def test_log_interaction_stay_keeps_status(tmp_path: Path) -> None:
     lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="x",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
     _, after, _ = lifecycle_service.log_interaction(
         repo,
@@ -215,7 +215,7 @@ def test_log_interaction_stay_keeps_status(tmp_path: Path) -> None:
         next_status="stay",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
     assert after.status == Status.APPLIED
@@ -227,12 +227,12 @@ def test_withdraw_from_marks_withdrawn(tmp_path: Path) -> None:
     lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="x",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
-    _, after, _ = lifecycle_service.withdraw_from(repo, "acme", today=TODAY)
+    _, after, _ = lifecycle_service.withdraw_from(repo, "acme", now=NOW)
     assert after.status == Status.WITHDRAWN
 
 
@@ -242,12 +242,12 @@ def test_mark_ghosted(tmp_path: Path) -> None:
     lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="x",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
-    _, after, _ = lifecycle_service.mark_ghosted(repo, "acme", today=TODAY)
+    _, after, _ = lifecycle_service.mark_ghosted(repo, "acme", now=NOW)
     assert after.status == Status.GHOSTED
 
 
@@ -257,10 +257,10 @@ def test_accept_offer(tmp_path: Path) -> None:
     lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="x",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
     # advance to offer
     lifecycle_service.log_interaction(
@@ -269,7 +269,7 @@ def test_accept_offer(tmp_path: Path) -> None:
         next_status="screen",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
     lifecycle_service.log_interaction(
@@ -278,7 +278,7 @@ def test_accept_offer(tmp_path: Path) -> None:
         next_status="interview",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
     lifecycle_service.log_interaction(
@@ -287,10 +287,10 @@ def test_accept_offer(tmp_path: Path) -> None:
         next_status="offer",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
-    _, after, _ = lifecycle_service.accept_offer(repo, "acme", today=TODAY)
+    _, after, _ = lifecycle_service.accept_offer(repo, "acme", now=NOW)
     assert after.status == Status.ACCEPTED
 
 
@@ -300,10 +300,10 @@ def test_decline_offer(tmp_path: Path) -> None:
     lifecycle_service.apply_to(
         repo,
         "acme",
-        applied_on=date(2026, 5, 10),
-        today=TODAY,
+        applied_on=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+        now=NOW,
         next_action="x",
-        next_action_due=date(2026, 5, 20),
+        next_action_due=datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
     )
     lifecycle_service.log_interaction(
         repo,
@@ -311,7 +311,7 @@ def test_decline_offer(tmp_path: Path) -> None:
         next_status="screen",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
     lifecycle_service.log_interaction(
@@ -320,7 +320,7 @@ def test_decline_offer(tmp_path: Path) -> None:
         next_status="interview",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
     lifecycle_service.log_interaction(
@@ -329,8 +329,8 @@ def test_decline_offer(tmp_path: Path) -> None:
         next_status="offer",
         next_action=None,
         next_action_due=None,
-        today=TODAY,
+        now=NOW,
         force=False,
     )
-    _, after, _ = lifecycle_service.decline_offer(repo, "acme", today=TODAY)
+    _, after, _ = lifecycle_service.decline_offer(repo, "acme", now=NOW)
     assert after.status == Status.DECLINED

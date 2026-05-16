@@ -5,7 +5,7 @@ from jobhound.infrastructure.meta_io import read_meta
 
 
 def _seed(invoke) -> None:
-    invoke(["new", "--company", "Foo", "--role", "EM", "--today", "2026-05-01"])
+    invoke(["new", "--company", "Foo", "--role", "EM", "--now", "2026-05-01T12:00:00Z"])
 
 
 def test_link_add_and_update(tmp_jh, invoke) -> None:

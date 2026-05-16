@@ -15,7 +15,7 @@ def _seed_opp(db_path: Path, slug: str = "2026-05-acme-em") -> Path:
     (opp_dir / "meta.toml").write_text(
         f'company = "Acme"\nrole = "EM"\nslug = "{slug}"\n'
         'status = "applied"\npriority = "high"\nsource = "LinkedIn"\n'
-        "applied_on = 2026-05-01\nlast_activity = 2026-05-11\n"
+        "applied_on = 2026-05-01T12:00:00+00:00\nlast_activity = 2026-05-11T12:00:00+00:00\n"
         'tags = ["remote"]\n',
     )
     (opp_dir / "notes.md").write_text("notes\n")
@@ -50,7 +50,7 @@ def test_show_json_output_is_envelope(tmp_jh, invoke) -> None:
     result = invoke(["show", "acme", "--json"])
     assert result.exit_code == 0
     payload = json.loads(result.output)
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == 2
     assert "timestamp" in payload
     assert payload["db_root"] == str(tmp_jh.db_path)
     assert payload["opportunity"]["slug"] == "2026-05-acme-em"

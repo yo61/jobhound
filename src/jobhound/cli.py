@@ -62,3 +62,35 @@ def _run_mcp() -> None:
 
 
 app.command(_run_mcp, name="mcp")
+
+
+def main() -> None:
+    """Entry point. Convert known exceptions into clean stderr lines + exit 1.
+
+    Cyclopts dispatches to commands; commands may raise domain / service /
+    infrastructure exceptions that descend from `Exception`. Without this
+    wrapper they propagate as full Python tracebacks — opaque for the user.
+    This is the outer net; per-command handlers (e.g. `commands/file.py:_handle_error`)
+    still provide richer messages for specific exception families before
+    propagation reaches here.
+    """
+    import sys
+
+    from jobhound.application.file_service import FileServiceError
+    from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
+    from jobhound.domain.transitions import InvalidTransitionError
+    from jobhound.infrastructure.meta_io import ValidationError
+
+    expected = (
+        ValidationError,
+        SlugNotFoundError,
+        AmbiguousSlugError,
+        InvalidTransitionError,
+        FileServiceError,
+    )
+
+    try:
+        app()
+    except expected as exc:
+        print(f"jh: {exc}", file=sys.stderr)
+        sys.exit(1)

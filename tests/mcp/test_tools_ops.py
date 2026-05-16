@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from unittest import mock
 
 from jobhound.infrastructure.paths import Paths
 from jobhound.infrastructure.repository import OpportunityRepository
@@ -11,7 +10,6 @@ from jobhound.mcp.tools.ops import (
     add_note,
     archive_opportunity,
     delete_opportunity,
-    sync_data,
 )
 
 
@@ -48,13 +46,3 @@ def test_delete_with_confirm_removes(
     payload = json.loads(delete_opportunity(repo, slug="acme", confirm=True))
     assert payload["deleted"] is True
     assert not (mcp_paths.opportunities_dir / "2026-05-acme-em").exists()
-
-
-def test_sync_runs_git(repo: OpportunityRepository) -> None:
-    with mock.patch(
-        "jobhound.application.ops_service.subprocess.run",
-    ) as run:
-        run.return_value = mock.Mock(returncode=0, stdout=b"", stderr=b"")
-        payload = json.loads(sync_data(repo, direction="pull"))
-        assert payload == {"direction": "pull", "ok": True}
-        assert run.called

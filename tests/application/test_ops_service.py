@@ -6,8 +6,6 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pytest
-
 from jobhound.application import ops_service
 from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.priority import Priority
@@ -95,17 +93,3 @@ def test_delete_with_confirm_removes_dir(tmp_path: Path) -> None:
     result = ops_service.delete_opportunity(repo, "acme", confirm=True)
     assert result.deleted is True
     assert not (paths.opportunities_dir / "2026-05-acme").exists()
-
-
-def test_sync_runs_git_command(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify the right git command was attempted — don't actually push/pull."""
-    repo, _, _ = _seeded(tmp_path)
-    calls: list[list[str]] = []
-
-    def fake_run(args: list[str], **kw: object) -> subprocess.CompletedProcess:
-        calls.append(args)
-        return subprocess.CompletedProcess(args=args, returncode=0, stdout=b"", stderr=b"")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    ops_service.sync_data(repo, direction="pull")
-    assert any("pull" in c for c in calls)

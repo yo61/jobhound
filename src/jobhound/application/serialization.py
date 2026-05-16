@@ -20,11 +20,15 @@ from jobhound.application.snapshots import (
     Stats,
 )
 
-SCHEMA_VERSION: int = 1
+SCHEMA_VERSION: int = 2
 
 
 def _date_or_none(value: date | None) -> str | None:
     return value.isoformat() if value is not None else None
+
+
+def _datetime_or_none(value: datetime | None) -> str | None:
+    return _datetime_to_z(value) if value is not None else None
 
 
 def _datetime_to_z(value: datetime) -> str:
@@ -44,11 +48,11 @@ def snapshot_to_dict(snap: OpportunitySnapshot) -> dict[str, Any]:
         "source": opp.source,
         "location": opp.location,
         "comp_range": opp.comp_range,
-        "first_contact": _date_or_none(opp.first_contact),
-        "applied_on": _date_or_none(opp.applied_on),
-        "last_activity": _date_or_none(opp.last_activity),
+        "first_contact": _datetime_or_none(opp.first_contact),
+        "applied_on": _datetime_or_none(opp.applied_on),
+        "last_activity": _datetime_or_none(opp.last_activity),
         "next_action": opp.next_action,
-        "next_action_due": _date_or_none(opp.next_action_due),
+        "next_action_due": _datetime_or_none(opp.next_action_due),
     }
     out: dict[str, Any] = {k: v for k, v in raw.items() if v is not None}
 

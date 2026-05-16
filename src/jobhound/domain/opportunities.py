@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from jobhound.domain.contact import Contact
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
+from jobhound.domain.timekeeping import calendar_days_between
 from jobhound.domain.transitions import require_transition
 
 STALE_DAYS: int = 14
@@ -28,11 +29,11 @@ class Opportunity:
     source: str | None
     location: str | None
     comp_range: str | None
-    first_contact: date | None
-    applied_on: date | None
-    last_activity: date | None
+    first_contact: datetime | None
+    applied_on: datetime | None
+    last_activity: datetime | None
     next_action: str | None
-    next_action_due: date | None
+    next_action_due: datetime | None
     tags: tuple[str, ...] = field(default_factory=tuple)
     contacts: tuple[Contact, ...] = field(default_factory=tuple)
     links: dict[str, Any] = field(default_factory=dict)
@@ -41,17 +42,17 @@ class Opportunity:
     def is_active(self) -> bool:
         return self.status.is_active
 
-    def days_since_activity(self, today: date) -> int | None:
+    def days_since_activity(self, now: datetime) -> int | None:
         if self.last_activity is None:
             return None
-        return (today - self.last_activity).days
+        return calendar_days_between(self.last_activity, now)
 
-    def is_stale(self, today: date) -> bool:
-        days = self.days_since_activity(today)
+    def is_stale(self, now: datetime) -> bool:
+        days = self.days_since_activity(now)
         return self.is_active and days is not None and days >= STALE_DAYS
 
-    def looks_ghosted(self, today: date) -> bool:
-        days = self.days_since_activity(today)
+    def looks_ghosted(self, now: datetime) -> bool:
+        days = self.days_since_activity(now)
         return self.is_active and days is not None and days >= GHOSTED_DAYS
 
     # ---- behaviour: state transitions --------------------------------------
@@ -59,10 +60,10 @@ class Opportunity:
     def apply(
         self,
         *,
-        applied_on: date,
-        today: date,
+        applied_on: datetime,
+        now: datetime,
         next_action: str,
-        next_action_due: date,
+        next_action_due: datetime,
     ) -> Opportunity:
         """Submit the application. Requires status `prospect`."""
         require_transition(self.status, Status.APPLIED, verb="apply")
@@ -70,7 +71,7 @@ class Opportunity:
             self,
             status=Status.APPLIED,
             applied_on=applied_on,
-            last_activity=today,
+            last_activity=now,
             next_action=next_action,
             next_action_due=next_action_due,
         )
@@ -78,10 +79,10 @@ class Opportunity:
     def log_interaction(
         self,
         *,
-        today: date,
+        now: datetime,
         next_status: str,
         next_action: str | None,
-        next_action_due: date | None,
+        next_action_due: datetime | None,
         force: bool,
     ) -> Opportunity:
         """Record an interaction. `next_status='stay'` keeps the current status."""
@@ -91,38 +92,38 @@ class Opportunity:
         return replace(
             self,
             status=new_status,
-            last_activity=today,
+            last_activity=now,
             next_action=next_action if next_action is not None else self.next_action,
             next_action_due=(
                 next_action_due if next_action_due is not None else self.next_action_due
             ),
         )
 
-    def withdraw(self, *, today: date) -> Opportunity:
+    def withdraw(self, *, now: datetime) -> Opportunity:
         """Move to status `withdrawn`. Requires an active status."""
         require_transition(self.status, Status.WITHDRAWN, verb="withdraw")
-        return replace(self, status=Status.WITHDRAWN, last_activity=today)
+        return replace(self, status=Status.WITHDRAWN, last_activity=now)
 
-    def ghost(self, *, today: date) -> Opportunity:
+    def ghost(self, *, now: datetime) -> Opportunity:
         """Move to status `ghosted`. Requires an active status."""
         require_transition(self.status, Status.GHOSTED, verb="ghost")
-        return replace(self, status=Status.GHOSTED, last_activity=today)
+        return replace(self, status=Status.GHOSTED, last_activity=now)
 
-    def accept(self, *, today: date) -> Opportunity:
+    def accept(self, *, now: datetime) -> Opportunity:
         """Move to status `accepted`. Requires status `offer`."""
         require_transition(self.status, Status.ACCEPTED, verb="accept")
-        return replace(self, status=Status.ACCEPTED, last_activity=today)
+        return replace(self, status=Status.ACCEPTED, last_activity=now)
 
-    def decline(self, *, today: date) -> Opportunity:
+    def decline(self, *, now: datetime) -> Opportunity:
         """Move to status `declined`. Requires status `offer`."""
         require_transition(self.status, Status.DECLINED, verb="decline")
-        return replace(self, status=Status.DECLINED, last_activity=today)
+        return replace(self, status=Status.DECLINED, last_activity=now)
 
     # ---- behaviour: field-shaped operations --------------------------------
 
-    def touch(self, *, today: date) -> Opportunity:
+    def touch(self, *, now: datetime) -> Opportunity:
         """Bump `last_activity` without changing status."""
-        return replace(self, last_activity=today)
+        return replace(self, last_activity=now)
 
     def with_tags(self, *, add: set[str], remove: set[str]) -> Opportunity:
         """Apply tag add/remove deltas; resulting tag tuple is sorted and deduped."""

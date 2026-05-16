@@ -27,10 +27,6 @@ def test_naive_applied_on_rejected():
         validate(data, Path("/tmp/fake.toml"))
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason="A5 changes Opportunity.applied_on type to datetime; passes after that lands",
-)
 def test_aware_utc_applied_on_accepted():
     data = _base_data()
     data["applied_on"] = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)

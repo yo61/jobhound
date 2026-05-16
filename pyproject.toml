@@ -51,3 +51,4 @@ quote-style = "double"
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 asyncio_mode = "auto"
+pythonpath = ["."]

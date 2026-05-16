@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 
 from cyclopts import Parameter
@@ -13,7 +14,7 @@ def run(
     slug_query: str,
     /,
     *,
-    now: Annotated[str | None, Parameter(show=False)] = None,
+    now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
     """Withdraw from this process."""
     run_transition(

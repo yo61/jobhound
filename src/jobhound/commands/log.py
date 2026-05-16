@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import sys
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -19,18 +19,6 @@ from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
 _NAME_SLUG = re.compile(r"[^a-z0-9]+")
-
-
-def _parse_date_flag(value: str) -> datetime:
-    """Parse a user-supplied date flag to a UTC datetime.
-
-    Bare dates (``2026-05-12``) are noon UTC — unambiguous across all timezones.
-    ISO datetime strings (``2026-05-12T12:00:00Z``) go through ``to_utc`` normally.
-    """
-    dt = datetime.fromisoformat(value)
-    if dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.tzinfo is None:
-        return dt.replace(hour=12, tzinfo=UTC)
-    return to_utc(dt)
 
 
 def _name_slug(who: str) -> str:
@@ -51,15 +39,15 @@ def run(
     body: Path,
     next_status: str = "stay",
     next_action: str | None = None,
-    next_action_due: str | None = None,
+    next_action_due: datetime | None = None,
     force: bool = False,
-    now: Annotated[str | None, Parameter(show=False)] = None,
+    now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
     """Record an interaction (correspondence) and update status + next action."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     store = GitLocalFileStore(repo.paths)
-    now_obj = to_utc(datetime.fromisoformat(now)) if now else now_utc()
+    now_obj = to_utc(now) if now else now_utc()
 
     if direction not in {"from", "to"}:
         print(f"--direction must be 'from' or 'to', got {direction!r}", file=sys.stderr)
@@ -68,7 +56,7 @@ def run(
         print(f"--body file not found: {body}", file=sys.stderr)
         raise SystemExit(1)
 
-    due = _parse_date_flag(next_action_due) if next_action_due else None
+    due = to_utc(next_action_due) if next_action_due else None
 
     _, opp_dir = repo.find(slug_query)
     corr_name = _correspondence_filename(now_obj, channel, direction, who)

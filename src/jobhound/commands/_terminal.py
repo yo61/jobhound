@@ -24,12 +24,12 @@ def run_transition(
     *,
     slug_query: str,
     verb: str,
-    now: str | None,
+    now: datetime | None,
 ) -> None:
     """Move an opportunity to its terminal status via the application service."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
-    now_obj = to_utc(datetime.fromisoformat(now)) if now else now_utc()
+    now_obj = to_utc(now) if now else now_utc()
 
     service_fn = _SERVICES[verb]
     try:

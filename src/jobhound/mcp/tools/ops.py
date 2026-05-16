@@ -105,8 +105,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(
         name="delete_opportunity",
         description=(
-            "Delete an opportunity permanently. "
-            "Requires confirm=True; otherwise returns a preview."
+            "Delete an opportunity permanently. Requires confirm=True; otherwise returns a preview."
         ),
     )
     def _d(slug: str, confirm: bool = False) -> str:

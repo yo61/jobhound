@@ -1,4 +1,4 @@
-"""Tests for `jh remove tag` and `jh remove contact`."""
+"""Tests for `jh remove tag`, `jh remove contact`, and `jh remove link`."""
 
 from jobhound.domain.contact import Contact
 from jobhound.infrastructure.meta_io import read_meta
@@ -97,4 +97,36 @@ def test_remove_contact_not_found_raises(tmp_jh, invoke) -> None:
     _seed(invoke)
     invoke(["add", "contact", "foo", "--name", "Jane"])
     result = invoke(["remove", "contact", "foo", "--name", "Nobody"])
+    assert result.exit_code != 0
+
+
+# ---------------------------------------------------------------------------
+# remove link
+# ---------------------------------------------------------------------------
+
+
+def test_remove_link_removes_named_link(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    invoke(["set", "link", "foo", "--name", "posting", "--url", "https://e.com/1"])
+    invoke(["set", "link", "foo", "--name", "company", "--url", "https://foo.com"])
+    result = invoke(["remove", "link", "foo", "--name", "posting"])
+    assert result.exit_code == 0, result.output
+    opp = read_meta(tmp_jh.db_path / "opportunities" / "2026-05-foo-em" / "meta.toml")
+    assert "posting" not in opp.links
+    assert opp.links["company"] == "https://foo.com"
+
+
+def test_remove_link_preserves_other_links(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    invoke(["set", "link", "foo", "--name", "a", "--url", "https://a.com"])
+    invoke(["set", "link", "foo", "--name", "b", "--url", "https://b.com"])
+    invoke(["remove", "link", "foo", "--name", "a"])
+    opp = read_meta(tmp_jh.db_path / "opportunities" / "2026-05-foo-em" / "meta.toml")
+    assert opp.links == {"b": "https://b.com"}
+
+
+def test_remove_link_not_found_raises(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    invoke(["set", "link", "foo", "--name", "posting", "--url", "https://e.com/1"])
+    result = invoke(["remove", "link", "foo", "--name", "nonexistent"])
     assert result.exit_code != 0

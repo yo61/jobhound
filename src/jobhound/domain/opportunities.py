@@ -157,6 +157,13 @@ class Opportunity:
         links[name] = url
         return replace(self, links=links)
 
+    def without_link(self, *, name: str) -> Opportunity:
+        """Remove a named link. Raises if the link doesn't exist."""
+        if name not in self.links:
+            raise ValueError(f"No link found with name={name!r}")
+        links = {k: v for k, v in self.links.items() if k != name}
+        return replace(self, links=links)
+
 
 def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opportunity:
     """Build an Opportunity from a parsed meta.toml dict."""

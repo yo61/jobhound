@@ -95,3 +95,16 @@ def set_link(
     after = before.with_link(name=name, url=url)
     repo.save(after, opp_dir, message=f"link: {after.slug} {name}")
     return before, after, opp_dir
+
+
+def remove_link(
+    repo: OpportunityRepository,
+    slug: str,
+    *,
+    name: str,
+) -> tuple[Opportunity, Opportunity, Path]:
+    """Remove a named link from an opportunity. Raises if the link doesn't exist."""
+    before, opp_dir = repo.find(slug)
+    after = before.without_link(name=name)
+    repo.save(after, opp_dir, message=f"link: {after.slug} -{name}")
+    return before, after, opp_dir

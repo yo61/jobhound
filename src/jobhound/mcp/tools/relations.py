@@ -89,6 +89,10 @@ def set_link(
     )
 
 
+def remove_link(repo: OpportunityRepository, *, slug: str, name: str) -> str:
+    return _wrap("remove_link", lambda: relation_service.remove_link(repo, slug, name=name))
+
+
 def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(name="add_tag", description="Add a tag to an opportunity.")
     def _at(slug: str, tag: str) -> str:
@@ -129,3 +133,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(name="set_link", description="Set or replace a named link.")
     def _sl(slug: str, name: str, url: str) -> str:
         return set_link(repo, slug=slug, name=name, url=url)
+
+    @app.tool(name="remove_link", description="Remove a named link from an opportunity.")
+    def _rl(slug: str, name: str) -> str:
+        return remove_link(repo, slug=slug, name=name)

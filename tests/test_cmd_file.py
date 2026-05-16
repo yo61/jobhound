@@ -37,17 +37,17 @@ def test_file_list_shows_files(tmp_jh, invoke) -> None:
     assert "cv.md" in result.output
 
 
-def test_file_show_prints_content(tmp_jh, invoke) -> None:
+def test_file_read_prints_content(tmp_jh, invoke) -> None:
     _seed_opp(tmp_jh.db_path)
-    result = invoke(["file", "show", "acme", "cv.md"])
+    result = invoke(["file", "read", "acme", "cv.md"])
     assert result.exit_code == 0
     assert "Experienced engineer" in result.output
 
 
-def test_file_show_with_out_exports(tmp_jh, invoke, tmp_path) -> None:
+def test_file_read_with_out_exports(tmp_jh, invoke, tmp_path) -> None:
     _seed_opp(tmp_jh.db_path)
     dst = tmp_path / "exported.md"
-    result = invoke(["file", "show", "acme", "cv.md", "--out", str(dst)])
+    result = invoke(["file", "read", "acme", "cv.md", "--out", str(dst)])
     assert result.exit_code == 0
     assert "exported" in result.output
     assert "Experienced engineer" in dst.read_text()
@@ -90,6 +90,51 @@ def test_file_write_from_path(tmp_jh, invoke, tmp_path) -> None:
     src.write_text("external content")
     result = invoke(["file", "write", "acme", "imported.md", "--from", str(src)])
     assert result.exit_code == 0
+
+
+# ── jh file import ───────────────────────────────────────────────────────────
+
+
+def test_file_import_creates_file(tmp_jh, invoke, tmp_path) -> None:
+    _seed_opp(tmp_jh.db_path)
+    src = tmp_path / "cover.md"
+    src.write_text("cover letter content")
+    result = invoke(["file", "import", "acme", str(src)])
+    assert result.exit_code == 0, result.output
+    assert "imported" in result.output
+    assert "cover.md" in result.output
+    written = tmp_jh.db_path / "opportunities" / "2026-05-acme-em" / "cover.md"
+    assert written.read_text() == "cover letter content"
+
+
+def test_file_import_with_name_override(tmp_jh, invoke, tmp_path) -> None:
+    _seed_opp(tmp_jh.db_path)
+    src = tmp_path / "cover.md"
+    src.write_text("cover letter content")
+    result = invoke(["file", "import", "acme", str(src), "--name", "letter.md"])
+    assert result.exit_code == 0, result.output
+    assert "letter.md" in result.output
+    written = tmp_jh.db_path / "opportunities" / "2026-05-acme-em" / "letter.md"
+    assert written.read_text() == "cover letter content"
+
+
+def test_file_import_exists_requires_overwrite(tmp_jh, invoke, tmp_path) -> None:
+    _seed_opp(tmp_jh.db_path)
+    src = tmp_path / "cv.md"
+    src.write_text("new content")
+    result = invoke(["file", "import", "acme", str(src)])
+    assert result.exit_code == 1
+    assert "already exists" in result.output
+
+
+def test_file_import_overwrite_succeeds(tmp_jh, invoke, tmp_path) -> None:
+    _seed_opp(tmp_jh.db_path)
+    src = tmp_path / "cv.md"
+    src.write_text("new cv content")
+    result = invoke(["file", "import", "acme", str(src), "--overwrite"])
+    assert result.exit_code == 0
+    written = tmp_jh.db_path / "opportunities" / "2026-05-acme-em" / "cv.md"
+    assert written.read_text() == "new cv content"
 
 
 def test_file_append_to_existing(tmp_jh, invoke) -> None:

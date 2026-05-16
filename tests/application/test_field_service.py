@@ -147,9 +147,9 @@ def test_set_next_action_none(tmp_path: Path) -> None:
     assert after.next_action_due is None
 
 
-def test_touch_bumps_last_activity_only(tmp_path: Path) -> None:
+def test_bump_bumps_last_activity_only(tmp_path: Path) -> None:
     repo = _seeded_repo(tmp_path)
-    before, after, _ = field_service.touch(repo, "acme", now=NOW)
+    before, after, _ = field_service.bump(repo, "acme", now=NOW)
     assert after.last_activity == NOW
     assert after.status == before.status
     assert after.priority == before.priority

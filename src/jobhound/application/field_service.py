@@ -130,7 +130,7 @@ def set_next_action(
     return before, after, opp_dir
 
 
-def touch(
+def bump(
     repo: OpportunityRepository,
     slug: str,
     *,
@@ -138,6 +138,6 @@ def touch(
 ) -> tuple[Opportunity, Opportunity, Path]:
     """Bump last_activity to `now` without changing anything else."""
     before, opp_dir = repo.find(slug)
-    after = before.touch(now=now)
-    repo.save(after, opp_dir, message=f"touch: {after.slug}")
+    after = before.bump(now=now)
+    repo.save(after, opp_dir, message=f"bump: {after.slug}")
     return before, after, opp_dir

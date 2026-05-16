@@ -121,7 +121,7 @@ class Opportunity:
 
     # ---- behaviour: field-shaped operations --------------------------------
 
-    def touch(self, *, now: datetime) -> Opportunity:
+    def bump(self, *, now: datetime) -> Opportunity:
         """Bump `last_activity` without changing status."""
         return replace(self, last_activity=now)
 

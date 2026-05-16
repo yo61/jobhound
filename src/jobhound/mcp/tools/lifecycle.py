@@ -43,7 +43,7 @@ def _derive_slug(company: str, now: datetime) -> str:
     return f"{now.strftime('%Y-%m')}-{company.lower().replace(' ', '-')}"
 
 
-def new_opportunity(
+def create_opportunity(
     repo: OpportunityRepository,
     *,
     company: str,
@@ -81,18 +81,18 @@ def new_opportunity(
         return json.dumps(
             exception_to_response(
                 exc,
-                tool="new_opportunity",
+                tool="create_opportunity",
                 invalid_param=("priority", priority, [p.value for p in Priority]),
             )
         )
     return _wrap_mutation(
-        "new_opportunity",
+        "create_opportunity",
         lambda: lifecycle_service.create(repo, opp),
         now,
     )
 
 
-def apply_to(
+def apply_to_opportunity(
     repo: OpportunityRepository,
     *,
     slug: str,
@@ -104,7 +104,7 @@ def apply_to(
     """Submit application. Requires status 'prospect'."""
     now = _parse_datetime(today, now_utc())
     return _wrap_mutation(
-        "apply_to",
+        "apply_to_opportunity",
         lambda: lifecycle_service.apply_to(
             repo,
             slug,
@@ -144,7 +144,7 @@ def log_interaction(
     )
 
 
-def withdraw_from(
+def withdraw_from_opportunity(
     repo: OpportunityRepository,
     *,
     slug: str,
@@ -153,13 +153,13 @@ def withdraw_from(
     """Mark as withdrawn. Requires active status."""
     now = _parse_datetime(today, now_utc())
     return _wrap_mutation(
-        "withdraw_from",
+        "withdraw_from_opportunity",
         lambda: lifecycle_service.withdraw_from(repo, slug, now=now),
         now,
     )
 
 
-def mark_ghosted(
+def ghost_opportunity(
     repo: OpportunityRepository,
     *,
     slug: str,
@@ -168,13 +168,13 @@ def mark_ghosted(
     """Mark as ghosted. Requires active status."""
     now = _parse_datetime(today, now_utc())
     return _wrap_mutation(
-        "mark_ghosted",
+        "ghost_opportunity",
         lambda: lifecycle_service.mark_ghosted(repo, slug, now=now),
         now,
     )
 
 
-def accept_offer(
+def accept_opportunity(
     repo: OpportunityRepository,
     *,
     slug: str,
@@ -183,13 +183,13 @@ def accept_offer(
     """Accept an offer. Requires status 'offer'."""
     now = _parse_datetime(today, now_utc())
     return _wrap_mutation(
-        "accept_offer",
+        "accept_opportunity",
         lambda: lifecycle_service.accept_offer(repo, slug, now=now),
         now,
     )
 
 
-def decline_offer(
+def decline_opportunity(
     repo: OpportunityRepository,
     *,
     slug: str,
@@ -198,7 +198,7 @@ def decline_offer(
     """Decline an offer. Requires status 'offer'."""
     now = _parse_datetime(today, now_utc())
     return _wrap_mutation(
-        "decline_offer",
+        "decline_opportunity",
         lambda: lifecycle_service.decline_offer(repo, slug, now=now),
         now,
     )
@@ -208,7 +208,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     """Register all lifecycle tools on the given FastMCP app."""
 
     @app.tool(
-        name="new_opportunity",
+        name="create_opportunity",
         description="Scaffold a new opportunity in status 'prospect'.",
     )
     def _new(
@@ -224,7 +224,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
         next_action: str | None = None,
         next_action_due: str | None = None,
     ) -> str:
-        return new_opportunity(
+        return create_opportunity(
             repo,
             company=company,
             role=role,
@@ -240,7 +240,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
         )
 
     @app.tool(
-        name="apply_to",
+        name="apply_to_opportunity",
         description="Submit application. Requires status 'prospect'.",
     )
     def _apply(
@@ -250,7 +250,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
         applied_on: str | None = None,
         today: str | None = None,
     ) -> str:
-        return apply_to(
+        return apply_to_opportunity(
             repo,
             slug=slug,
             next_action=next_action,
@@ -282,29 +282,29 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
         )
 
     @app.tool(
-        name="withdraw_from",
+        name="withdraw_from_opportunity",
         description="Mark as withdrawn. Requires active status.",
     )
     def _withdraw(slug: str, today: str | None = None) -> str:
-        return withdraw_from(repo, slug=slug, today=today)
+        return withdraw_from_opportunity(repo, slug=slug, today=today)
 
     @app.tool(
-        name="mark_ghosted",
+        name="ghost_opportunity",
         description="Mark as ghosted. Requires active status.",
     )
     def _ghost(slug: str, today: str | None = None) -> str:
-        return mark_ghosted(repo, slug=slug, today=today)
+        return ghost_opportunity(repo, slug=slug, today=today)
 
     @app.tool(
-        name="accept_offer",
+        name="accept_opportunity",
         description="Accept an offer. Requires status 'offer'.",
     )
     def _accept(slug: str, today: str | None = None) -> str:
-        return accept_offer(repo, slug=slug, today=today)
+        return accept_opportunity(repo, slug=slug, today=today)
 
     @app.tool(
-        name="decline_offer",
+        name="decline_opportunity",
         description="Decline an offer. Requires status 'offer'.",
     )
     def _decline(slug: str, today: str | None = None) -> str:
-        return decline_offer(repo, slug=slug, today=today)
+        return decline_opportunity(repo, slug=slug, today=today)

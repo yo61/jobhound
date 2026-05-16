@@ -15,7 +15,7 @@ repos:
         pass_filenames: false
       - id: pytest
         name: pytest
-        entry: uv run pytest -q
+        entry: uv run --no-sync pytest -q
         language: system
         pass_filenames: false
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook

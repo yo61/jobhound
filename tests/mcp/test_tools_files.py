@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import base64
 import json
+import subprocess
+import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.mcp.tools.files import (
@@ -13,6 +16,7 @@ from jobhound.mcp.tools.files import (
     export_file,
     import_file,
     list_files,
+    open_file,
     read_file,
     write_file,
 )
@@ -118,3 +122,90 @@ def test_read_file_binary_returns_base64(repo: OpportunityRepository, tmp_path: 
     payload = json.loads(read_file(repo, "acme", "blob.bin"))
     assert payload["encoding"] == "base64"
     assert base64.b64decode(payload["content"]) == b"\x00\x01\x02\xff"
+
+
+# ── open_file ────────────────────────────────────────────────────────────────
+
+
+def test_open_file_darwin_returns_opened(
+    repo: OpportunityRepository, monkeypatch: MagicMock
+) -> None:
+    monkeypatch.setattr(sys, "platform", "darwin")
+    with patch("jobhound.application.file_launcher.subprocess.run") as mock_run:
+        payload = json.loads(open_file(repo, "acme", "notes.md"))
+    assert payload["opened"] is True
+    assert payload["filename"] == "notes.md"
+    assert "temp_path" in payload
+    cmd = mock_run.call_args[0][0]
+    assert cmd[0] == "open"
+    assert cmd[1].endswith("notes.md")
+
+
+def test_open_file_linux_calls_xdg_open(
+    repo: OpportunityRepository, monkeypatch: MagicMock
+) -> None:
+    monkeypatch.setattr(sys, "platform", "linux")
+    with patch("jobhound.application.file_launcher.subprocess.run") as mock_run:
+        payload = json.loads(open_file(repo, "acme", "notes.md"))
+    assert payload["opened"] is True
+    cmd = mock_run.call_args[0][0]
+    assert cmd[0] == "xdg-open"
+
+
+def test_open_file_win32_calls_startfile(
+    repo: OpportunityRepository, monkeypatch: MagicMock
+) -> None:
+    monkeypatch.setattr(sys, "platform", "win32")
+    mock_startfile = MagicMock()
+    with patch("jobhound.application.file_launcher.os.startfile", mock_startfile, create=True):
+        payload = json.loads(open_file(repo, "acme", "notes.md"))
+    assert payload["opened"] is True
+    assert mock_startfile.called
+    assert mock_startfile.call_args[0][0].endswith("notes.md")
+
+
+def test_open_file_temp_file_has_correct_content(
+    repo: OpportunityRepository, monkeypatch: MagicMock
+) -> None:
+    monkeypatch.setattr(sys, "platform", "darwin")
+    captured_path: list[Path] = []
+    real_run = subprocess.run
+
+    def _capture_open(cmd, **kwargs):
+        # Only intercept the OS launcher call; let git calls through
+        if cmd and cmd[0] == "open":
+            captured_path.append(Path(cmd[1]))
+            return None
+        return real_run(cmd, **kwargs)
+
+    with patch("jobhound.application.file_launcher.subprocess.run", side_effect=_capture_open):
+        payload = json.loads(open_file(repo, "acme", "notes.md"))
+
+    assert payload["opened"] is True
+    assert captured_path
+    tmp_path = captured_path[0]
+    assert tmp_path.name == "notes.md"
+    assert tmp_path.exists()
+    assert tmp_path.read_bytes() == b"notes\n"
+
+
+def test_open_file_not_found_returns_error(
+    repo: OpportunityRepository, monkeypatch: MagicMock
+) -> None:
+    monkeypatch.setattr(sys, "platform", "darwin")
+    with patch("jobhound.application.file_launcher.subprocess.run"):
+        payload = json.loads(open_file(repo, "acme", "nonexistent.md"))
+    assert "error" in payload
+    assert payload["error"]["code"] == "file_not_found"
+
+
+def test_open_file_launcher_failure_returns_error(
+    repo: OpportunityRepository, monkeypatch: MagicMock
+) -> None:
+    monkeypatch.setattr(sys, "platform", "darwin")
+    with patch(
+        "jobhound.application.file_launcher.subprocess.run",
+        side_effect=subprocess.CalledProcessError(1, "open"),
+    ):
+        payload = json.loads(open_file(repo, "acme", "notes.md"))
+    assert "error" in payload

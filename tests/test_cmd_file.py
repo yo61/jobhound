@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 
 def _seed_opp(db_path: Path, slug: str = "2026-05-acme-em") -> Path:
@@ -105,3 +107,118 @@ def test_file_delete_with_yes_succeeds(tmp_jh, invoke) -> None:
     assert result.exit_code == 0
     assert "deleted" in result.output
     assert not (tmp_jh.db_path / "opportunities" / "2026-05-acme-em" / "cv.md").exists()
+
+
+# ── jh file open ────────────────────────────────────────────────────────────
+
+
+def test_file_open_darwin_calls_open(tmp_jh, invoke, monkeypatch) -> None:
+    _seed_opp(tmp_jh.db_path)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    with patch("jobhound.application.file_launcher.subprocess.run") as mock_run:
+        result = invoke(["file", "open", "acme", "cv.md"])
+    assert result.exit_code == 0
+    assert "opened" in result.output
+    assert "cv.md" in result.output
+    cmd = mock_run.call_args[0][0]
+    assert cmd[0] == "open"
+    assert cmd[1].endswith("cv.md")
+
+
+def test_file_open_linux_calls_xdg_open(tmp_jh, invoke, monkeypatch) -> None:
+    _seed_opp(tmp_jh.db_path)
+    monkeypatch.setattr(sys, "platform", "linux")
+    with patch("jobhound.application.file_launcher.subprocess.run") as mock_run:
+        result = invoke(["file", "open", "acme", "cv.md"])
+    assert result.exit_code == 0
+    cmd = mock_run.call_args[0][0]
+    assert cmd[0] == "xdg-open"
+    assert cmd[1].endswith("cv.md")
+
+
+def test_file_open_win32_calls_startfile(tmp_jh, invoke, monkeypatch) -> None:
+    _seed_opp(tmp_jh.db_path)
+    monkeypatch.setattr(sys, "platform", "win32")
+    mock_startfile = MagicMock()
+    with patch("jobhound.application.file_launcher.os.startfile", mock_startfile, create=True):
+        result = invoke(["file", "open", "acme", "cv.md"])
+    assert result.exit_code == 0
+    assert mock_startfile.called
+    assert mock_startfile.call_args[0][0].endswith("cv.md")
+
+
+def test_file_open_temp_file_has_correct_content(tmp_jh, invoke, monkeypatch) -> None:
+    _seed_opp(tmp_jh.db_path)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    captured_path: list[Path] = []
+    real_run = subprocess.run
+
+    def _capture_open(cmd, **kwargs):
+        # Only intercept the OS launcher call; pass everything else through
+        if cmd and cmd[0] == "open":
+            captured_path.append(Path(cmd[1]))
+        else:
+            return real_run(cmd, **kwargs)
+
+    with patch("jobhound.application.file_launcher.subprocess.run", side_effect=_capture_open):
+        result = invoke(["file", "open", "acme", "cv.md"])
+
+    assert result.exit_code == 0
+    assert captured_path
+    tmp_path = captured_path[0]
+    assert tmp_path.name == "cv.md"
+    assert tmp_path.exists()
+    assert tmp_path.read_text() == "# CV\n\nExperienced engineer\n"
+
+
+def test_file_open_nonexistent_slug_exits_nonzero(tmp_jh, invoke, monkeypatch) -> None:
+    monkeypatch.setattr(sys, "platform", "darwin")
+    with patch("jobhound.application.file_launcher.subprocess.run"):
+        result = invoke(["file", "open", "no-such-slug", "cv.md"])
+    assert result.exit_code != 0
+
+
+def test_file_open_nonexistent_file_exits_nonzero(tmp_jh, invoke, monkeypatch) -> None:
+    _seed_opp(tmp_jh.db_path)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    with patch("jobhound.application.file_launcher.subprocess.run"):
+        result = invoke(["file", "open", "acme", "no-such-file.pdf"])
+    assert result.exit_code != 0
+
+
+def test_file_open_launcher_failure_exits_nonzero(tmp_jh, invoke, monkeypatch) -> None:
+    _seed_opp(tmp_jh.db_path)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    with patch(
+        "jobhound.application.file_launcher.subprocess.run",
+        side_effect=subprocess.CalledProcessError(1, "open"),
+    ):
+        result = invoke(["file", "open", "acme", "cv.md"])
+    assert result.exit_code != 0
+    assert "could not open" in result.output
+
+
+def test_file_open_launcher_failure_temp_file_remains(tmp_jh, invoke, monkeypatch) -> None:
+    """Temp file should still exist even when the OS launcher fails."""
+    _seed_opp(tmp_jh.db_path)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    captured_path: list[Path] = []
+    real_run = subprocess.run
+
+    def _fail_on_open(cmd, **kwargs):
+        if cmd and cmd[0] == "open":
+            captured_path.append(Path(cmd[1]))
+            raise subprocess.CalledProcessError(1, "open")
+        else:
+            return real_run(cmd, **kwargs)
+
+    with patch(
+        "jobhound.application.file_launcher.subprocess.run",
+        side_effect=_fail_on_open,
+    ):
+        result = invoke(["file", "open", "acme", "cv.md"])
+
+    assert result.exit_code != 0
+    assert captured_path
+    # Temp file must still be on disk so user can retry manually
+    assert captured_path[0].exists()

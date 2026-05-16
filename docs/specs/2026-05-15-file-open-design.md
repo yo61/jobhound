@@ -4,6 +4,13 @@ Date: 2026-05-15
 Status: Draft, awaiting review
 Branch: `feat/file-open` (not yet created; cut off `main`)
 
+**Revision 2026-05-16:** This spec originally proposed CLI-only. Amended
+to include an MCP equivalent (`open_file`) — the MCP server runs locally
+alongside Claude Desktop/Code, so launching the OS handler opens the file
+on the user's actual desktop. The "remote agent" framing of the original
+spec didn't fit. Implementation shares the read-bytes + write-temp + OS-launch
+logic via a new `application/file_launcher.py` helper.
+
 Add a CLI command that fetches a file from an opportunity, writes it to a
 temp location, and opens it in the OS's associated application.
 
@@ -20,9 +27,10 @@ temp path and handed to the OS launcher (`open` on macOS, `xdg-open` on
 Linux, `os.startfile` on Windows). Control returns to the shell immediately;
 the OS owns the file lifetime from that point.
 
-CLI-only. No MCP equivalent — launching a local GUI app from a remote agent
-session is meaningless. (Agents already have `export_file` if they want a
-copy on disk.)
+Both CLI (`jh file open`) and MCP (`open_file`) — the MCP server runs locally
+alongside Claude Desktop/Code, so the OS handler launches on the user's actual
+desktop. Agents that prefer raw bytes on disk (no GUI launch) still use
+`export_file`.
 
 ## Why route through `file_service`
 
@@ -85,6 +93,55 @@ a temp path. The temp file is intentionally disconnected from the store.
    internally; register with `@app.command(name="open")`. Same pattern as
    `list_` at `src/jobhound/commands/file.py:87-88`.
 
+## Shared helper: `application/file_launcher.py`
+
+Both adapters call into one helper that does the read + materialise + launch
+sequence. Adapter code wraps it in surface-specific framing (CLI exit codes,
+MCP JSON response).
+
+```python
+"""Materialise a file from the store to a temp dir and hand off to the OS launcher."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+from jobhound.application import file_service
+from jobhound.infrastructure.storage.protocols import FileStore
+
+
+def open_in_default_app(store: FileStore, slug: str, name: str) -> Path:
+    """Read `name` from `slug`'s store, write to a temp dir, launch in OS default app.
+
+    Returns the path of the temp file. The temp dir is intentionally not deleted —
+    the launched app may keep the file open after this returns, and there's no
+    portable way to detect close. Temp files accumulate; document this for users.
+    """
+    content, _revision = file_service.read(store, slug, name)
+    tmp_dir = Path(tempfile.mkdtemp(prefix="jh-file-"))
+    tmp_path = tmp_dir / name
+    tmp_path.write_bytes(content)
+    _launch(tmp_path)
+    return tmp_path
+
+
+def _launch(path: Path) -> None:
+    if sys.platform == "darwin":
+        subprocess.run(["open", str(path)], check=True)
+    elif sys.platform == "win32":
+        os.startfile(str(path))  # type: ignore[attr-defined]
+    else:
+        subprocess.run(["xdg-open", str(path)], check=True)
+```
+
+The function returns the temp path so adapters can format their response
+("opened: cover-letter.pdf (/var/folders/.../jh-file-xxx/cover-letter.pdf)" for
+CLI, JSON `{opened: true, temp_path: ...}` for MCP).
+
 ## Implementation sketch
 
 In `src/jobhound/commands/file.py`, after the `delete` command:
@@ -93,39 +150,44 @@ In `src/jobhound/commands/file.py`, after the `delete` command:
 @app.command(name="open")
 def open_(slug: str, name: str, /) -> None:
     """Open a file in the OS's associated application."""
-    import os
-    import subprocess
-    import sys
-    import tempfile
+    from jobhound.application.file_launcher import open_in_default_app
 
     try:
         store, canonical = _store_and_slug(slug)
-        content, _ = file_service.read(store, canonical, name)
+        tmp_path = open_in_default_app(store, canonical, name)
     except Exception as exc:
         _handle_error(exc)
         return
-
-    tmp_dir = Path(tempfile.mkdtemp(prefix="jh-file-"))
-    tmp_path = tmp_dir / name
-    tmp_path.write_bytes(content)
-
-    try:
-        if sys.platform == "darwin":
-            subprocess.run(["open", str(tmp_path)], check=True)
-        elif sys.platform == "win32":
-            os.startfile(str(tmp_path))  # type: ignore[attr-defined]
-        else:
-            subprocess.run(["xdg-open", str(tmp_path)], check=True)
-    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
-        print(f"jh: could not open {tmp_path}: {exc}", file=sys.stderr)
-        raise SystemExit(1) from exc
-
     print(f"opened: {name} ({tmp_path})")
 ```
 
-Note: imports moved to function-local for `os`, `subprocess`, `tempfile`
-to keep startup imports lean. `sys` is already top-level. Keep file-level
-imports as they are unless there's a reason to hoist.
+## MCP tool: `open_file`
+
+In `src/jobhound/mcp/tools/files.py`, alongside the existing 7 file tools:
+
+```python
+def open_file(repo: OpportunityRepository, slug: str, name: str) -> str:
+    """Materialise a file to a temp dir and launch the user's default app for it."""
+    try:
+        resolved = _resolve(repo, slug)
+        tmp_path = open_in_default_app(_store(repo), resolved, name)
+    except Exception as exc:
+        return json.dumps(exception_to_response(exc, tool="open_file"))
+    return json.dumps({"opened": True, "filename": name, "temp_path": str(tmp_path)})
+```
+
+Plus the `register()` entry:
+
+```python
+@app.tool(
+    name="open_file",
+    description="Open a file in the user's default app for that file type. The MCP server runs locally; the file opens on the user's actual desktop.",
+)
+def _o(slug: str, name: str) -> str:
+    return open_file(repo, slug=slug, name=name)
+```
+
+MCP count: 37 → 38.
 
 ## Tests
 
@@ -149,8 +211,6 @@ No real subprocess calls in tests. No real GUI app launches.
 
 ## Out of scope
 
-- **No MCP tool.** Agents shouldn't launch local apps. They already have
-  `export_file` for getting bytes onto disk.
 - **No `--watch` / round-trip.** Watching the temp file for edits and
   syncing changes back into the store via `file_service.write` is a
   separate, larger feature (revision conflicts, base-revision tracking,

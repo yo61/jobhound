@@ -10,6 +10,7 @@ from jobhound.commands import add as cmd_add
 from jobhound.commands import apply as cmd_apply
 from jobhound.commands import archive as cmd_archive
 from jobhound.commands import bump as cmd_bump
+from jobhound.commands import clear as cmd_clear
 from jobhound.commands import decline as cmd_decline
 from jobhound.commands import delete as cmd_delete
 from jobhound.commands import export as cmd_export
@@ -47,6 +48,7 @@ app.command(cmd_export.run, name="export")
 app.command(cmd_stats.run, name="stats")
 app.command(file_app)
 app.command(cmd_set.app)
+app.command(cmd_clear.app)
 app.command(cmd_add.app)
 app.command(cmd_remove.app)
 app.command(cmd_migrate.app)

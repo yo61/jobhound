@@ -86,7 +86,7 @@ def _handle_error(exc: Exception) -> None:
 
 @app.command(name="list")
 def list_(slug: str, /) -> None:
-    """List files inside an opportunity."""
+    """List files in an opportunity."""
     try:
         store, canonical = _store_and_slug(slug)
         entries = file_service.list_(store, canonical)
@@ -106,7 +106,7 @@ def read(
     out: Annotated[Path | None, Parameter(name=["--out"])] = None,
     overwrite: Annotated[bool, Parameter(name=["--overwrite"], negative=())] = False,
 ) -> None:
-    """Read a file's content. With --out <path>, export it instead."""
+    """Show the content of a file."""
     try:
         store, canonical = _store_and_slug(slug)
         if out is not None:
@@ -128,7 +128,7 @@ def import_(
     name: Annotated[str | None, Parameter(name=["--name"])] = None,
     overwrite: Annotated[bool, Parameter(name=["--overwrite"], negative=())] = False,
 ) -> None:
-    """Import a local file into an opportunity. Defaults to the file's basename."""
+    """Import a file from local disk."""
     target_name = name if name is not None else local_path.name
     try:
         store, canonical = _store_and_slug(slug)
@@ -157,7 +157,7 @@ def write(
     overwrite: Annotated[bool, Parameter(name=["--overwrite"], negative=())] = False,
     base_revision: Annotated[str | None, Parameter(name=["--base-revision"])] = None,
 ) -> None:
-    """Write a file. Provide --content <str> XOR --from <path>."""
+    """Write content to a file (from stdin or inline)."""
     if (content is None) == (from_ is None):
         print("jh: provide exactly one of --content or --from", file=sys.stderr)
         raise SystemExit(2)
@@ -198,7 +198,7 @@ def append(
     content: Annotated[str | None, Parameter(name=["--content"])] = None,
     from_: Annotated[Path | None, Parameter(name=["--from"])] = None,
 ) -> None:
-    """Append to a file (or create if missing). Provide --content XOR --from."""
+    """Append content to a file."""
     if (content is None) == (from_ is None):
         print("jh: provide exactly one of --content or --from", file=sys.stderr)
         raise SystemExit(2)
@@ -225,7 +225,7 @@ def delete(
     base_revision: Annotated[str | None, Parameter(name=["--base-revision"])] = None,
     yes: Annotated[bool, Parameter(name=["--yes"], negative=())] = False,
 ) -> None:
-    """Delete a file. --yes skips the confirmation prompt."""
+    """Delete a file."""
     if not yes and not questionary.confirm(f"Delete {slug}/{name}?", default=False).ask():
         print("aborted")
         raise SystemExit(1)
@@ -241,7 +241,7 @@ def delete(
 
 @app.command(name="open")
 def open_(slug: str, name: str, /) -> None:
-    """Open a file in the OS's associated application."""
+    """Open a file in your default app."""
     import subprocess
 
     from jobhound.application.file_launcher import open_in_default_app

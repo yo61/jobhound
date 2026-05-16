@@ -26,7 +26,7 @@ def run(
     active_only: Annotated[bool, Parameter(name=["--active-only"])] = False,
     include_archived: Annotated[bool, Parameter(name=["--include-archived"])] = False,
 ) -> None:
-    """Emit a JSON envelope of all matching opportunities."""
+    """Export all opportunities as JSON."""
     try:
         statuses = frozenset(Status(s) for s in _split(status))
         priorities = frozenset(Priority(p) for p in _split(priority))

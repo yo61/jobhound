@@ -16,7 +16,7 @@ def run(
     *,
     now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
-    """Mark this opportunity as ghosted (no response, giving up)."""
+    """Mark an opportunity as ghosted."""
     run_transition(
         slug_query=slug_query,
         verb="ghost",

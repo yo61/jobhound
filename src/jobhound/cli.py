@@ -53,7 +53,7 @@ app.command(cmd_migrate.app)
 
 
 def _run_mcp() -> None:
-    """Entry point for `jh mcp` — starts the MCP server on stdio."""
+    """Run the MCP server over stdio."""
     from jobhound.mcp.server import main as mcp_main
 
     mcp_main()

@@ -191,26 +191,21 @@ def open_file(repo: OpportunityRepository, slug: str, name: str) -> str:
 def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(
         name="list_files",
-        description="List every non-hidden, non-meta file in the opp's directory.",
+        description="List files in an opportunity.",
     )
     def _l(slug: str) -> str:
         return list_files(repo, slug)
 
     @app.tool(
         name="read_file",
-        description=(
-            "Read a file. Returns utf-8 text or base64. Includes revision for later edits."
-        ),
+        description="Read a file's content.",
     )
     def _r(slug: str, name: str) -> str:
         return read_file(repo, slug, name)
 
     @app.tool(
         name="write_file",
-        description=(
-            "Write a file (utf-8 string content). Pass base_revision for safe edits; "
-            "overwrite=True to clobber existing without base_revision."
-        ),
+        description="Write content to a file.",
     )
     def _w(
         slug: str,
@@ -223,10 +218,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="import_file",
-        description=(
-            "Write a file by importing from a local path. Same semantics as write_file "
-            "but binary-safe and avoids streaming bytes through MCP."
-        ),
+        description="Import a file from a local path.",
     )
     def _i(
         slug: str,
@@ -239,10 +231,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="export_file",
-        description=(
-            "Export a file by copying it to a local path the AI provides. "
-            "Returns the revision at time of export."
-        ),
+        description="Export a file to a local path.",
     )
     def _e(
         slug: str,
@@ -254,17 +243,14 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="append_file",
-        description="Append utf-8 string content to a file. Conflict-free; no base_revision.",
+        description="Append content to a file.",
     )
     def _a(slug: str, name: str, content: str) -> str:
         return append_file(repo, slug, name, content)
 
     @app.tool(
         name="delete_file",
-        description=(
-            "Delete a file. Pass base_revision for safety; otherwise deletes "
-            "unconditionally if the file exists."
-        ),
+        description="Delete a file.",
     )
     def _d(slug: str, name: str, base_revision: str | None = None) -> str:
         return delete_file(repo, slug, name, base_revision)
@@ -272,7 +258,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(
         name="open_file",
         description=(
-            "Open a file in the user's default app for that file type. "
+            "Open a file in the user's default app. "
             "The MCP server runs locally; the file opens on the user's actual desktop."
         ),
     )

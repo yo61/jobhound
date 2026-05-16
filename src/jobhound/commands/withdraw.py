@@ -16,7 +16,7 @@ def run(
     *,
     now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
-    """Withdraw from this process."""
+    """Withdraw from an opportunity."""
     run_transition(
         slug_query=slug_query,
         verb="withdraw",

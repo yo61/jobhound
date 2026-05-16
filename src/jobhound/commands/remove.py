@@ -43,7 +43,7 @@ def tag(
     tag_name: str,
     /,
 ) -> None:
-    """Remove a tag from an opportunity."""
+    """Remove a tag."""
     _, after, _ = relation_service.set_tags(
         _repo(),
         slug_query,

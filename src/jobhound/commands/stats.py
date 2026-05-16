@@ -17,7 +17,7 @@ def run(
     *,
     json_out: Annotated[bool, Parameter(name=["--json"])] = False,
 ) -> None:
-    """Show aggregate funnel and source counts."""
+    """Show pipeline stats."""
     cfg = load_config()
     paths = paths_from_config(cfg)
     query = OpportunityQuery(paths)

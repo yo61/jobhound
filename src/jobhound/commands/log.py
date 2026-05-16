@@ -43,7 +43,7 @@ def run(
     force: bool = False,
     now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
-    """Record an interaction (correspondence) and update status + next action."""
+    """Log an interaction with an opportunity."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     store = GitLocalFileStore(repo.paths)

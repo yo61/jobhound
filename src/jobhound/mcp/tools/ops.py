@@ -90,21 +90,24 @@ def delete_opportunity(
 def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(
         name="add_note",
-        description="Append a dated note to the opp's notes.md and bump last_activity.",
+        description="Append a timestamped note to an opportunity's notes.md.",
     )
     def _n(slug: str, msg: str, today: str | None = None) -> str:
         return add_note(repo, slug=slug, msg=msg, today=today)
 
     @app.tool(
         name="archive_opportunity",
-        description="Move the opp to archive/. Reversible — files only move.",
+        description="Archive an opportunity.",
     )
     def _a(slug: str) -> str:
         return archive_opportunity(repo, slug=slug)
 
     @app.tool(
         name="delete_opportunity",
-        description="Permanently delete. Requires confirm=True; otherwise returns a preview only.",
+        description=(
+            "Delete an opportunity permanently. "
+            "Requires confirm=True; otherwise returns a preview."
+        ),
     )
     def _d(slug: str, confirm: bool = False) -> str:
         return delete_opportunity(repo, slug=slug, confirm=confirm)

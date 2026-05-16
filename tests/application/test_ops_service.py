@@ -17,6 +17,8 @@ from jobhound.infrastructure.paths import Paths
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
+NOW = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
+
 
 def _git_init(db_root: Path) -> None:
     subprocess.run(["git", "init", "--quiet", str(db_root)], check=True)
@@ -62,17 +64,15 @@ def _seeded(tmp_path: Path) -> tuple[OpportunityRepository, Paths, GitLocalFileS
 
 def test_add_note_appends_dated_entry(tmp_path: Path) -> None:
     repo, paths, store = _seeded(tmp_path)
-    now = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
-    ops_service.add_note(repo, store, "acme", msg="recruiter mentioned hybrid", now=now)
+    ops_service.add_note(repo, store, "acme", msg="recruiter mentioned hybrid", now=NOW)
     notes = (paths.opportunities_dir / "2026-05-acme" / "notes.md").read_text()
     assert "- 2026-05-14T12:00:00Z recruiter mentioned hybrid" in notes
 
 
 def test_add_note_bumps_last_activity(tmp_path: Path) -> None:
     repo, _, store = _seeded(tmp_path)
-    now = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
-    _, after, _ = ops_service.add_note(repo, store, "acme", msg="x", now=now)
-    assert after.last_activity == now
+    _, after, _ = ops_service.add_note(repo, store, "acme", msg="x", now=NOW)
+    assert after.last_activity == NOW
 
 
 def test_archive_moves_to_archive_dir(tmp_path: Path) -> None:

@@ -20,12 +20,12 @@ def run(
     /,
     *,
     msg: str,
-    now: Annotated[str | None, Parameter(show=False)] = None,
+    now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
     """Append a dated one-liner to <slug>/notes.md and bump last_activity."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     store = GitLocalFileStore(repo.paths)
-    now_obj = to_utc(datetime.fromisoformat(now)) if now else now_utc()
+    now_obj = to_utc(now) if now else now_utc()
     _, after, _ = ops_service.add_note(repo, store, slug_query, msg=msg, now=now_obj)
     print(f"noted: {after.slug}")

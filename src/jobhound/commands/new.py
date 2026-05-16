@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Annotated
 
 from cyclopts import Parameter
@@ -19,26 +19,14 @@ from jobhound.infrastructure.paths import Paths, paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 
 
-def _parse_date_flag(value: str) -> datetime:
-    """Parse a user-supplied date flag to a UTC datetime.
-
-    Bare dates (``2026-05-18``) are noon UTC — unambiguous across all timezones.
-    ISO datetime strings (``2026-05-18T12:00:00Z``) go through ``to_utc`` normally.
-    """
-    dt = datetime.fromisoformat(value)
-    if dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.tzinfo is None:
-        return dt.replace(hour=12, tzinfo=UTC)
-    return to_utc(dt)
-
-
 def run(
     *,
     company: str,
     role: str,
     source: str = "(unspecified)",
     next_action: str = "Initial review of role and company",
-    next_action_due: str | None = None,
-    now: Annotated[str | None, Parameter(show=False)] = None,
+    next_action_due: datetime | None = None,
+    now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
     """Create a new opportunity at status `prospect`."""
     cfg = load_config()
@@ -46,8 +34,8 @@ def run(
     Paths.ensure(paths)
     repo = OpportunityRepository(paths, cfg)
 
-    now_obj = to_utc(datetime.fromisoformat(now)) if now else now_utc()
-    due = _parse_date_flag(next_action_due) if next_action_due else now_obj + timedelta(days=7)
+    now_obj = to_utc(now) if now else now_utc()
+    due = to_utc(next_action_due) if next_action_due else now_obj + timedelta(days=7)
     slug = Slug.build(now_obj, company, role)
 
     opp = Opportunity(

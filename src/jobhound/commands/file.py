@@ -210,3 +210,22 @@ def delete(
         _handle_error(exc)
         return
     print(f"deleted: {name} (was at revision {last_rev[:8]})")
+
+
+@app.command(name="open")
+def open_(slug: str, name: str, /) -> None:
+    """Open a file in the OS's associated application."""
+    import subprocess
+
+    from jobhound.application.file_launcher import open_in_default_app
+
+    try:
+        store, canonical = _store_and_slug(slug)
+        tmp_path = open_in_default_app(store, canonical, name)
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        print(f"jh: could not open file: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    except Exception as exc:
+        _handle_error(exc)
+        return
+    print(f"opened: {name} ({tmp_path})")

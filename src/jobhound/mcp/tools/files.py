@@ -1,7 +1,7 @@
 """MCP file tools — route to application/file_service.
 
-Owns 7 tools: list_files, read_file (both moved here from reads.py),
-write_file, import_file, export_file, append_file, delete_file.
+Owns 8 tools: list_files, read_file (both moved here from reads.py),
+write_file, import_file, export_file, append_file, delete_file, open_file.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from jobhound.application import file_service
+from jobhound.application.file_launcher import open_in_default_app
 from jobhound.application.revisions import Revision
 from jobhound.application.serialization import file_entry_to_dict
 from jobhound.domain.slug import resolve_slug
@@ -177,6 +178,16 @@ def delete_file(
     return json.dumps({"revision_before_delete": str(revision)})
 
 
+def open_file(repo: OpportunityRepository, slug: str, name: str) -> str:
+    """Materialise a file to a temp dir and launch the user's default app for it."""
+    try:
+        resolved = _resolve(repo, slug)
+        tmp_path = open_in_default_app(_store(repo), resolved, name)
+    except Exception as exc:
+        return json.dumps(exception_to_response(exc, tool="open_file"))
+    return json.dumps({"opened": True, "filename": name, "temp_path": str(tmp_path)})
+
+
 def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(
         name="list_files",
@@ -257,3 +268,13 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     )
     def _d(slug: str, name: str, base_revision: str | None = None) -> str:
         return delete_file(repo, slug, name, base_revision)
+
+    @app.tool(
+        name="open_file",
+        description=(
+            "Open a file in the user's default app for that file type. "
+            "The MCP server runs locally; the file opens on the user's actual desktop."
+        ),
+    )
+    def _o(slug: str, name: str) -> str:
+        return open_file(repo, slug=slug, name=name)

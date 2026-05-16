@@ -9,7 +9,7 @@ from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 
-app = App(name="remove", help="Remove a tag or contact from an opportunity.")
+app = App(name="remove", help="Remove a tag, contact, or link from an opportunity.")
 
 
 def _repo() -> OpportunityRepository:
@@ -51,3 +51,10 @@ def tag(
         remove={tag_name},
     )
     print(f"tags {after.slug}: {after.tags}")
+
+
+@app.command(name="link")
+def link(slug_query: str, /, *, name: str) -> None:
+    """Remove a named link."""
+    _, after, _ = relation_service.remove_link(_repo(), slug_query, name=name)
+    print(f"link removed: {after.slug} {name}")

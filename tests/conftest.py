@@ -22,7 +22,7 @@ import pytest
 
 from jobhound.infrastructure.paths import Paths
 
-TODAY = datetime(2026, 5, 13, 12, 0, tzinfo=UTC)
+NOW = datetime(2026, 5, 13, 12, 0, tzinfo=UTC)
 
 
 def _write_meta(opp_dir: Path, **fields: Any) -> None:

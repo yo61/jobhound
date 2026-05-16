@@ -1,6 +1,6 @@
 """Tests for reading, writing, and validating meta.toml."""
 
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -10,6 +10,8 @@ from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
 from jobhound.infrastructure.meta_io import ValidationError, read_meta, validate, write_meta
+
+NOON_UTC = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
 
 
 def _full_opp(slug: str = "2026-05-foo-engineer") -> Opportunity:
@@ -22,11 +24,11 @@ def _full_opp(slug: str = "2026-05-foo-engineer") -> Opportunity:
         source="LinkedIn",
         location="UK",
         comp_range="£100k",
-        first_contact=date(2026, 5, 1),
-        applied_on=date(2026, 5, 5),
-        last_activity=date(2026, 5, 5),
+        first_contact=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+        applied_on=datetime(2026, 5, 5, 12, 0, tzinfo=UTC),
+        last_activity=datetime(2026, 5, 5, 12, 0, tzinfo=UTC),
         next_action="Wait for response",
-        next_action_due=date(2026, 5, 19),
+        next_action_due=datetime(2026, 5, 19, 12, 0, tzinfo=UTC),
         tags=("remote", "uk"),
         contacts=(Contact(name="Jane Doe", channel="email"),),
         links={"posting": "https://example.com/job"},
@@ -46,13 +48,13 @@ def test_write_then_read_round_trip(tmp_path: Path) -> None:
     assert loaded.links == opp.links
 
 
-def test_dates_round_trip_as_native_type(tmp_path: Path) -> None:
+def test_datetimes_round_trip_as_offset_datetime(tmp_path: Path) -> None:
     opp = _full_opp()
     path = tmp_path / "meta.toml"
     write_meta(opp, path)
     text = path.read_text()
-    # TOML dates are bare YYYY-MM-DD, not quoted.
-    assert "applied_on = 2026-05-05" in text
+    # TOML offset date-times are written with +00:00, not quoted.
+    assert "applied_on = 2026-05-05T12:00:00+00:00" in text
     assert '"2026-05-05"' not in text
 
 

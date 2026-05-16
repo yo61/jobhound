@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 from jobhound.domain.contact import Contact
@@ -11,6 +11,8 @@ from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
 from jobhound.mcp.converters import compute_diff, mutation_response
+
+NOON_UTC = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
 
 
 def _opp() -> Opportunity:
@@ -24,8 +26,8 @@ def _opp() -> Opportunity:
         location=None,
         comp_range=None,
         first_contact=None,
-        applied_on=date(2026, 5, 1),
-        last_activity=date(2026, 5, 10),
+        applied_on=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+        last_activity=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
         next_action=None,
         next_action_due=None,
     )
@@ -50,9 +52,9 @@ def test_compute_diff_status_change() -> None:
 
 def test_compute_diff_date_change_iso_formatted() -> None:
     before = _opp()
-    after = replace(before, last_activity=date(2026, 5, 14))
+    after = replace(before, last_activity=NOON_UTC)
     assert compute_diff(before, after) == {
-        "last_activity": ["2026-05-10", "2026-05-14"],
+        "last_activity": ["2026-05-10T12:00:00Z", "2026-05-14T12:00:00Z"],
     }
 
 
@@ -90,7 +92,7 @@ def test_mutation_response_carries_opportunity_and_diff(tmp_path: Path) -> None:
         before,
         after,
         tmp_path / "acme",
-        today=date(2026, 5, 14),
+        now=NOON_UTC,
     )
     assert resp["changed"] == {"priority": ["medium", "high"]}
     assert resp["opportunity"]["priority"] == "high"
@@ -103,7 +105,7 @@ def test_mutation_response_new_opp_has_null_changed(tmp_path: Path) -> None:
         None,
         after,
         tmp_path / "acme",
-        today=date(2026, 5, 14),
+        now=NOON_UTC,
     )
     assert resp["changed"] is None
     assert resp["opportunity"]["slug"] == "2026-05-acme"

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -38,10 +38,10 @@ def _snapshot(**opp_overrides: Any) -> OpportunitySnapshot:
         location="Remote, UK",
         comp_range=None,
         first_contact=None,
-        applied_on=date(2026, 5, 3),
-        last_activity=date(2026, 5, 10),
+        applied_on=datetime(2026, 5, 3, 12, 0, tzinfo=UTC),
+        last_activity=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
         next_action="Follow up",
-        next_action_due=date(2026, 5, 17),
+        next_action_due=datetime(2026, 5, 17, 12, 0, tzinfo=UTC),
         tags=("remote", "fintech"),
     )
     base.update(opp_overrides)
@@ -59,8 +59,8 @@ def _snapshot(**opp_overrides: Any) -> OpportunitySnapshot:
     )
 
 
-def test_schema_version_is_one() -> None:
-    assert SCHEMA_VERSION == 1
+def test_schema_version_is_two() -> None:
+    assert SCHEMA_VERSION == 2
 
 
 def test_snapshot_to_dict_top_level_shape() -> None:
@@ -71,8 +71,10 @@ def test_snapshot_to_dict_top_level_shape() -> None:
     assert d["company"] == "Acme Corp"
     assert d["status"] == "applied"
     assert d["priority"] == "high"
-    assert d["applied_on"] == "2026-05-03"
-    assert d["last_activity"] == "2026-05-10"
+    assert d["applied_on"].startswith("2026-05-03T12:00:00")
+    assert d["applied_on"].endswith("Z")
+    assert d["last_activity"].startswith("2026-05-10T12:00:00")
+    assert d["last_activity"].endswith("Z")
 
     assert d["archived"] is False
     assert d["path"] == "/Users/test/.local/share/jh/opportunities/2026-05-acme-em"
@@ -166,7 +168,7 @@ def test_list_envelope_shape() -> None:
     ts = datetime(2026, 5, 12, 14, 23, 45, 121000, tzinfo=UTC)
     db_root = Path("/Users/test/.local/share/jh")
     env = list_envelope([snap], timestamp=ts, db_root=db_root)
-    assert env["schema_version"] == SCHEMA_VERSION
+    assert env["schema_version"] == SCHEMA_VERSION  # 2
     assert env["timestamp"] == "2026-05-12T14:23:45.121000Z"
     assert env["db_root"] == "/Users/test/.local/share/jh"
     assert isinstance(env["opportunities"], list)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import UTC, datetime
 
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.mcp.tools.fields import (
@@ -76,17 +76,20 @@ def test_set_comp_range(repo: OpportunityRepository) -> None:
 
 def test_set_first_contact(repo: OpportunityRepository) -> None:
     payload = json.loads(set_first_contact(repo, slug="acme", value="2026-05-01"))
-    assert payload["opportunity"]["first_contact"] == "2026-05-01"
+    assert payload["opportunity"]["first_contact"].startswith("2026-05-01T")
+    assert payload["opportunity"]["first_contact"].endswith("Z")
 
 
 def test_set_applied_on(repo: OpportunityRepository) -> None:
     payload = json.loads(set_applied_on(repo, slug="acme", value="2026-05-02"))
-    assert payload["opportunity"]["applied_on"] == "2026-05-02"
+    assert payload["opportunity"]["applied_on"].startswith("2026-05-02T")
+    assert payload["opportunity"]["applied_on"].endswith("Z")
 
 
 def test_set_last_activity(repo: OpportunityRepository) -> None:
     payload = json.loads(set_last_activity(repo, slug="acme", value="2026-05-12"))
-    assert payload["opportunity"]["last_activity"] == "2026-05-12"
+    assert payload["opportunity"]["last_activity"].startswith("2026-05-12T")
+    assert payload["opportunity"]["last_activity"].endswith("Z")
 
 
 def test_set_next_action(repo: OpportunityRepository) -> None:
@@ -99,12 +102,15 @@ def test_set_next_action(repo: OpportunityRepository) -> None:
         )
     )
     assert payload["opportunity"]["next_action"] == "Send portfolio"
-    assert payload["opportunity"]["next_action_due"] == "2026-05-20"
+    assert payload["opportunity"]["next_action_due"].startswith("2026-05-20T")
+    assert payload["opportunity"]["next_action_due"].endswith("Z")
 
 
 def test_touch(repo: OpportunityRepository) -> None:
     payload = json.loads(touch(repo, slug="acme"))
-    assert payload["opportunity"]["last_activity"] == date.today().isoformat()
+    today_prefix = datetime.now(UTC).strftime("%Y-%m-%dT")
+    assert payload["opportunity"]["last_activity"].startswith(today_prefix)
+    assert payload["opportunity"]["last_activity"].endswith("Z")
 
 
 def test_idempotent_set_returns_empty_changed(

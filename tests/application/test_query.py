@@ -18,7 +18,7 @@ from tests.application.conftest import TODAY
 
 def test_find_returns_snapshot(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snap = q.find("acme", today=TODAY)
+    snap = q.find("acme", now=TODAY)
     assert isinstance(snap, OpportunitySnapshot)
     assert snap.opportunity.slug == "2026-05-acme-em"
     assert snap.archived is False
@@ -30,14 +30,14 @@ def test_find_returns_snapshot(query_paths: Paths) -> None:
 
 def test_find_marks_stale(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snap = q.find("beta", today=TODAY)
+    snap = q.find("beta", now=TODAY)
     assert snap.computed.is_stale is True
     assert snap.computed.days_since_activity == 33
 
 
 def test_find_resolves_archived_opportunity(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snap = q.find("gamma", today=TODAY)
+    snap = q.find("gamma", now=TODAY)
     assert snap.archived is True
     assert snap.path == query_paths.archive_dir / "2026-03-gamma-staff"
 
@@ -45,12 +45,12 @@ def test_find_resolves_archived_opportunity(query_paths: Paths) -> None:
 def test_find_raises_on_unknown_slug(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
     with pytest.raises(SlugNotFoundError):
-        q.find("nonexistent", today=TODAY)
+        q.find("nonexistent", now=TODAY)
 
 
 def test_list_returns_all_non_archived_by_default(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snaps = q.list(today=TODAY)
+    snaps = q.list(now=TODAY)
     slugs = [s.opportunity.slug for s in snaps]
     assert slugs == ["2026-04-beta-eng", "2026-05-acme-em"]
     assert all(s.archived is False for s in snaps)
@@ -58,7 +58,7 @@ def test_list_returns_all_non_archived_by_default(query_paths: Paths) -> None:
 
 def test_list_include_archived(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snaps = q.list(Filters(include_archived=True), today=TODAY)
+    snaps = q.list(Filters(include_archived=True), now=TODAY)
     slugs = [s.opportunity.slug for s in snaps]
     assert slugs == ["2026-03-gamma-staff", "2026-04-beta-eng", "2026-05-acme-em"]
     archived = {s.opportunity.slug: s.archived for s in snaps}
@@ -71,25 +71,25 @@ def test_list_include_archived(query_paths: Paths) -> None:
 
 def test_list_filter_by_status(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snaps = q.list(Filters(statuses=frozenset({Status.APPLIED})), today=TODAY)
+    snaps = q.list(Filters(statuses=frozenset({Status.APPLIED})), now=TODAY)
     assert [s.opportunity.slug for s in snaps] == ["2026-05-acme-em"]
 
 
 def test_list_filter_by_priority(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snaps = q.list(Filters(priorities=frozenset({Priority.HIGH})), today=TODAY)
+    snaps = q.list(Filters(priorities=frozenset({Priority.HIGH})), now=TODAY)
     assert [s.opportunity.slug for s in snaps] == ["2026-05-acme-em"]
 
 
 def test_list_filter_by_slug_substring(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snaps = q.list(Filters(slug_substring="acme"), today=TODAY)
+    snaps = q.list(Filters(slug_substring="acme"), now=TODAY)
     assert [s.opportunity.slug for s in snaps] == ["2026-05-acme-em"]
 
 
 def test_list_active_only_excludes_terminal(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snaps = q.list(Filters(active_only=True, include_archived=True), today=TODAY)
+    snaps = q.list(Filters(active_only=True, include_archived=True), now=TODAY)
     slugs = [s.opportunity.slug for s in snaps]
     assert "2026-03-gamma-staff" not in slugs
 
@@ -99,7 +99,7 @@ def test_list_active_only_intersects_with_statuses(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
     snaps = q.list(
         Filters(active_only=True, statuses=frozenset({Status.APPLIED})),
-        today=TODAY,
+        now=TODAY,
     )
     assert [s.opportunity.slug for s in snaps] == ["2026-05-acme-em"]
     snaps = q.list(
@@ -108,14 +108,14 @@ def test_list_active_only_intersects_with_statuses(query_paths: Paths) -> None:
             statuses=frozenset({Status.REJECTED}),
             include_archived=True,
         ),
-        today=TODAY,
+        now=TODAY,
     )
     assert snaps == []
 
 
 def test_list_returns_sorted_by_slug(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
-    snaps = q.list(today=TODAY)
+    snaps = q.list(now=TODAY)
     slugs = [s.opportunity.slug for s in snaps]
     assert slugs == sorted(slugs)
 

@@ -14,7 +14,7 @@ def _seed(db_path: Path, slug: str, *, status: str, priority: str, source: str) 
     (opp_dir / "meta.toml").write_text(
         f'company = "X"\nrole = "Y"\nslug = "{slug}"\n'
         f'status = "{status}"\npriority = "{priority}"\nsource = "{source}"\n'
-        "applied_on = 2026-05-01\nlast_activity = 2026-05-11\n",
+        "applied_on = 2026-05-01T12:00:00+00:00\nlast_activity = 2026-05-11T12:00:00+00:00\n",
     )
 
 
@@ -52,7 +52,7 @@ def test_export_envelope_metadata(tmp_jh, invoke) -> None:
     _seed_all(tmp_jh.db_path)
     result = invoke(["export"])
     payload = json.loads(result.output)
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == 2
     assert "timestamp" in payload
     assert payload["db_root"] == str(tmp_jh.db_path)
 

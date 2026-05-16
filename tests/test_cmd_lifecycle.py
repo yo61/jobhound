@@ -4,7 +4,7 @@ import subprocess
 
 
 def _seed(invoke) -> None:
-    invoke(["new", "--company", "Foo", "--role", "EM", "--today", "2026-05-01"])
+    invoke(["new", "--company", "Foo", "--role", "EM", "--now", "2026-05-01T12:00:00Z"])
 
 
 def test_archive_moves_folder(tmp_jh, invoke) -> None:

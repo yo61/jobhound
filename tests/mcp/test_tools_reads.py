@@ -18,7 +18,7 @@ def test_list_opportunities_returns_envelope(
     repo: OpportunityRepository,
 ) -> None:
     payload = json.loads(list_opportunities(repo))
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == 2
     assert "timestamp" in payload
     slugs = sorted(o["slug"] for o in payload["opportunities"])
     assert "2026-05-acme-em" in slugs

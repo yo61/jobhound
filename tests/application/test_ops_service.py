@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -62,17 +62,17 @@ def _seeded(tmp_path: Path) -> tuple[OpportunityRepository, Paths, GitLocalFileS
 
 def test_add_note_appends_dated_entry(tmp_path: Path) -> None:
     repo, paths, store = _seeded(tmp_path)
-    today = date(2026, 5, 14)
-    ops_service.add_note(repo, store, "acme", msg="recruiter mentioned hybrid", today=today)
+    now = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
+    ops_service.add_note(repo, store, "acme", msg="recruiter mentioned hybrid", now=now)
     notes = (paths.opportunities_dir / "2026-05-acme" / "notes.md").read_text()
-    assert "- 2026-05-14 recruiter mentioned hybrid" in notes
+    assert "- 2026-05-14T12:00:00Z recruiter mentioned hybrid" in notes
 
 
 def test_add_note_bumps_last_activity(tmp_path: Path) -> None:
     repo, _, store = _seeded(tmp_path)
-    today = date(2026, 5, 14)
-    _, after, _ = ops_service.add_note(repo, store, "acme", msg="x", today=today)
-    assert after.last_activity == today
+    now = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
+    _, after, _ = ops_service.add_note(repo, store, "acme", msg="x", now=now)
+    assert after.last_activity == now
 
 
 def test_archive_moves_to_archive_dir(tmp_path: Path) -> None:

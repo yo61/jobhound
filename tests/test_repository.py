@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -31,11 +31,11 @@ def _make_opp(slug: str = "2026-05-acme-eng") -> Opportunity:
         source=None,
         location=None,
         comp_range=None,
-        first_contact=date(2026, 5, 1),
+        first_contact=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
         applied_on=None,
-        last_activity=date(2026, 5, 1),
+        last_activity=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
         next_action="follow up",
-        next_action_due=date(2026, 5, 8),
+        next_action_due=datetime(2026, 5, 8, 12, 0, tzinfo=UTC),
     )
 
 

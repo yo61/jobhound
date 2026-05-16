@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +22,7 @@ import pytest
 
 from jobhound.infrastructure.paths import Paths
 
-TODAY = date(2026, 5, 13)
+TODAY = datetime(2026, 5, 13, 12, 0, tzinfo=UTC)
 
 
 def _write_meta(opp_dir: Path, **fields: Any) -> None:
@@ -44,7 +44,7 @@ def _write_meta(opp_dir: Path, **fields: Any) -> None:
         elif isinstance(value, list):
             inner = ", ".join(f'"{v}"' for v in value)
             lines.append(f"{key} = [{inner}]")
-        elif isinstance(value, date):
+        elif isinstance(value, datetime):
             lines.append(f"{key} = {value.isoformat()}")
         else:
             lines.append(f"{key} = {value!r}")
@@ -68,8 +68,8 @@ def query_paths(tmp_path: Path) -> Paths:
         status="applied",
         priority="high",
         source="LinkedIn",
-        applied_on=date(2026, 5, 1),
-        last_activity=date(2026, 5, 11),
+        applied_on=datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+        last_activity=datetime(2026, 5, 11, 12, 0, tzinfo=UTC),
         tags=["remote"],
     )
     (opps_dir / "2026-05-acme-em" / "notes.md").write_text("notes\n")
@@ -83,8 +83,8 @@ def query_paths(tmp_path: Path) -> Paths:
         status="screen",
         priority="medium",
         source="Referral",
-        applied_on=date(2026, 4, 1),
-        last_activity=date(2026, 4, 10),
+        applied_on=datetime(2026, 4, 1, 12, 0, tzinfo=UTC),
+        last_activity=datetime(2026, 4, 10, 12, 0, tzinfo=UTC),
     )
 
     _write_meta(
@@ -94,8 +94,8 @@ def query_paths(tmp_path: Path) -> Paths:
         status="rejected",
         priority="low",
         source="LinkedIn",
-        applied_on=date(2026, 3, 1),
-        last_activity=date(2026, 3, 20),
+        applied_on=datetime(2026, 3, 1, 12, 0, tzinfo=UTC),
+        last_activity=datetime(2026, 3, 20, 12, 0, tzinfo=UTC),
     )
 
     return Paths(

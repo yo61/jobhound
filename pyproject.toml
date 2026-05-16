@@ -17,7 +17,7 @@ dependencies = [
 mcp = ["mcp>=1.0"]
 
 [project.scripts]
-jh = "jobhound.cli:app"
+jh = "jobhound.cli:main"
 jh-mcp = "jobhound.mcp.server:main"
 
 [dependency-groups]

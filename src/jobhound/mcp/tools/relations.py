@@ -56,6 +56,26 @@ def add_contact(
     )
 
 
+def remove_contact(
+    repo: OpportunityRepository,
+    *,
+    slug: str,
+    name: str,
+    role: str | None = None,
+    channel: str | None = None,
+) -> str:
+    return _wrap(
+        "remove_contact",
+        lambda: relation_service.remove_contact(
+            repo,
+            slug,
+            name=name,
+            role=role,
+            channel=channel,
+        ),
+    )
+
+
 def set_link(
     repo: OpportunityRepository,
     *,
@@ -99,6 +119,15 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
             company=company,
             note=note,
         )
+
+    @app.tool(name="remove_contact", description="Remove a contact from an opportunity.")
+    def _rc(
+        slug: str,
+        name: str,
+        role: str | None = None,
+        channel: str | None = None,
+    ) -> str:
+        return remove_contact(repo, slug=slug, name=name, role=role, channel=channel)
 
     @app.tool(name="set_link", description="Set or overwrite a named link.")
     def _sl(slug: str, name: str, url: str) -> str:

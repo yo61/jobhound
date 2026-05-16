@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/yo61/jobhound/compare/v0.7.1...v0.7.2) (2026-05-16)
+
+
+### Bug Fixes
+
+* **cli:** suppress traceback for known user-facing exceptions ([bccb643](https://github.com/yo61/jobhound/commit/bccb643301380039e0507ba8747831d703902661))
+
 ## [0.7.1](https://github.com/yo61/jobhound/compare/v0.7.0...v0.7.1) (2026-05-16)
 
 

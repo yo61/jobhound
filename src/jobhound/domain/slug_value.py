@@ -6,9 +6,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 
-from tzlocal import get_localzone
-
-from jobhound.domain.timekeeping import to_utc
+from jobhound.domain.timekeeping import to_local_date, to_utc
 
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
@@ -46,8 +44,7 @@ class Slug:
         The date prefix uses the user's local-zone calendar date (slugs are
         human-readable filesystem identifiers, not UTC instants).
         """
-        now_utc_value = to_utc(now)
-        local_date = now_utc_value.astimezone(get_localzone()).date()
+        local_date = to_local_date(to_utc(now))
         prefix = f"{local_date:%Y-%m}"
         return cls(value=f"{prefix}-{_slugify(company)}-{_slugify(role)}")
 

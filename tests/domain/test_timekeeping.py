@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -12,6 +12,7 @@ from jobhound.domain.timekeeping import (
     calendar_days_between,
     display_local,
     now_utc,
+    to_local_date,
     to_utc,
 )
 
@@ -113,3 +114,27 @@ class TestFormatZSeconds:
         naive = datetime(2026, 5, 14, 12, 0)
         with pytest.raises(ValueError, match="tz-aware"):
             _format_z_seconds(naive)
+
+
+class TestToLocalDate:
+    def test_returns_local_calendar_date(self, monkeypatch):
+        monkeypatch.setattr(
+            "jobhound.domain.timekeeping.get_localzone",
+            lambda: ZoneInfo("Europe/London"),
+        )
+        # 23:00 UTC on 2026-05-14 → 00:00 BST on 2026-05-15
+        value = datetime(2026, 5, 14, 23, 0, tzinfo=UTC)
+        assert to_local_date(value) == date(2026, 5, 15)
+
+    def test_same_local_day_for_noon_utc(self, monkeypatch):
+        monkeypatch.setattr(
+            "jobhound.domain.timekeeping.get_localzone",
+            lambda: ZoneInfo("Europe/London"),
+        )
+        value = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
+        assert to_local_date(value) == date(2026, 5, 14)
+
+    def test_naive_rejected(self):
+        naive = datetime(2026, 5, 14, 12, 0)
+        with pytest.raises(ValueError, match="tz-aware"):
+            to_local_date(naive)

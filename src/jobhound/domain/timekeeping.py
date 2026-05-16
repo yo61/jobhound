@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Literal
 
 from tzlocal import get_localzone
@@ -57,6 +57,17 @@ def display_local(value: datetime, *, precision: Literal["seconds", "minutes"] =
 def now_utc() -> datetime:
     """Current instant as a tz-aware UTC datetime. Use everywhere instead of `date.today()`."""
     return datetime.now(UTC)
+
+
+def to_local_date(value: datetime) -> date:
+    """Convert a tz-aware UTC datetime to a calendar date in the user's local zone.
+
+    Used by slug generation and display formatting where the calendar
+    date depends on the viewer's wall-clock day, not UTC's day.
+    """
+    if value.tzinfo is None:
+        raise ValueError("to_local_date requires a tz-aware datetime")
+    return value.astimezone(get_localzone()).date()
 
 
 def _format_z_seconds(value: datetime) -> str:

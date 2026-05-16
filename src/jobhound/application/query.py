@@ -8,7 +8,7 @@ endpoints will inject the same class.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TypeAlias
 
@@ -17,6 +17,7 @@ from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.priority import Priority
 from jobhound.domain.slug import SlugNotFoundError, resolve_slug
 from jobhound.domain.status import Status
+from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.meta_io import read_meta
 from jobhound.infrastructure.paths import Paths
 
@@ -64,13 +65,13 @@ class OpportunityQuery:
         opp: Opportunity,
         opp_dir: Path,
         archived: bool,
-        today: date,
+        now: datetime,
     ) -> OpportunitySnapshot:
         flags = ComputedFlags(
             is_active=opp.is_active,
-            is_stale=opp.is_stale(today),
-            looks_ghosted=opp.looks_ghosted(today),
-            days_since_activity=opp.days_since_activity(today),
+            is_stale=opp.is_stale(now),
+            looks_ghosted=opp.looks_ghosted(now),
+            days_since_activity=opp.days_since_activity(now),
         )
         return OpportunitySnapshot(
             opportunity=opp,
@@ -79,7 +80,7 @@ class OpportunityQuery:
             computed=flags,
         )
 
-    def _walk_root(self, root: Path, *, archived: bool, today: date) -> SnapshotList:
+    def _walk_root(self, root: Path, *, archived: bool, now: datetime) -> SnapshotList:
         if not root.exists():
             return []
         snaps: SnapshotList = []
@@ -90,7 +91,7 @@ class OpportunityQuery:
             if not meta.exists():
                 continue
             opp = read_meta(meta)
-            snaps.append(self._snapshot(opp, sub, archived, today))
+            snaps.append(self._snapshot(opp, sub, archived, now))
         return snaps
 
     def _matches(self, snap: OpportunitySnapshot, filters: Filters) -> bool:
@@ -102,22 +103,22 @@ class OpportunityQuery:
             and (filters.slug_substring is None or filters.slug_substring in opp.slug)
         )
 
-    def find(self, slug: str, *, today: date) -> OpportunitySnapshot:
+    def find(self, slug: str, *, now: datetime) -> OpportunitySnapshot:
         """Resolve `slug` (supports prefix/substring) and return its snapshot."""
         opp_dir, archived = self._resolve_opp_dir(slug)
         opp = read_meta(opp_dir / "meta.toml")
-        return self._snapshot(opp, opp_dir, archived, today)
+        return self._snapshot(opp, opp_dir, archived, now)
 
     def list(
         self,
         filters: Filters = _NO_FILTERS,
         *,
-        today: date,
+        now: datetime,
     ) -> SnapshotList:
         """Return all snapshots matching `filters`, sorted by slug."""
-        snaps = self._walk_root(self._paths.opportunities_dir, archived=False, today=today)
+        snaps = self._walk_root(self._paths.opportunities_dir, archived=False, now=now)
         if filters.include_archived:
-            snaps += self._walk_root(self._paths.archive_dir, archived=True, today=today)
+            snaps += self._walk_root(self._paths.archive_dir, archived=True, now=now)
         snaps = [s for s in snaps if self._matches(s, filters)]
         snaps.sort(key=lambda s: s.opportunity.slug)
         return snaps
@@ -154,7 +155,7 @@ class OpportunityQuery:
         Funnel + sources are time-independent, so the `today` passed to
         list() here is irrelevant for the result.
         """
-        snaps = self.list(filters, today=date.today())
+        snaps = self.list(filters, now=now_utc())
         funnel: dict[Status, int] = {status: 0 for status in Status}
         sources: dict[str, int] = {}
         for snap in snaps:

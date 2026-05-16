@@ -7,22 +7,17 @@ repos:
       - id: ruff-format
   - repo: local
     hooks:
-      # TEMPORARILY DISABLED for UTC timestamps migration (Task #35).
-      # Restore in Task A13b (chore commit at end of PR A) once A13 lands and
-      # all downstream callers use datetime types.
-      # - id: ty
-      #   name: ty type check
-      #   entry: uv run ty check src
-      #   language: system
-      #   types: [python]
-      #   pass_filenames: false
-      # TEMPORARILY DISABLED for UTC timestamps migration (Task #35).
-      # Restore in Task A13b (chore commit at end of PR A) once full suite is green.
-      # - id: pytest
-      #   name: pytest
-      #   entry: uv run pytest -q
-      #   language: system
-      #   pass_filenames: false
+      - id: ty
+        name: ty type check
+        entry: uv run ty check src
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: uv run pytest -q
+        language: system
+        pass_filenames: false
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.4.0
     hooks:

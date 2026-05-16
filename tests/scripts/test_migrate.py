@@ -27,7 +27,7 @@ def _write_meta(path: Path, applied_on: object) -> None:
 def test_migration_converts_bare_date(tmp_path, monkeypatch):
     """Bare date midnight is converted to UTC using the local timezone."""
     london = ZoneInfo("Europe/London")
-    monkeypatch.setattr("scripts.migrate_dates_to_datetimes.get_localzone", lambda: london)
+    monkeypatch.setattr("jobhound.migrations.utc_timestamps.get_localzone", lambda: london)
     meta = tmp_path / "opportunities" / "2026-05-14-acme-eng" / "meta.toml"
     _write_meta(meta, date(2026, 5, 14))
 
@@ -45,7 +45,7 @@ def test_migration_converts_bare_date(tmp_path, monkeypatch):
 def test_migration_idempotent(tmp_path, monkeypatch):
     """Already-migrated datetimes are not modified on re-run."""
     monkeypatch.setattr(
-        "scripts.migrate_dates_to_datetimes.get_localzone",
+        "jobhound.migrations.utc_timestamps.get_localzone",
         lambda: ZoneInfo("Europe/London"),
     )
     meta = tmp_path / "opportunities" / "2026-05-14-acme-eng" / "meta.toml"

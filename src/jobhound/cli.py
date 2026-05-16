@@ -17,6 +17,7 @@ from jobhound.commands import ghost as cmd_ghost
 from jobhound.commands import link as cmd_link
 from jobhound.commands import list_ as cmd_list
 from jobhound.commands import log as cmd_log
+from jobhound.commands import migrate as cmd_migrate
 from jobhound.commands import new as cmd_new
 from jobhound.commands import note as cmd_note
 from jobhound.commands import priority as cmd_priority
@@ -52,6 +53,7 @@ app.command(cmd_sync.run, name="sync")
 app.command(cmd_show.run, name="show")
 app.command(cmd_export.run, name="export")
 app.command(file_app)
+app.command(cmd_migrate.app)
 
 
 def _run_mcp() -> None:

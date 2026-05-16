@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/yo61/jobhound/compare/v0.7.0...v0.7.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **infrastructure:** reject bare dates in meta.toml with migration prompt ([33572f8](https://github.com/yo61/jobhound/commit/33572f8e4e11e9e639822ef075d1735555258450))
+
 ## [0.7.0](https://github.com/yo61/jobhound/compare/v0.6.1...v0.7.0) (2026-05-16)
 
 

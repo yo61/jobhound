@@ -13,11 +13,11 @@ def run(
     slug_query: str,
     /,
     *,
-    today: Annotated[str | None, Parameter(show=False)] = None,
+    now: Annotated[str | None, Parameter(show=False)] = None,
 ) -> None:
     """Accept the offer."""
     run_transition(
         slug_query=slug_query,
         verb="accept",
-        today=today,
+        now=now,
     )

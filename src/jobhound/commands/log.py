@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import re
 import sys
-from datetime import date
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated
 
 from cyclopts import Parameter
 
 from jobhound.application import file_service, lifecycle_service
+from jobhound.domain.timekeeping import now_utc, to_local_date, to_utc
 from jobhound.domain.transitions import InvalidTransitionError
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
@@ -20,12 +21,24 @@ from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 _NAME_SLUG = re.compile(r"[^a-z0-9]+")
 
 
+def _parse_date_flag(value: str) -> datetime:
+    """Parse a user-supplied date flag to a UTC datetime.
+
+    Bare dates (``2026-05-12``) are noon UTC — unambiguous across all timezones.
+    ISO datetime strings (``2026-05-12T12:00:00Z``) go through ``to_utc`` normally.
+    """
+    dt = datetime.fromisoformat(value)
+    if dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.tzinfo is None:
+        return dt.replace(hour=12, tzinfo=UTC)
+    return to_utc(dt)
+
+
 def _name_slug(who: str) -> str:
     return _NAME_SLUG.sub("-", who.lower()).strip("-") or "unknown"
 
 
-def _correspondence_filename(when: date, channel: str, direction: str, who: str) -> str:
-    return f"{when.isoformat()}-{channel}-{direction}-{_name_slug(who)}.md"
+def _correspondence_filename(when: datetime, channel: str, direction: str, who: str) -> str:
+    return f"{to_local_date(when).isoformat()}-{channel}-{direction}-{_name_slug(who)}.md"
 
 
 def run(
@@ -40,13 +53,13 @@ def run(
     next_action: str | None = None,
     next_action_due: str | None = None,
     force: bool = False,
-    today: Annotated[str | None, Parameter(show=False)] = None,
+    now: Annotated[str | None, Parameter(show=False)] = None,
 ) -> None:
     """Record an interaction (correspondence) and update status + next action."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     store = GitLocalFileStore(repo.paths)
-    today_date = date.fromisoformat(today) if today else date.today()
+    now_obj = to_utc(datetime.fromisoformat(now)) if now else now_utc()
 
     if direction not in {"from", "to"}:
         print(f"--direction must be 'from' or 'to', got {direction!r}", file=sys.stderr)
@@ -55,10 +68,10 @@ def run(
         print(f"--body file not found: {body}", file=sys.stderr)
         raise SystemExit(1)
 
-    due = date.fromisoformat(next_action_due) if next_action_due else None
+    due = _parse_date_flag(next_action_due) if next_action_due else None
 
     _, opp_dir = repo.find(slug_query)
-    corr_name = _correspondence_filename(today_date, channel, direction, who)
+    corr_name = _correspondence_filename(now_obj, channel, direction, who)
     file_service.write(
         store,
         opp_dir.name,
@@ -73,7 +86,7 @@ def run(
             next_status=next_status,
             next_action=next_action,
             next_action_due=due,
-            today=today_date,
+            now=now_obj,
             force=force,
         )
     except InvalidTransitionError as exc:

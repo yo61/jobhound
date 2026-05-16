@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +16,9 @@ def _field_value(opp: Opportunity, field: str) -> Any:
     val = getattr(opp, field)
     if val is None:
         return None
-    if hasattr(val, "isoformat"):  # date
+    if isinstance(val, datetime):
+        return val.astimezone(UTC).isoformat().replace("+00:00", "Z")
+    if hasattr(val, "isoformat"):  # date (legacy fallback)
         return val.isoformat()
     if hasattr(val, "value"):  # StrEnum
         return val.value

@@ -13,11 +13,11 @@ def run(
     slug_query: str,
     /,
     *,
-    today: Annotated[str | None, Parameter(show=False)] = None,
+    now: Annotated[str | None, Parameter(show=False)] = None,
 ) -> None:
     """Mark this opportunity as ghosted (no response, giving up)."""
     run_transition(
         slug_query=slug_query,
         verb="ghost",
-        today=today,
+        now=now,
     )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from cyclopts import Parameter
@@ -13,6 +13,7 @@ from jobhound.application.query import Filters, OpportunityQuery
 from jobhound.application.serialization import list_envelope
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
+from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 
@@ -43,7 +44,7 @@ def run(
     cfg = load_config()
     paths = paths_from_config(cfg)
     query = OpportunityQuery(paths)
-    snaps = query.list(filters, today=date.today())
+    snaps = query.list(filters, now=now_utc())
     envelope = list_envelope(
         snaps,
         timestamp=datetime.now(UTC),

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import datetime
 
 from jobhound.application import lifecycle_service
+from jobhound.domain.timekeeping import now_utc, to_utc
 from jobhound.domain.transitions import InvalidTransitionError
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
@@ -23,16 +24,16 @@ def run_transition(
     *,
     slug_query: str,
     verb: str,
-    today: str | None,
+    now: str | None,
 ) -> None:
     """Move an opportunity to its terminal status via the application service."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
-    today_date = date.fromisoformat(today) if today else date.today()
+    now_obj = to_utc(datetime.fromisoformat(now)) if now else now_utc()
 
     service_fn = _SERVICES[verb]
     try:
-        _, after, _ = service_fn(repo, slug_query, today=today_date)
+        _, after, _ = service_fn(repo, slug_query, now=now_obj)
     except InvalidTransitionError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(1) from exc

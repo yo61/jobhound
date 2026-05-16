@@ -54,7 +54,8 @@ def test_datetimes_round_trip_as_offset_datetime(tmp_path: Path) -> None:
     write_meta(opp, path)
     text = path.read_text()
     # TOML offset date-times are written with +00:00, not quoted.
-    assert "applied_on = 2026-05-05T12:00:00+00:00" in text
+    # tomli_w uses space separator (TOML spec allows both T and space).
+    assert "applied_on = 2026-05-05 12:00:00+00:00" in text
     assert '"2026-05-05"' not in text
 
 

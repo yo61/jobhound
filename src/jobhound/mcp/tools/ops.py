@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
 from jobhound.application import ops_service
 from jobhound.application.serialization import snapshot_to_dict
 from jobhound.application.snapshots import ComputedFlags, OpportunitySnapshot
+from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.mcp.converters import mutation_response
 from jobhound.mcp.errors import exception_to_response
@@ -26,13 +27,13 @@ def add_note(
 ) -> str:
     from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-    today_d = date.fromisoformat(today) if today else date.today()
+    now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC) if today else now_utc()
     store = GitLocalFileStore(repo.paths)
     try:
-        before, after, opp_dir = ops_service.add_note(repo, store, slug, msg=msg, today=today_d)
+        before, after, opp_dir = ops_service.add_note(repo, store, slug, msg=msg, now=now)
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="add_note"))
-    return json.dumps(mutation_response(before, after, opp_dir, today=today_d))
+    return json.dumps(mutation_response(before, after, opp_dir, now=now))
 
 
 def archive_opportunity(repo: OpportunityRepository, *, slug: str) -> str:
@@ -45,7 +46,7 @@ def archive_opportunity(repo: OpportunityRepository, *, slug: str) -> str:
             before,
             after,
             new_dir,
-            today=date.today(),
+            now=now_utc(),
             archived=True,
         )
     )
@@ -61,12 +62,12 @@ def delete_opportunity(
         result = ops_service.delete_opportunity(repo, slug, confirm=confirm)
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="delete_opportunity"))
-    today = date.today()
+    now = now_utc()
     flags = ComputedFlags(
         is_active=result.opportunity.is_active,
-        is_stale=result.opportunity.is_stale(today),
-        looks_ghosted=result.opportunity.looks_ghosted(today),
-        days_since_activity=result.opportunity.days_since_activity(today),
+        is_stale=result.opportunity.is_stale(now),
+        looks_ghosted=result.opportunity.looks_ghosted(now),
+        days_since_activity=result.opportunity.days_since_activity(now),
     )
     snap = OpportunitySnapshot(
         opportunity=result.opportunity,

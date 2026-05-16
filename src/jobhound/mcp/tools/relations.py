@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from datetime import date
 from typing import TYPE_CHECKING, Any
 
 from jobhound.application import relation_service
+from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.mcp.converters import mutation_response
 from jobhound.mcp.errors import exception_to_response
@@ -21,7 +21,7 @@ def _wrap(tool_name: str, fn: Callable[[], Any]) -> str:
         before, after, opp_dir = fn()
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool=tool_name))
-    return json.dumps(mutation_response(before, after, opp_dir, today=date.today()))
+    return json.dumps(mutation_response(before, after, opp_dir, now=now_utc()))
 
 
 def add_tag(repo: OpportunityRepository, *, slug: str, tag: str) -> str:

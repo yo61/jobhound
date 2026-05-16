@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
 from jobhound.application import field_service
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
+from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.mcp.converters import mutation_response
 from jobhound.mcp.errors import exception_to_response
@@ -18,16 +19,19 @@ if TYPE_CHECKING:
     from mcp.server.fastmcp import FastMCP
 
 
-def _wrap(tool_name: str, fn: Callable[[], Any], today: date) -> str:
+def _wrap(tool_name: str, fn: Callable[[], Any], now: datetime) -> str:
     try:
         before, after, opp_dir = fn()
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool=tool_name))
-    return json.dumps(mutation_response(before, after, opp_dir, today=today))
+    return json.dumps(mutation_response(before, after, opp_dir, now=now))
 
 
-def _parse_date_optional(s: str | None) -> date | None:
-    return date.fromisoformat(s) if s else None
+def _parse_date_optional(s: str | None) -> datetime | None:
+    if s is None:
+        return None
+    d = date.fromisoformat(s)
+    return datetime(d.year, d.month, d.day, tzinfo=UTC)
 
 
 def set_company(
@@ -39,7 +43,7 @@ def set_company(
     return _wrap(
         "set_company",
         lambda: field_service.set_company(repo, slug, value),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -52,7 +56,7 @@ def set_role(
     return _wrap(
         "set_role",
         lambda: field_service.set_role(repo, slug, value),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -75,7 +79,7 @@ def set_priority(
     return _wrap(
         "set_priority",
         lambda: field_service.set_priority(repo, slug, p),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -98,7 +102,7 @@ def set_status(
     return _wrap(
         "set_status",
         lambda: field_service.set_status(repo, slug, s),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -111,7 +115,7 @@ def set_source(
     return _wrap(
         "set_source",
         lambda: field_service.set_source(repo, slug, value),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -124,7 +128,7 @@ def set_location(
     return _wrap(
         "set_location",
         lambda: field_service.set_location(repo, slug, value),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -137,7 +141,7 @@ def set_comp_range(
     return _wrap(
         "set_comp_range",
         lambda: field_service.set_comp_range(repo, slug, value),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -154,7 +158,7 @@ def set_first_contact(
             slug,
             _parse_date_optional(value),
         ),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -171,7 +175,7 @@ def set_applied_on(
             slug,
             _parse_date_optional(value),
         ),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -188,7 +192,7 @@ def set_last_activity(
             slug,
             _parse_date_optional(value),
         ),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -207,7 +211,7 @@ def set_next_action(
             text=text,
             due=_parse_date_optional(due),
         ),
-        date.today(),
+        now_utc(),
     )
 
 
@@ -217,11 +221,11 @@ def touch(
     slug: str,
     today: str | None = None,
 ) -> str:
-    today_d = date.fromisoformat(today) if today else date.today()
+    now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC) if today else now_utc()
     return _wrap(
         "touch",
-        lambda: field_service.touch(repo, slug, today=today_d),
-        today_d,
+        lambda: field_service.touch(repo, slug, now=now),
+        now,
     )
 
 

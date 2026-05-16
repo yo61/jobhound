@@ -14,7 +14,7 @@ from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-app = App(name="add", help="Add a contact, note, or tag to an opportunity.")
+app = App(name="add", help="Add a tag, contact, or note to an opportunity.")
 
 
 def _repo() -> OpportunityRepository:
@@ -33,7 +33,7 @@ def contact(
     company: str | None = None,
     note: str | None = None,
 ) -> None:
-    """Add a contact to the contacts list."""
+    """Add a contact."""
     _, after, _ = relation_service.add_contact(
         _repo(),
         slug_query,
@@ -54,7 +54,7 @@ def note(
     msg: str,
     now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
-    """Append a dated one-liner to <slug>/notes.md and bump last_activity."""
+    """Add a timestamped note."""
     repo = _repo()
     store = GitLocalFileStore(repo.paths)
     now_obj = to_utc(now) if now else now_utc()
@@ -68,7 +68,7 @@ def tag(
     tag_name: str,
     /,
 ) -> None:
-    """Add a tag to an opportunity."""
+    """Add a tag."""
     _, after, _ = relation_service.set_tags(
         _repo(),
         slug_query,

@@ -209,7 +209,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="create_opportunity",
-        description="Scaffold a new opportunity in status 'prospect'.",
+        description="Create a new opportunity.",
     )
     def _new(
         company: str,
@@ -241,7 +241,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="apply_to_opportunity",
-        description="Submit application. Requires status 'prospect'.",
+        description="Apply to an opportunity.",
     )
     def _apply(
         slug: str,
@@ -261,7 +261,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="log_interaction",
-        description="Record an interaction. next_status='stay' keeps current status.",
+        description="Log an interaction with an opportunity.",
     )
     def _log(
         slug: str,
@@ -283,28 +283,28 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="withdraw_from_opportunity",
-        description="Mark as withdrawn. Requires active status.",
+        description="Withdraw from an opportunity.",
     )
     def _withdraw(slug: str, today: str | None = None) -> str:
         return withdraw_from_opportunity(repo, slug=slug, today=today)
 
     @app.tool(
         name="ghost_opportunity",
-        description="Mark as ghosted. Requires active status.",
+        description="Mark an opportunity as ghosted.",
     )
     def _ghost(slug: str, today: str | None = None) -> str:
         return ghost_opportunity(repo, slug=slug, today=today)
 
     @app.tool(
         name="accept_opportunity",
-        description="Accept an offer. Requires status 'offer'.",
+        description="Accept the offer.",
     )
     def _accept(slug: str, today: str | None = None) -> str:
         return accept_opportunity(repo, slug=slug, today=today)
 
     @app.tool(
         name="decline_opportunity",
-        description="Decline an offer. Requires status 'offer'.",
+        description="Decline the offer.",
     )
     def _decline(slug: str, today: str | None = None) -> str:
         return decline_opportunity(repo, slug=slug, today=today)

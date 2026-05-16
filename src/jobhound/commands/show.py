@@ -24,7 +24,7 @@ def run(
     *,
     json_out: Annotated[bool, Parameter(name=["--json"])] = False,
 ) -> None:
-    """Show one opportunity. Defaults to human text; `--json` for the envelope."""
+    """Show an opportunity."""
     cfg = load_config()
     paths = paths_from_config(cfg)
     query = OpportunityQuery(paths)

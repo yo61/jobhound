@@ -14,7 +14,7 @@ def run(
     slug_query: str,
     /,
 ) -> None:
-    """Move an opportunity to the archive directory."""
+    """Archive an opportunity."""
     cfg = load_config()
     paths = paths_from_config(cfg)
     Paths.ensure(paths)

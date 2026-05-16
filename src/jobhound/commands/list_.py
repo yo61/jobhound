@@ -8,7 +8,7 @@ from jobhound.infrastructure.repository import OpportunityRepository
 
 
 def run() -> None:
-    """List every opportunity as `<slug> <status> <priority>`, sorted by slug."""
+    """List opportunities."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     for opp in repo.all():

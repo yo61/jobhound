@@ -10,15 +10,12 @@ from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.git import commit_change
 from jobhound.migrations.utc_timestamps import migrate_data_root
 
-app = App(name="migrate", help="One-shot data migrations.")
+app = App(name="migrate", help="Run one-shot data migrations.")
 
 
 @app.command(name="utc-timestamps")
 def utc_timestamps() -> None:
-    """Migrate bare-date lifecycle fields to tz-aware UTC datetimes.
-
-    Idempotent. Safe to re-run. Writes a single git commit if anything changed.
-    """
+    """Convert bare-date lifecycle fields to UTC datetimes."""
     cfg = load_config()
     root = Path(cfg.db_path)
     count = migrate_data_root(root)

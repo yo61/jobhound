@@ -1,4 +1,4 @@
-"""Single-field setters. Replace the role `jh edit` plays interactively.
+"""Single-field setters for opportunities.
 
 Each function does load → replace one field → save. All return
 (before, after, opp_dir).

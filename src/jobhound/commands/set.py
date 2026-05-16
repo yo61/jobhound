@@ -12,7 +12,7 @@ from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 
-app = App(name="set", help="Set a field on an opportunity.")
+app = App(name="set", help="Set a single field on an opportunity.")
 
 
 def _repo() -> OpportunityRepository:
@@ -27,7 +27,7 @@ def priority(
     *,
     to: str,
 ) -> None:
-    """Set the priority of an opportunity."""
+    """Set priority (high, medium, low)."""
     try:
         p = Priority(to)
     except ValueError:
@@ -45,6 +45,6 @@ def link(
     name: str,
     url: str,
 ) -> None:
-    """Add or update a link."""
+    """Set or replace a named link."""
     _, after, _ = relation_service.set_link(_repo(), slug_query, name=name, url=url)
     print(f"link {after.slug}: {name} = {url}")

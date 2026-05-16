@@ -237,84 +237,57 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     lifecycle.py.
     """
 
-    @app.tool(name="set_company", description="Change the company name.")
+    @app.tool(name="set_company", description="Set the `company` of an opportunity.")
     def _co(slug: str, value: str) -> str:
         return set_company(repo, slug=slug, value=value)
 
-    @app.tool(name="set_role", description="Change the role title.")
+    @app.tool(name="set_role", description="Set the `role` of an opportunity.")
     def _r(slug: str, value: str) -> str:
         return set_role(repo, slug=slug, value=value)
 
-    @app.tool(name="set_priority", description="Set priority: high/medium/low.")
+    @app.tool(name="set_priority", description="Set the `priority` of an opportunity.")
     def _p(slug: str, level: str) -> str:
         return set_priority(repo, slug=slug, level=level)
 
-    @app.tool(
-        name="set_status",
-        description=(
-            "Write status directly, bypassing transitions. "
-            "Use log_interaction for state-machine-checked changes."
-        ),
-    )
+    @app.tool(name="set_status", description="Set the `status` of an opportunity.")
     def _s(slug: str, status: str) -> str:
         return set_status(repo, slug=slug, status=status)
 
-    @app.tool(
-        name="set_source",
-        description="Set or clear the source field (where you heard about it).",
-    )
+    @app.tool(name="set_source", description="Set the `source` of an opportunity.")
     def _src(slug: str, value: str | None = None) -> str:
         return set_source(repo, slug=slug, value=value)
 
-    @app.tool(name="set_location", description="Set or clear the location field.")
+    @app.tool(name="set_location", description="Set the `location` of an opportunity.")
     def _loc(slug: str, value: str | None = None) -> str:
         return set_location(repo, slug=slug, value=value)
 
-    @app.tool(
-        name="set_comp_range",
-        description="Set or clear the compensation range field.",
-    )
+    @app.tool(name="set_comp_range", description="Set the `comp_range` of an opportunity.")
     def _comp(slug: str, value: str | None = None) -> str:
         return set_comp_range(repo, slug=slug, value=value)
 
-    @app.tool(
-        name="set_first_contact",
-        description="Set or clear the first-contact date (ISO YYYY-MM-DD).",
-    )
+    @app.tool(name="set_first_contact", description="Set the `first_contact` of an opportunity.")
     def _fc(slug: str, value: str | None = None) -> str:
         return set_first_contact(repo, slug=slug, value=value)
 
-    @app.tool(
-        name="set_applied_on",
-        description="Set or clear the applied-on date (ISO YYYY-MM-DD).",
-    )
+    @app.tool(name="set_applied_on", description="Set the `applied_on` of an opportunity.")
     def _ao(slug: str, value: str | None = None) -> str:
         return set_applied_on(repo, slug=slug, value=value)
 
-    @app.tool(
-        name="set_last_activity",
-        description="Set or clear the last-activity date (ISO YYYY-MM-DD).",
-    )
+    @app.tool(name="set_last_activity", description="Set the `last_activity` of an opportunity.")
     def _la(slug: str, value: str | None = None) -> str:
         return set_last_activity(repo, slug=slug, value=value)
 
-    @app.tool(
-        name="set_next_action",
-        description="Set the next-action text + due date together (or clear both).",
-    )
+    @app.tool(name="set_next_action", description="Set the `next_action` of an opportunity.")
     def _na(slug: str, text: str | None, due: str | None = None) -> str:
         return set_next_action(repo, slug=slug, text=text, due=due)
 
-    @app.tool(
-        name="bump",
-        description="Bump last_activity to today without other change.",
-    )
+    @app.tool(name="bump", description="Bump last-activity to now.")
     def _t(slug: str, today: str | None = None) -> str:
         return bump(repo, slug=slug, today=today)
 
     @app.tool(
         name="touch",
-        description="Alias for `bump` — kept for backwards compatibility.",
+        description="Alias for `bump` (kept for backwards compatibility).",
     )
     def _t_alias(slug: str, today: str | None = None) -> str:
         return bump(repo, slug=slug, today=today)

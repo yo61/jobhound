@@ -129,7 +129,7 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="list_opportunities",
-        description="List opportunities, optionally filtered.",
+        description="List opportunities (with optional filters).",
     )
     def _list(
         statuses: list[str] | None = None,
@@ -149,14 +149,14 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
 
     @app.tool(
         name="show_opportunity",
-        description="Show one opportunity by slug (fuzzy match).",
+        description="Show one opportunity.",
     )
     def _get(slug: str) -> str:
         return show_opportunity(repo, slug)
 
     @app.tool(
         name="show_stats",
-        description="Aggregate funnel + sources counts, optionally filtered.",
+        description="Show pipeline stats.",
     )
     def _stats(
         statuses: list[str] | None = None,

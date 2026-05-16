@@ -90,18 +90,15 @@ def set_link(
 
 
 def register(app: FastMCP, repo: OpportunityRepository) -> None:
-    @app.tool(name="add_tag", description="Append a tag (deduped, sorted).")
+    @app.tool(name="add_tag", description="Add a tag to an opportunity.")
     def _at(slug: str, tag: str) -> str:
         return add_tag(repo, slug=slug, tag=tag)
 
-    @app.tool(name="remove_tag", description="Remove a tag.")
+    @app.tool(name="remove_tag", description="Remove a tag from an opportunity.")
     def _rt(slug: str, tag: str) -> str:
         return remove_tag(repo, slug=slug, tag=tag)
 
-    @app.tool(
-        name="add_contact",
-        description="Append a contact (name + optional role/channel/company/note).",
-    )
+    @app.tool(name="add_contact", description="Add a contact to an opportunity.")
     def _ac(
         slug: str,
         name: str,
@@ -129,6 +126,6 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     ) -> str:
         return remove_contact(repo, slug=slug, name=name, role=role, channel=channel)
 
-    @app.tool(name="set_link", description="Set or overwrite a named link.")
+    @app.tool(name="set_link", description="Set or replace a named link.")
     def _sl(slug: str, name: str, url: str) -> str:
         return set_link(repo, slug=slug, name=name, url=url)

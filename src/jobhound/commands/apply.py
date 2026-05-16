@@ -25,7 +25,7 @@ def run(
     next_action_due: datetime,
     now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
-    """Mark the application as submitted."""
+    """Apply to an opportunity."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
 

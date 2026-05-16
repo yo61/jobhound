@@ -28,7 +28,7 @@ def run(
     next_action_due: datetime | None = None,
     now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
-    """Create a new opportunity at status `prospect`."""
+    """Create a new opportunity."""
     cfg = load_config()
     paths = paths_from_config(cfg)
     Paths.ensure(paths)

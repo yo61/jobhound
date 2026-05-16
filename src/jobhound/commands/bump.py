@@ -10,7 +10,7 @@ from jobhound.infrastructure.repository import OpportunityRepository
 
 
 def run(slug_query: str, /) -> None:
-    """Bump last_activity to now without changing status."""
+    """Bump last-activity to now."""
     cfg = load_config()
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     _, after, _ = field_service.bump(repo, slug_query, now=now_utc())

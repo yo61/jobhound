@@ -16,7 +16,7 @@ def run(
     *,
     yes: bool = False,
 ) -> None:
-    """Delete an opportunity directory (e.g. a duplicate scaffold).
+    """Delete an opportunity permanently.
 
     --yes: skip the confirmation prompt.
     """

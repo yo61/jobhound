@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import subprocess
 from dataclasses import dataclass
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 
 from jobhound.application import file_service
 from jobhound.domain.opportunities import Opportunity
+from jobhound.domain.timekeeping import _format_z_seconds
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.infrastructure.storage.protocols import FileStore
 
@@ -19,9 +20,9 @@ def add_note(
     slug: str,
     *,
     msg: str,
-    today: date,
+    now: datetime,
 ) -> tuple[Opportunity, Opportunity, Path]:
-    """Append `- <today> <msg>` to notes.md AND bump last_activity.
+    """Append `- <timestamp> <msg>` to notes.md AND bump last_activity.
 
     Produces TWO commits: one from file_service.append (notes.md), one
     from repo.save (meta.toml last_activity bump). This is the deliberate
@@ -31,9 +32,10 @@ def add_note(
     """
     before, opp_dir = repo.find(slug)
     canonical = opp_dir.name
-    line = f"- {today.isoformat()} {msg}\n".encode()
+    timestamp = _format_z_seconds(now)
+    line = f"- {timestamp} {msg}\n".encode()
     file_service.append(store, canonical, "notes.md", line)
-    after = before.touch(today=today)
+    after = before.touch(now=now)
     repo.save(after, opp_dir, message=f"note: {after.slug}")
     return before, after, opp_dir
 

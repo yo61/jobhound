@@ -12,7 +12,6 @@ from jobhound.commands import archive as cmd_archive
 from jobhound.commands import bump as cmd_bump
 from jobhound.commands import decline as cmd_decline
 from jobhound.commands import delete as cmd_delete
-from jobhound.commands import edit as cmd_edit
 from jobhound.commands import export as cmd_export
 from jobhound.commands import ghost as cmd_ghost
 from jobhound.commands import list_ as cmd_list
@@ -41,7 +40,6 @@ app.command(cmd_accept.run, name="accept")
 app.command(cmd_decline.run, name="decline")
 app.command(cmd_bump.run, name="bump")
 app.command(cmd_list.run, name="list")
-app.command(cmd_edit.run, name="edit")
 app.command(cmd_archive.run, name="archive")
 app.command(cmd_delete.run, name="delete")
 app.command(cmd_show.run, name="show")

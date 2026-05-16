@@ -25,6 +25,27 @@ The spec proposed a two-PR split where PR A landed services without adapters. Th
 - **PR A** — Internal foundation. All renames *and* all adapter call-site updates so the test suite passes end-to-end. CLI flag *types* (`str` vs `datetime`) stay as today (`str`), preserving today's UX. After PR A: working software at every commit, ships as **v0.7.0** (breaking change due to TOML schema bump).
 - **PR B** — Optional CLI flag UX upgrade. Switch `commands/*.py` flag types from `Annotated[str | None, ...]` to `Annotated[datetime | None, ...]`, letting cyclopts natively parse the six ISO 8601 formats. Rename `prompts.parse_date_input` → `parse_datetime_input`. Pure adapter-layer polish.
 
+## TDD sequencing (fixtures-first)
+
+Task ordering is **strictly TDD**: A2 and A3 introduce new behaviour (timekeeping module, validation guard) via red→green per function. **A4 is the failing-test baseline** — it updates every existing test fixture and assertion to express the new API contract. The suite goes red at A4. Subsequent tasks (A5–A13) each turn a slice of the suite green by implementing the contract one layer at a time. A14 and A16 are TDD for new tooling (migration script, integration test).
+
+**Build state expectation per commit:**
+
+| Commit | Build state |
+|---|---|
+| A1 (deps) | green |
+| A2 (timekeeping) | green |
+| A3 (validation guard) | green (one test from A3 stays red until A5) |
+| **A4 (fixtures + contracts)** | **red, cascading failures** |
+| A5 (domain) | less red — domain & A3's deferred test green |
+| A6 (Slug.build) | less red |
+| A7 (serialization) | less red |
+| A8–A13 (services + adapters) | less red per commit |
+| A14 (migration script) | full green |
+| A15–A18 (command, integration, changelog, PR) | full green |
+
+A reviewer reading the branch's commits chronologically sees the contract land first, then watches the implementation satisfy it layer by layer.
+
 ## File Structure
 
 ### Created in PR A
@@ -62,23 +83,31 @@ The spec proposed a two-PR split where PR A landed services without adapters. Th
 | `src/jobhound/commands/new.py` | Same pattern. |
 | `src/jobhound/commands/log.py` | Same pattern. |
 | `src/jobhound/commands/note.py` | Same pattern. |
-| `src/jobhound/commands/show.py` | Internal `today=date.today()` → `now=now_utc()`. |
-| `src/jobhound/commands/export.py` | Same. |
+| `src/jobhound/commands/show.py` | Internal `today=date.today()` → `now=now_utc()`. Use `display_local` for human output of lifecycle fields. |
+| `src/jobhound/commands/export.py` | Same internal rename. |
 | `src/jobhound/commands/_terminal.py` | Same. |
 | `src/jobhound/cli.py` | Register the new `jh migrate` command group. |
-| `tests/**/*.py` | ~50 test functions updated: `today=date(...)` → `now=datetime(..., tzinfo=UTC)`. |
+| `tests/**/*.py` | ~50 test functions updated in A4: `today=date(...)` → `now=datetime(..., tzinfo=UTC)`. Serialization tests assert Z-suffix output + `schema_version=2`. Ops tests assert Z-prefix notes lines. |
 | `CHANGELOG.md` | `feat!:` entry documenting the breaking change + the migration command. |
-| `PICKUP.md` | Already deleted in commit `6ac1dea`. |
 
 ### Modified in PR B (separate plan section)
 
 `src/jobhound/commands/apply.py`, `new.py`, `log.py`, `note.py`, `_terminal.py`: switch flag types `str` → `datetime`. `src/jobhound/prompts.py`: rename `parse_date_input` → `parse_datetime_input` with datetime return type.
 
+### Test fixture conventions (used throughout PR A)
+
+- **Default instant pinning:** Every test fixture uses **noon UTC** unless the test exercises a midnight or DST boundary:
+  ```python
+  NOON_UTC = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
+  ```
+  Pinning at noon UTC means most local zones see the same calendar date as UTC, keeping `is_stale` / `looks_ghosted` assertions zone-stable in CI (which typically runs in UTC) and on developer machines (which may be in any zone).
+- **Boundary tests:** Use `monkeypatch.setattr("jobhound.domain.timekeeping.get_localzone", lambda: ZoneInfo("Europe/London"))` to pin the zone explicitly. Pattern already established in `tests/domain/test_timekeeping.py` from Task A2.
+
 ---
 
 ## Branch & PR sequence
 
-- **PR A:** branch `feat/utc-timestamps-impl-a` off current `main` (tip: `6ac1dea`)
+- **PR A:** branch `feat/utc-timestamps-impl-a` off current `main`
 - **PR B:** branch `feat/utc-timestamps-impl-b` off `main` (after PR A merges)
 
 ---
@@ -150,7 +179,7 @@ Create `tests/domain/test_timekeeping.py`:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -405,9 +434,9 @@ git commit -m "feat(domain): add timekeeping module for UTC/local conversion"
 - Modify: `src/jobhound/infrastructure/meta_io.py` (add helper, call from `validate`)
 - Create: `tests/infrastructure/test_meta_io_validation.py`
 
-This guard catches naive datetimes (impossible from migration-produced files, possible from hand-edited meta.toml). Lands now so subsequent type changes have a backstop.
+This guard catches naive datetimes (impossible from migration-produced files, possible from hand-edited meta.toml). One test passes at this commit; the other stays red until A5 (which is intentional — it asserts the post-rename type, which doesn't exist yet).
 
-- [ ] **Step 1: Write failing test**
+- [ ] **Step 1: Write failing tests**
 
 Create `tests/infrastructure/test_meta_io_validation.py`:
 
@@ -448,12 +477,12 @@ def test_aware_utc_applied_on_accepted():
     assert opp.applied_on == datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
 ```
 
-- [ ] **Step 2: Run — expect failure (field type still `date | None`, second test will also fail until A4 lands)**
+- [ ] **Step 2: Run — expect failure (first test fails: no naive check yet; second test fails: Opportunity.applied_on is still typed `date | None`)**
 
 Run: `uv run pytest tests/infrastructure/test_meta_io_validation.py -v`
-Expected: first test fails (no naive check), second test fails (type mismatch).
+Expected: both tests fail.
 
-- [ ] **Step 3: Add the helper, defer the type-acceptance side to Task A4**
+- [ ] **Step 3: Add the helper**
 
 In `src/jobhound/infrastructure/meta_io.py`, after the imports:
 
@@ -491,30 +520,203 @@ def validate(data: dict[str, Any], path: Path | None) -> Opportunity:
     ...
 ```
 
-- [ ] **Step 4: Run — expect first test pass, second still fail**
+- [ ] **Step 4: Run — first test passes, second still fails (deferred to A5)**
 
 Run: `uv run pytest tests/infrastructure/test_meta_io_validation.py::test_naive_applied_on_rejected -v`
 Expected: pass.
 
 Run: `uv run pytest tests/infrastructure/test_meta_io_validation.py::test_aware_utc_applied_on_accepted -v`
-Expected: fail (type of `Opportunity.applied_on` is still `date`).
+Expected: fail. This test stays red until A5 lands the type change on `Opportunity`.
 
-- [ ] **Step 5: Commit (the second test stays red until Task A4)**
+- [ ] **Step 5: Commit (with the deferred test documented)**
 
 ```bash
 git add src/jobhound/infrastructure/meta_io.py tests/infrastructure/test_meta_io_validation.py
-git commit -m "feat(infrastructure): reject naive datetimes in meta.toml lifecycle fields"
+git commit -m "feat(infrastructure): reject naive datetimes in meta.toml lifecycle fields
+
+test_aware_utc_applied_on_accepted stays red until A5 lands the
+datetime type change on Opportunity."
 ```
 
 ---
 
-### Task A4: Flip `Opportunity` domain field types and rename `today`→`now`
+### Task A4: Test contract migration (failing-test baseline)
+
+**Files:**
+- Modify: every test file that calls a service or domain method with `today=date(...)` or constructs an `Opportunity` with `date`-typed lifecycle fields. Expect ~30–50 test files touched.
+
+**Purpose:** Express the new API contract in test form, all in one commit. After this commit the test suite is red across the board. Tasks A5–A13 each turn a slice green by satisfying the contract one layer at a time.
+
+**Convention reminder:** every fixture instant pins to **noon UTC** unless the test explicitly exercises a midnight or DST boundary. Pattern:
+
+```python
+from datetime import UTC, datetime
+
+NOON_UTC = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
+```
+
+- [ ] **Step 1: Find all `Opportunity(...)` constructions in tests**
+
+Run: `rg -n "Opportunity\(" tests/ | head -80`
+
+For each match, update lifecycle-field arguments from `date(...)` to `datetime(..., 12, 0, tzinfo=UTC)`:
+
+```python
+# before
+Opportunity(
+    ...,
+    first_contact=date(2026, 5, 10),
+    applied_on=date(2026, 5, 14),
+    last_activity=date(2026, 5, 14),
+    next_action_due=date(2026, 5, 21),
+    ...
+)
+
+# after
+Opportunity(
+    ...,
+    first_contact=datetime(2026, 5, 10, 12, 0, tzinfo=UTC),
+    applied_on=datetime(2026, 5, 14, 12, 0, tzinfo=UTC),
+    last_activity=datetime(2026, 5, 14, 12, 0, tzinfo=UTC),
+    next_action_due=datetime(2026, 5, 21, 12, 0, tzinfo=UTC),
+    ...
+)
+```
+
+Add `from datetime import UTC, datetime` to the imports of each affected test file (delete `from datetime import date` if no other usage remains).
+
+- [ ] **Step 2: Find all `today=date(...)` keyword calls**
+
+Run: `rg -n "today=date\(" tests/ | head -80`
+
+Convert each to `now=datetime(..., 12, 0, tzinfo=UTC)`:
+
+```python
+# before
+service.apply_to(repo, slug, applied_on=date(2026, 5, 14), today=date(2026, 5, 14), ...)
+
+# after
+service.apply_to(repo, slug, applied_on=NOON_UTC, now=NOON_UTC, ...)
+```
+
+(Using a module-level `NOON_UTC` constant cuts repetition. Define it at the top of each test file.)
+
+- [ ] **Step 3: Find `value=date(...)` calls on field setters**
+
+Run: `rg -n "value=date\(" tests/ | head -40`
+
+For `field_service.set_first_contact(..., value=date(...))` etc., convert `value` to `datetime(..., 12, 0, tzinfo=UTC)`.
+
+- [ ] **Step 4: Update fixture meta.toml files (if any)**
+
+Run: `rg -l "^(first_contact|applied_on|last_activity|next_action_due) = \d{4}-\d{2}-\d{2}$" tests/`
+
+For each fixture file found, hand-edit the field to ISO 8601 offset date-time form:
+
+```toml
+# before
+applied_on = 2026-05-14
+
+# after
+applied_on = 2026-05-14T12:00:00+00:00
+```
+
+- [ ] **Step 5: Update serialization-test assertions to expect Z-suffix output + schema_version=2**
+
+Run: `rg -n "schema_version|applied_on.*iso|2026-05-..\"" tests/application/ tests/integration/ 2>/dev/null`
+
+For each serialization test asserting on the JSON envelope output:
+
+```python
+# before
+assert envelope["schema_version"] == 1
+assert envelope["opportunity"]["applied_on"] == "2026-05-14"
+
+# after
+assert envelope["schema_version"] == 2
+# Z-suffix datetime; allow microseconds: `2026-05-14T12:00:00Z` or `...00.000000Z`
+assert envelope["opportunity"]["applied_on"].startswith("2026-05-14T12:00:00")
+assert envelope["opportunity"]["applied_on"].endswith("Z")
+```
+
+- [ ] **Step 6: Update ops-test assertions for the new Z-prefix notes line**
+
+Run: `rg -n "notes\.md|add_note" tests/application/`
+
+For tests of `ops_service.add_note`, assert the new line format includes the timestamp prefix:
+
+```python
+# before
+assert note_line == "- follow up with recruiter\n"
+
+# after
+assert note_line == "- 2026-05-14T12:00:00Z follow up with recruiter\n"
+```
+
+- [ ] **Step 7: Update CLI tests using the hidden `--today` flag**
+
+Run: `rg -n "\"--today\"|--today=" tests/`
+
+Rename to `--now` and update the value to an ISO datetime string:
+
+```python
+# before
+result = runner.invoke(app, ["apply", slug, "--applied-on", "2026-05-14", "--today", "2026-05-14"])
+
+# after
+result = runner.invoke(app, ["apply", slug, "--applied-on", "2026-05-14", "--now", "2026-05-14T12:00:00Z"])
+```
+
+(The user-visible flags `--applied-on`, `--next-action-due` keep accepting bare dates; their value strings don't change in PR A. The internal hidden flag is what gets renamed.)
+
+- [ ] **Step 8: Update display-format assertions (if any exist)**
+
+Run: `rg -n "applied:|first_contact:|last_activity:" tests/`
+
+Any test that asserts the human-display string of a lifecycle field needs updating to the new `display_local` output (e.g., `2026-05-14 13:00:00 BST` instead of `2026-05-14`). For zone stability, monkeypatch the local zone in such tests.
+
+If no such tests exist today, skip this step.
+
+- [ ] **Step 9: Run full suite — expect cascading failures**
+
+Run: `uv run pytest -q 2>&1 | tail -30`
+
+Expected shape of failures:
+- `TypeError: ... got an unexpected keyword argument 'now'` (domain/service/MCP/CLI hasn't been renamed yet)
+- `TypeError: ... expected date, got datetime` (Opportunity field types not yet changed)
+- Assertion failures on `schema_version`, Z-suffix datetime strings, notes Z-prefix lines
+
+This is the **failing-test baseline** the rest of the PR turns green. Note the failure count for the commit message:
+
+```bash
+uv run pytest -q 2>&1 | tail -3
+# Take note of the "N failed, M passed" line.
+```
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add tests/
+git commit -m "test: migrate fixtures + assertions to new API contract (red baseline)
+
+Expresses the post-migration API contract in test form. The suite is
+intentionally red after this commit. Tasks A5-A13 turn it green one
+layer at a time.
+
+Baseline: <N failed, M passed from step 9>"
+```
+
+---
+
+### Task A5: Flip `Opportunity` domain field types and rename `today`→`now`
 
 **Files:**
 - Modify: `src/jobhound/domain/opportunities.py`
-- Modify: any tests that construct `Opportunity` instances or call its methods (~20 files in `tests/`)
 
-This is the load-bearing type change. After it lands, every caller of `Opportunity` and its methods must use `datetime` and `now=`.
+This is the load-bearing type change. After this commit:
+- Domain-layer tests (`tests/domain/test_opportunities.py` and similar) go from red to green.
+- A3's deferred test `test_aware_utc_applied_on_accepted` goes from red to green.
+- Service-layer and adapter-layer tests stay red (call sites still use old API; that's A8–A13).
 
 - [ ] **Step 1: Update imports and `STALE_DAYS` block**
 
@@ -565,7 +767,7 @@ def looks_ghosted(self, now: datetime) -> bool:
 
 - [ ] **Step 4: Update `apply`, `log_interaction`, `withdraw`, `ghost`, `accept`, `decline`, `touch`**
 
-Replace `src/jobhound/domain/opportunities.py:59-125`. Every keyword named `today` becomes `now`, every `date` annotation becomes `datetime`, and the body lines that set `last_activity=today` become `last_activity=now`:
+Replace `src/jobhound/domain/opportunities.py:59-125`. Every keyword named `today` becomes `now`, every `date` annotation becomes `datetime`, every body line `last_activity=today` becomes `last_activity=now`:
 
 ```python
 def apply(
@@ -630,14 +832,12 @@ def touch(self, *, now: datetime) -> Opportunity:
     return replace(self, last_activity=now)
 ```
 
-- [ ] **Step 5: Run tests — expect cascading failures across the suite**
+- [ ] **Step 5: Run tests — domain-layer tests + A3's deferred test go green**
 
-Run: `uv run pytest -q 2>&1 | head -30`
-Expected: many failures, mostly `TypeError: ... got an unexpected keyword argument 'today'` and `TypeError: ... missing keyword-only argument 'now'`.
+Run: `uv run pytest tests/domain/ tests/infrastructure/test_meta_io_validation.py -v`
+Expected: domain tests pass; both `test_meta_io_validation` tests pass. Service-layer and adapter-layer tests in other directories still fail — that's expected.
 
-This is expected — every downstream caller needs updating in subsequent tasks. The `meta_io` validation test from A3 now passes too (since `Opportunity.applied_on` is `datetime | None`).
-
-- [ ] **Step 6: Commit the domain change in isolation**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/jobhound/domain/opportunities.py
@@ -648,11 +848,9 @@ next_action_due are now datetime | None (tz-aware UTC). Domain method
 parameter today: date renamed to now: datetime."
 ```
 
-(Intentionally separate from the downstream call-site updates to keep the diff reviewable per layer.)
-
 ---
 
-### Task A5: Update `Slug.build`
+### Task A6: Update `Slug.build`
 
 **Files:**
 - Modify: `src/jobhound/domain/slug_value.py:39`
@@ -683,32 +881,27 @@ def build(cls, now: datetime, company: str, role: str) -> Slug:
     now_utc_value = to_utc(now)
     local_date = now_utc_value.astimezone(get_localzone()).date()
     prefix = local_date.isoformat()
-    ...rest of the existing body unchanged, but using `prefix` instead of
-    `today.isoformat()`...
+    # ...rest of the existing body unchanged, but using `prefix` instead of
+    # `today.isoformat()`.
 ```
 
-(Adapt to exactly match the existing body's structure.)
+(Adapt the inner body to keep the existing slug-construction logic; only the source of `prefix` changes.)
 
-- [ ] **Step 3: Update any direct tests of `Slug.build`**
+- [ ] **Step 3: Run slug tests**
 
-Run: `rg -n "Slug\.build\(" tests/`
-For each call, replace `Slug.build(today=date(2026, 5, 14), ...)` with `Slug.build(now=datetime(2026, 5, 14, 12, 0, tzinfo=UTC), ...)`.
+Run: `uv run pytest tests/domain/test_slug_value.py -v` (or the actual test path)
+Expected: pass — A4 already updated tests to use `now=datetime(...)`.
 
-- [ ] **Step 4: Run slug tests**
-
-Run: `uv run pytest tests/domain/test_slug_value.py -v` (or the actual test file path)
-Expected: pass.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src/jobhound/domain/slug_value.py tests/domain/test_slug_value.py
+git add src/jobhound/domain/slug_value.py
 git commit -m "refactor(domain): Slug.build accepts now: datetime, derives local-TZ prefix"
 ```
 
 ---
 
-### Task A6: Update `application/serialization.py` — Z-suffix datetimes + schema bump
+### Task A7: Update `application/serialization.py` — Z-suffix datetimes + schema bump
 
 **Files:**
 - Modify: `src/jobhound/application/serialization.py`
@@ -755,23 +948,23 @@ SCHEMA_VERSION: int = 2
 - [ ] **Step 4: Run serialization tests**
 
 Run: `uv run pytest tests/application/test_serialization.py -v` (path may differ)
-Expected: existing tests may fail because they expect bare YYYY-MM-DD strings. Update each test to expect `2026-05-14T...Z` Z-suffix output and bump any `schema_version: 1` assertions to `schema_version: 2`. Re-run; pass.
+Expected: pass — A4 already updated assertions to expect Z-suffix output and `schema_version=2`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/jobhound/application/serialization.py tests/
+git add src/jobhound/application/serialization.py
 git commit -m "feat(application)!: serialize lifecycle fields as Z-suffix datetimes (schema v2)"
 ```
 
 ---
 
-### Task A7: Update `application/lifecycle_service.py`
+### Task A8: Update `application/lifecycle_service.py`
 
 **Files:**
 - Modify: `src/jobhound/application/lifecycle_service.py`
 
-Six functions touched. The pattern is identical: `today: date` → `now: datetime`, `date` → `datetime` for `applied_on` and `next_action_due`.
+Six functions touched. Pattern: `today: date` → `now: datetime`, `date` → `datetime` for `applied_on` and `next_action_due`.
 
 - [ ] **Step 1: Update imports**
 
@@ -781,9 +974,9 @@ In `src/jobhound/application/lifecycle_service.py:12`:
 from datetime import datetime
 ```
 
-- [ ] **Step 2: Update `apply_to` signature and call**
+- [ ] **Step 2: Update `apply_to`**
 
-Line 28-46:
+Replace lines 28-46:
 
 ```python
 def apply_to(
@@ -808,7 +1001,7 @@ def apply_to(
 
 - [ ] **Step 3: Update `log_interaction`**
 
-Line 49-74. Rename `today` → `now`, type `next_action_due: date | None` → `datetime | None`, body call `before.log_interaction(today=today, ...)` → `before.log_interaction(now=now, ...)`.
+Lines 49-74. Rename `today` → `now`, type `next_action_due: date | None` → `datetime | None`, body call `before.log_interaction(today=today, ...)` → `before.log_interaction(now=now, ...)`.
 
 - [ ] **Step 4: Update `withdraw_from`, `mark_ghosted`, `accept_offer`, `decline_offer`**
 
@@ -817,18 +1010,18 @@ Lines 77-126. Each takes only `today: date` → `now: datetime`; body call uses 
 - [ ] **Step 5: Run lifecycle service tests**
 
 Run: `uv run pytest tests/application/test_lifecycle_service.py -v` (path may differ)
-Expected: cascading failures. Update each test: `today=date(...)` → `now=datetime(..., tzinfo=UTC)`. Re-run; pass.
+Expected: pass — A4 already updated fixtures.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/jobhound/application/lifecycle_service.py tests/application/test_lifecycle_service.py
+git add src/jobhound/application/lifecycle_service.py
 git commit -m "refactor(application): lifecycle_service uses now: datetime"
 ```
 
 ---
 
-### Task A8: Update `application/field_service.py`
+### Task A9: Update `application/field_service.py`
 
 **Files:**
 - Modify: `src/jobhound/application/field_service.py`
@@ -876,21 +1069,21 @@ def touch(
     return before, after, opp_dir
 ```
 
-- [ ] **Step 4: Run field service tests + update**
+- [ ] **Step 4: Run field service tests**
 
 Run: `uv run pytest tests/application/test_field_service.py -v`
-Expected: failures on touch + the 4 setters. Update test fixtures (`today=date(...)` → `now=datetime(..., tzinfo=UTC)`; `value=date(...)` → `value=datetime(..., tzinfo=UTC)`). Re-run; pass.
+Expected: pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/jobhound/application/field_service.py tests/application/test_field_service.py
+git add src/jobhound/application/field_service.py
 git commit -m "refactor(application): field_service uses datetime for lifecycle fields"
 ```
 
 ---
 
-### Task A9: Update `application/ops_service.py` — `add_note` + Z-suffix line prefix
+### Task A10: Update `application/ops_service.py` — `add_note` + Z-suffix line prefix
 
 **Files:**
 - Modify: `src/jobhound/application/ops_service.py:22` (function signature) and body (prepend timestamp to message)
@@ -905,11 +1098,9 @@ from datetime import datetime
 from jobhound.domain.timekeeping import _format_z_seconds
 ```
 
-- [ ] **Step 2: Update `add_note` to rename `today`→`now` and prepend timestamp to the message body**
+- [ ] **Step 2: Update `add_note` to rename `today`→`now` and prepend timestamp to the note line**
 
-The exact body depends on the current implementation. The user-facing change: every new note line in `notes.md` starts with `- YYYY-MM-DDTHH:MM:SSZ msg\n`. The implementation calls `file_service.append(...)` with the prefixed line.
-
-Locate the message-construction line. Replace whatever today's behavior is with:
+Locate the existing message-construction line in `add_note`. The user-facing change: every new note line in `notes.md` starts with `- YYYY-MM-DDTHH:MM:SSZ msg\n`.
 
 ```python
 def add_note(
@@ -923,24 +1114,24 @@ def add_note(
     line = f"- {timestamp} {msg}\n"
     # ...continue using file_service.append for the line; the rest of the
     # function body (load opp, append to notes.md, possibly touch last_activity)
-    # stays as today.
+    # stays as today, modulo the today→now rename.
 ```
 
-- [ ] **Step 3: Run ops service tests + update**
+- [ ] **Step 3: Run ops service tests**
 
 Run: `uv run pytest tests/application/test_ops_service.py -v`
-Expected: failures on `today` parameter name + format expectations. Update tests to call with `now=datetime(2026, 5, 14, 12, 0, tzinfo=UTC)` and assert on Z-suffix lines (e.g., `"- 2026-05-14T12:00:00Z my message\n"`). Re-run; pass.
+Expected: pass — A4 already updated assertions to expect Z-prefix lines.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/jobhound/application/ops_service.py tests/application/test_ops_service.py
+git add src/jobhound/application/ops_service.py
 git commit -m "feat(application)!: notes.md lines get Z-suffix UTC timestamp prefix"
 ```
 
 ---
 
-### Task A10: Update `application/query.py`
+### Task A11: Update `application/query.py`
 
 **Files:**
 - Modify: `src/jobhound/application/query.py:67,82,105,115,157`
@@ -965,21 +1156,21 @@ At line 157:
 snaps = self.list(filters, now=now_utc())
 ```
 
-- [ ] **Step 3: Run query tests + update**
+- [ ] **Step 3: Run query tests**
 
 Run: `uv run pytest tests/application/test_query.py -v`
-Expected: failures on `today` keyword. Update tests; re-run; pass.
+Expected: pass.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/jobhound/application/query.py tests/application/test_query.py
+git add src/jobhound/application/query.py
 git commit -m "refactor(application): OpportunityQuery uses now: datetime"
 ```
 
 ---
 
-### Task A11: Update `mcp/converters.py` and all `mcp/tools/*.py` call sites
+### Task A12: Update `mcp/converters.py` and all `mcp/tools/*.py` call sites
 
 **Files:**
 - Modify: `src/jobhound/mcp/converters.py:5,72`
@@ -1020,18 +1211,18 @@ One call site (line 24): same substitution.
 - [ ] **Step 7: Run MCP tool tests**
 
 Run: `uv run pytest tests/mcp/ -v`
-Expected: failures cascade. Update each test fixture; re-run; pass.
+Expected: pass — A4 already updated MCP test fixtures.
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/jobhound/mcp/ tests/mcp/
+git add src/jobhound/mcp/
 git commit -m "refactor(mcp): MCP tools use now: datetime / now_utc()"
 ```
 
 ---
 
-### Task A12: Update `commands/*.py` call sites (keep CLI flag types as `str`)
+### Task A13: Update `commands/*.py` call sites + display formatting
 
 **Files:**
 - Modify: `src/jobhound/commands/apply.py`
@@ -1042,9 +1233,9 @@ git commit -m "refactor(mcp): MCP tools use now: datetime / now_utc()"
 - Modify: `src/jobhound/commands/export.py`
 - Modify: `src/jobhound/commands/_terminal.py`
 
-CLI flag *types* stay `Annotated[str | None, Parameter(show=False)]` in PR A — PR B will switch them to `datetime | None`. PR A's change is internal: every command file converts the string flag to a `datetime` (via `datetime.fromisoformat` + `to_utc`) before calling the service, and renames the internal hidden flag `today` → `now`.
+CLI flag *types* stay `Annotated[str | None, Parameter(show=False)]` in PR A. The internal hidden flag renames `today` → `now`, and each command parses string flags through `datetime.fromisoformat` + `to_utc` before calling services. Display formatting routes through `display_local`.
 
-- [ ] **Step 1: Update each command file (pattern)**
+- [ ] **Step 1: Update each command file (rename + parse pipeline)**
 
 For each command file, the rename pattern is:
 
@@ -1067,64 +1258,37 @@ now_obj = to_utc(datetime.fromisoformat(now)) if now else now_utc()
 lifecycle_service.apply_to(repo, slug, now=now_obj, ...)
 ```
 
-The flag name visible to users (`--applied-on`, `--next-action-due`, etc.) stays as today, but the parsed string now flows through `datetime.fromisoformat` + `to_utc`, producing a tz-aware UTC datetime.
-
-For the date inputs that aren't hidden test-flags (e.g., `--applied-on`):
+For date inputs that aren't hidden test-flags (e.g., `--applied-on`):
 
 ```python
 # before
 applied_on: str,
-...
 applied_on_obj = date.fromisoformat(applied_on)
 
 # after
 applied_on: str,
-...
 applied_on_obj = to_utc(datetime.fromisoformat(applied_on))
 ```
 
-Apply this pattern to each command in turn. Files in priority order (some are smaller / simpler):
+Files in priority order:
 
-1. `commands/show.py` — only `today=date.today()` to migrate, no flag parsing.
+1. `commands/show.py` — only `today=date.today()` to migrate.
 2. `commands/export.py` — same.
 3. `commands/_terminal.py` — same.
-4. `commands/note.py` — has a `today` hidden flag + a possible due-date input.
-5. `commands/apply.py` — has `applied_on`, `next_action_due`, and `today`.
-6. `commands/new.py` — has `next_action_due` and `today`.
-7. `commands/log.py` — has `next_action_due` and `today`.
+4. `commands/note.py` — `today` hidden flag + possible due-date input.
+5. `commands/apply.py` — `applied_on`, `next_action_due`, `today`.
+6. `commands/new.py` — `next_action_due`, `today`.
+7. `commands/log.py` — `next_action_due`, `today`.
 
-- [ ] **Step 2: Run command tests after each file**
+- [ ] **Step 2: Update human-display formatting**
 
-After updating each command, run its test file:
-
-```bash
-uv run pytest tests/test_cmd_<command>.py -v
-```
-
-Fix test fixtures inline. The pattern:
-
-```python
-# before
-result = invoke(["apply", slug, "--applied-on", "2026-05-14", "--today", "2026-05-14"])
-
-# after — the flag values are still strings (no UX change in PR A)
-result = invoke(["apply", slug, "--applied-on", "2026-05-14", "--now", "2026-05-14T12:00:00Z"])
-```
-
-(Note: the hidden test flag renamed from `--today` to `--now`. Tests that exercise this for determinism must use the new flag name.)
-
-- [ ] **Step 3: Update human-display formatting in `commands/show.py` and any list output**
-
-The four lifecycle fields, when rendered for human output, must use
-`display_local` so the user sees local-zone whole seconds — not raw
-UTC ISO strings. Find the formatting sites:
+Find display sites:
 
 ```bash
 rg -n "applied_on|first_contact|last_activity|next_action_due" src/jobhound/commands/show.py src/jobhound/commands/list_.py src/jobhound/commands/_terminal.py
 ```
 
-For each line that prints one of those fields, route through
-`display_local`:
+For each line that prints a lifecycle field, route through `display_local`:
 
 ```python
 # before — would produce "2026-05-14 12:00:30+00:00" (raw UTC ISO)
@@ -1135,37 +1299,40 @@ from jobhound.domain.timekeeping import display_local
 print(f"applied: {display_local(opp.applied_on) if opp.applied_on else '—'}")
 ```
 
-`jh list` (typically minute-precision for compactness) uses
-`display_local(value, precision="minutes")`.
+`jh list` (typically minute-precision for compactness) uses `display_local(value, precision="minutes")`.
 
-The `--json` envelope output is untouched here — that's already handled
-by `serialization.py` from Task A6 with Z-suffix microsecond UTC.
+The `--json` envelope output is untouched — already handled by `serialization.py` from A7.
 
-- [ ] **Step 4: Run full CLI test sweep**
+- [ ] **Step 3: Run CLI tests**
 
 Run: `uv run pytest tests/ -k "cmd_" -v`
-Expected: pass. Any display-format test that hardcodes a UTC ISO string
-needs updating to the new local-TZ format. If existing tests didn't
-exercise display formatting, no update needed.
+Expected: pass — A4 already updated `--today`→`--now` flag values and any display assertions.
+
+- [ ] **Step 4: Run full suite — expect full green**
+
+Run: `uv run pytest -q`
+Expected: full pass. Test count should be roughly the same as pre-migration; new tests come in A14 and A16.
+
+If any tests are still red, they're residual call sites missed in earlier tasks. Fix each in place and re-run.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/jobhound/commands/ tests/
+git add src/jobhound/commands/
 git commit -m "refactor(cli): commands convert string flags to UTC datetime; human output uses display_local"
 ```
 
 ---
 
-### Task A13: Write the migration script
+### Task A14: Write the migration script
 
 **Files:**
 - Create: `scripts/migrate_dates_to_datetimes.py`
 - Create: `tests/scripts/test_migrate.py`
 
-The script is library-shaped so the tests can call it in-process. The CLI command (Task A14) wires it up.
+The script is library-shaped so the tests can call it in-process. A15 wires up the CLI command.
 
-- [ ] **Step 1: Write failing test for migration idempotency**
+- [ ] **Step 1: Write failing tests**
 
 Create `tests/scripts/test_migrate.py`:
 
@@ -1185,19 +1352,11 @@ from scripts.migrate_dates_to_datetimes import migrate_data_root
 def _write_meta(path: Path, applied_on: object) -> None:
     """Write a minimal meta.toml with a single date field."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    if isinstance(applied_on, date) and not isinstance(applied_on, datetime):
-        # bare-date TOML literal
-        path.write_text(
-            f'company = "Acme"\nrole = "Engineer"\nstatus = "applied"\n'
-            f"slug = \"2026-05-14-acme-eng\"\npriority = \"medium\"\n"
-            f"applied_on = {applied_on.isoformat()}\n"
-        )
-    else:
-        path.write_text(
-            f'company = "Acme"\nrole = "Engineer"\nstatus = "applied"\n'
-            f"slug = \"2026-05-14-acme-eng\"\npriority = \"medium\"\n"
-            f'applied_on = {applied_on.isoformat()}\n'
-        )
+    path.write_text(
+        f'company = "Acme"\nrole = "Engineer"\nstatus = "applied"\n'
+        f'slug = "2026-05-14-acme-eng"\npriority = "medium"\n'
+        f'applied_on = {applied_on.isoformat()}\n'
+    )
 
 
 def test_migration_converts_bare_date(tmp_path, monkeypatch):
@@ -1226,7 +1385,7 @@ def test_migration_idempotent(tmp_path, monkeypatch):
     assert changes == 0
 ```
 
-- [ ] **Step 2: Run — expect failure (module doesn't exist)**
+- [ ] **Step 2: Run — expect failure**
 
 Run: `uv run pytest tests/scripts/test_migrate.py -v`
 Expected: `ModuleNotFoundError: No module named 'scripts.migrate_dates_to_datetimes'`.
@@ -1262,7 +1421,7 @@ LIFECYCLE_FIELDS = (
 def _maybe_convert(value: object, tz: object) -> datetime | None:
     """Convert a bare date to midnight-local→UTC; passthrough for None / datetime.
 
-    Returns None when no conversion is needed (already a datetime).
+    Returns None when no conversion is needed (already a datetime or None).
     Returns a datetime when conversion happened.
     """
     if value is None:
@@ -1321,7 +1480,7 @@ git commit -m "feat(scripts): add UTC datetime migration for existing meta.toml 
 
 ---
 
-### Task A14: Wire `jh migrate utc-timestamps` CLI command
+### Task A15: Wire `jh migrate utc-timestamps` CLI command
 
 **Files:**
 - Create: `src/jobhound/commands/migrate.py`
@@ -1388,52 +1547,6 @@ Expected (against your actual `~/.local/share/jh/`, post-test-data migration): e
 ```bash
 git add src/jobhound/commands/migrate.py src/jobhound/cli.py
 git commit -m "feat(cli): add 'jh migrate utc-timestamps' command"
-```
-
----
-
-### Task A15: Migrate test-fixture data files
-
-**Files:**
-- Modify: any `tests/fixtures/**/meta.toml` files with bare-date lifecycle fields
-- Modify: any test code that builds `Opportunity` instances directly with `date(...)` for lifecycle fields
-
-- [ ] **Step 1: Find all fixture meta.toml files with bare dates**
-
-Run: `rg -l "^(first_contact|applied_on|last_activity|next_action_due) = \d{4}-\d{2}-\d{2}$" tests/`
-Expected: list of fixture files (may be empty if tests use in-memory `Opportunity` instances rather than on-disk files).
-
-- [ ] **Step 2: Migrate each fixture via the script**
-
-If any fixture files exist, run the migration against the fixtures directory:
-
-```bash
-uv run python -c "from pathlib import Path; from scripts.migrate_dates_to_datetimes import migrate_data_root; print(migrate_data_root(Path('tests/fixtures/<data-root-fixture>')))"
-```
-
-Or, where the fixture isn't a full data root, hand-edit each `meta.toml` to use the offset date-time form: `applied_on = 2026-05-14T00:00:00+00:00`.
-
-- [ ] **Step 3: Find all in-test `Opportunity(...)` constructions and `date(...)` literals on lifecycle fields**
-
-Run: `rg -n "Opportunity\(" tests/ | head -30` and inspect each. For each construction passing `applied_on=date(2026, 5, 14)` etc., replace with `applied_on=datetime(2026, 5, 14, 12, 0, tzinfo=UTC)`.
-
-- [ ] **Step 4: Find all `today=date(...)` keyword calls**
-
-Run: `rg -n "today=date\(" tests/ | head -50`
-For each, replace with `now=datetime(YYYY, MM, DD, 12, 0, tzinfo=UTC)`.
-
-- [ ] **Step 5: Run full test suite**
-
-Run: `uv run pytest -q`
-Expected: full pass — target ~430 tests on green.
-
-If anything still fails, the failures are residual call sites that previous tasks missed. Fix each in place; no commit per fix — bundle into Step 6.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add tests/
-git commit -m "test: migrate fixtures and call sites to now: datetime"
 ```
 
 ---
@@ -1561,9 +1674,9 @@ git push -u origin feat/utc-timestamps-impl-a
 gh pr create --title "feat!: UTC datetime storage end-to-end (Task #35 PR A)" --body "$(cat <<'EOF'
 ## Summary
 
-PR A of two for Task #35 — replaces every `date` in the persisted model with tz-aware `datetime` (UTC stored). Spec: `docs/specs/2026-05-15-utc-timestamps-design.md`.
+PR A of two for Task #35 — replaces every `date` in the persisted model with tz-aware `datetime` (UTC stored). Spec: `docs/specs/2026-05-15-utc-timestamps-design.md`. Plan: `docs/plans/2026-05-15-utc-timestamps.md`.
 
-This PR lands the *internal* type and rename migration end-to-end. CLI flag types stay `str`; PR B will switch them to native `datetime` parsing.
+Internal type and rename migration end-to-end. CLI flag types stay `str`; PR B will switch them to native `datetime` parsing.
 
 Includes `jh migrate utc-timestamps` for converting existing data roots. Idempotent.
 
@@ -1571,7 +1684,7 @@ Breaking change: meta.toml schema v1→v2 (pre-1.0 semver: bumps to v0.7.0, not 
 
 ## Test plan
 
-- [ ] Full test suite passes (target ~430 tests).
+- [ ] Full test suite passes.
 - [ ] `jh migrate utc-timestamps` against a copy of the user's data root produces a clean commit; second run reports "nothing to do".
 - [ ] `jh show <slug> --json` envelope has Z-suffix datetimes on the four lifecycle fields and `schema_version: 2`.
 EOF
@@ -1604,7 +1717,7 @@ git pull --ff-only origin main
 
 ## Part 2 — PR B: CLI flag UX upgrade (optional follow-up)
 
-After PR A merges and you've decided you want the better UX, the following tasks switch CLI flags from `str` to native `datetime` parsing. Pure adapter work.
+After PR A merges, these tasks switch CLI flags from `str` to native `datetime` parsing. Pure adapter work.
 
 ### Task B1: Cut branch off updated `main`
 
@@ -1653,9 +1766,9 @@ now_obj = to_utc(now) if now else now_utc()
 
 Cyclopts now does the `fromisoformat` parse and surfaces format errors with its native "invalid value for option" message.
 
-- [ ] **Step 2: Update CLI tests to pass datetime strings cyclopts will parse**
+- [ ] **Step 2: Update CLI tests if needed**
 
-Existing tests that pass `--applied-on 2026-05-14` continue to work — cyclopts parses `2026-05-14` via `datetime.fromisoformat` (which accepts bare dates as midnight). No test changes required for the happy path.
+Existing tests passing `--applied-on 2026-05-14` continue to work — cyclopts parses `2026-05-14` via `datetime.fromisoformat` (which accepts bare dates as midnight). No test changes required for the happy path.
 
 Add new tests for:
 - The six accepted ISO 8601 formats from the spec.
@@ -1792,7 +1905,7 @@ jh show <some-slug> --json | jq '.opportunity | {first_contact, applied_on, last
 
 ## Self-review notes
 
-- **Spec coverage:** All 8 locked design decisions from the spec map to tasks (storage format → A6; notes.md → A9; correspondence filename unchanged → no task needed; is_stale → A4; CLI input parsing → A12+B2; rename → A4-A12; precision → A6+A12; migration → A13-A14).
-- **Two-PR partition:** Refined from spec (spec's "adapters in PR B" was incorrect — services and adapters must change atomically because the keyword parameter renamed). PR A is now end-to-end working; PR B is pure UX.
-- **TDD discipline:** Applied for new code (timekeeping module A2, migration script A13, validation guard A3, integration test A16). Applied as "refactor cycle" (run existing tests, refactor, run again) for mechanical renames (A4-A12).
-- **Test fixture migration (A15):** placed *after* all production code changes so the suite is broken until A15 fixes the last layer. This keeps the diff per task small and reviewable.
+- **Spec coverage:** All 8 locked design decisions from the spec map to tasks (storage format → A7; notes.md → A10; correspondence filename unchanged → no task needed; is_stale → A5; CLI input parsing → A13+B2; rename → A5–A13; precision → A7+A13; migration → A14+A15).
+- **Two-PR partition:** Refined from spec (services and adapters must change atomically because the keyword parameter renamed). PR A is end-to-end working at the final commit; PR B is pure UX.
+- **TDD discipline:** Applied strictly — A4 establishes the failing-test baseline; A5–A13 each turn a slice green. New code (A2, A3, A14, A16) follows red→green per function. The build is intentionally red between A4 and A13; A13's final step asserts full green before commit.
+- **Reviewability:** A4's single fixture commit (one large but uniform diff) is the contract statement; each impl commit afterward turns a measurable slice of tests green. Reviewer reads the contract first, then watches the implementation satisfy it.

@@ -1,9 +1,15 @@
 # UTC Timestamps Migration — Design Spec
 
 Date: 2026-05-15
-Status: Draft, awaiting review
+Status: Shipped in v0.7.0 (PR #24, PR #26)
 Branch: `feat/utc-timestamps-design`
 Task: #35
+
+**Revision 2026-05-16:** Decisions 5 and 8 amended after live migration testing —
+bare dates now convert as **noon-local** (not midnight-local) to keep the
+calendar date visually intact in the stored UTC string and to stay clear of
+DST transition windows. See "Bare date case" under decision 5 and decision 8
+for details.
 
 ## Goal
 
@@ -20,9 +26,11 @@ lands:
 - Every service method, MCP tool, and CLI flag that previously took
   `today: date` takes `now: datetime` instead — the name change is
   deliberate so the type change is unmissable at every call site.
-- Bare dates accepted on the CLI are interpreted as midnight in the user's
+- Bare dates accepted on the CLI are interpreted as noon in the user's
   local TZ, then normalised to UTC; full ISO 8601 timestamps with offsets
-  are accepted verbatim.
+  are accepted verbatim. (Noon, not midnight, so the stored UTC value
+  retains the user's calendar date in raw form and stays clear of DST
+  transition windows.)
 - `is_stale` / `looks_ghosted` thresholds compare *calendar days in the
   user's local TZ*, not raw UTC subtraction — so "14 days stale" matches a
   human's intuition regardless of when in the day the last activity was
@@ -94,7 +102,7 @@ Three reasons converge:
     truncated to whole seconds.
 - Migration script `scripts/migrate_dates_to_datetimes.py` that walks every
   `meta.toml` in the data root, converts bare-date fields to
-  midnight-local-TZ→UTC, writes back, and commits with a single
+  noon-local-TZ→UTC, writes back, and commits with a single
   `chore(migration): UTC datetime conversion` commit.
 - A new dependency: `tzlocal >= 5.0` (pure Python, ~10 KB).
 - Schema bump: `serialization.py:SCHEMA_VERSION` 1 → 2. The JSON envelope
@@ -284,9 +292,18 @@ calls `to_utc` on the way in. The domain layer never sees naive values.
 `src/syn/lib/grafana/endpoints/silences.py`. Same shape, same contract.
 
 **Bare date case:** `--applied-on 2026-05-14` parses as
-`datetime(2026, 5, 14, 0, 0)` (naive). `to_utc` interprets that as
-midnight local, converts to UTC. End result: a tz-aware UTC datetime at
-midnight-local on the given calendar day. Matches what a user expects.
+`datetime(2026, 5, 14, 0, 0)` (naive midnight). `to_utc` recognises naive
+midnight as a *bare-date hint* and bumps the time to noon-local before
+applying the zone, then converts to UTC. End result: a tz-aware UTC datetime
+at noon-local on the given calendar day.
+
+The noon-local choice (rather than midnight-local) keeps the user's calendar
+date visually intact in the stored UTC string — `2026-04-29` in BST stores
+as `2026-04-29 11:00:00+00:00` rather than `2026-04-28 23:00:00+00:00`. It
+also sits safely outside DST transition windows (which happen 01:00–03:00
+local). For `is_stale` and `looks_ghosted` (which use
+`calendar_days_between` on local-zone dates), midnight vs. noon produces
+identical results; the difference is purely visual in the raw TOML.
 
 ### 6. Parameter rename: `today: date` → `now: datetime`
 
@@ -328,7 +345,7 @@ full fidelity; humans get readable values. The library always returns
 full-precision UTC datetimes — display truncation lives in the adapter
 (`commands/show.py`, `commands/list_.py`) via `display_local`.
 
-### 8. Migration: existing bare dates → midnight local TZ → UTC
+### 8. Migration: existing bare dates → noon local TZ → UTC
 
 A one-shot script lives at `scripts/migrate_dates_to_datetimes.py`. It:
 
@@ -340,9 +357,13 @@ A one-shot script lives at `scripts/migrate_dates_to_datetimes.py`. It:
 
    ```python
    tz = get_localzone()
-   midnight_local = datetime.combine(value, time(0, 0), tzinfo=tz)
-   value_utc = midnight_local.astimezone(UTC)
+   local_noon = datetime.combine(value, time(12, 0), tzinfo=tz)
+   value_utc = local_noon.astimezone(UTC)
    ```
+
+   Noon-local rather than midnight-local — same reasoning as decision 5's
+   bare-date CLI handling. Keeps the calendar date intact in the raw UTC
+   string, avoids DST transition edge cases.
 
 3. Writes the file back via `tomli_w.dump` — same `_FIELD_ORDER`, same
    shape, only the four field types changed.
@@ -507,7 +528,7 @@ now: Annotated[datetime | None, Parameter(show=False)] = None,
   rename to `parse_datetime_input` and have it return a tz-aware UTC
   datetime. Internal expansion of "tomorrow" computes against
   `now.astimezone(get_localzone()).date() + timedelta(days=1)`, then
-  midnight local → UTC.
+  noon local → UTC (matching the bare-date convention from decision 5).
 
 ### Tests
 
@@ -633,7 +654,7 @@ Internally:
    - Reads meta.toml via `tomllib`.
    - For each of `{first_contact, applied_on, last_activity,
      next_action_due}`: if value is `date` (not `datetime`), converts to
-     midnight local TZ → UTC. If value is already `datetime` and tz-aware,
+     noon local TZ → UTC. If value is already `datetime` and tz-aware,
      leaves alone. If value is `None`, leaves alone. If value is naive
      datetime (impossible from a non-migrated read, but defensive),
      interprets as local → UTC and logs a warning.
@@ -654,7 +675,7 @@ produces no second commit. The script reports
 
 `tests/application/test_migration.py` builds a temp data root with
 hand-written bare-date meta.toml files, runs the migration in-process,
-asserts the resulting datetimes are tz-aware UTC at midnight local, and
+asserts the resulting datetimes are tz-aware UTC at noon local, and
 re-runs to assert idempotency.
 
 ## Risks and edge cases

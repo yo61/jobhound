@@ -40,6 +40,29 @@ class TestToUtc:
         # 13:00 EDT (UTC-4) → 17:00 UTC
         assert result.hour == 17
 
+    def test_naive_midnight_promoted_to_noon_local(self, monkeypatch):
+        """A naive midnight is a bare-date hint; treat it as noon-local."""
+        monkeypatch.setattr(
+            "jobhound.domain.timekeeping.get_localzone",
+            lambda: ZoneInfo("Europe/London"),
+        )
+        naive_midnight = datetime(2026, 5, 14, 0, 0)
+        result = to_utc(naive_midnight)
+        # noon BST (UTC+1) on 2026-05-14 → 11:00 UTC same day
+        assert result == datetime(2026, 5, 14, 11, 0, tzinfo=UTC)
+
+    def test_naive_midnight_preserves_calendar_date_across_zones(self, monkeypatch):
+        """Noon-local conversion keeps the calendar date intact in extreme zones."""
+        # NZ (UTC+12) — naive midnight on 2026-05-14 would store as 12:00 UTC
+        # on 2026-05-13 if midnight-local; with noon-local it stays on 2026-05-14.
+        monkeypatch.setattr(
+            "jobhound.domain.timekeeping.get_localzone",
+            lambda: ZoneInfo("Pacific/Auckland"),
+        )
+        naive_midnight = datetime(2026, 5, 14, 0, 0)
+        result = to_utc(naive_midnight)
+        assert result.astimezone(ZoneInfo("Pacific/Auckland")).date() == date(2026, 5, 14)
+
 
 class TestCalendarDaysBetween:
     def test_same_instant_is_zero(self):

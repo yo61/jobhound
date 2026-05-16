@@ -22,10 +22,16 @@ LIFECYCLE_FIELDS = (
 
 
 def _maybe_convert(value: object, tz: tzinfo) -> datetime | None:
-    """Convert a bare date to midnight-local→UTC; passthrough for None / datetime.
+    """Convert a bare date to noon-local→UTC; passthrough for None / datetime.
 
     Returns None when no conversion is needed (already a datetime or None).
     Returns a datetime when conversion happened.
+
+    Uses noon-local (not midnight-local) so the stored UTC value's calendar
+    date matches the original bare date in raw form. Midnight-local can shift
+    the visible date by one in the stored UTC string (e.g. 2026-04-29 BST
+    midnight stores as 2026-04-28 23:00 UTC), which surprises readers. Noon
+    is also safely outside DST transition windows.
 
     Note: datetime is a subclass of date, so the isinstance(value, datetime)
     check must come before isinstance(value, date).
@@ -35,8 +41,8 @@ def _maybe_convert(value: object, tz: tzinfo) -> datetime | None:
     if isinstance(value, datetime):
         return None  # already migrated
     if isinstance(value, date):
-        local_midnight = datetime.combine(value, time(0, 0), tzinfo=tz)
-        return local_midnight.astimezone(UTC)
+        local_noon = datetime.combine(value, time(12, 0), tzinfo=tz)
+        return local_noon.astimezone(UTC)
     return None
 
 

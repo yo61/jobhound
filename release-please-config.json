@@ -8,8 +8,7 @@
   "packages": {
     ".": {
       "package-name": "jobhound",
-      "changelog-path": "CHANGELOG.md",
-      "release-as": "0.8.0"
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

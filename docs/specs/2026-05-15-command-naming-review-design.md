@@ -1,7 +1,10 @@
 # CLI + MCP Command Naming Review — Design Charter
 
 Date: 2026-05-15
-Status: Draft, not started
+Status: Resolved 2026-05-16. Locked decisions captured in
+[`2026-05-16-command-rename-plan.md`](2026-05-16-command-rename-plan.md).
+This charter is retained as the historical record of the 18-row
+inconsistency catalogue and the principles applied.
 Branch: not yet cut (suggest `chore/command-naming-review` when work begins)
 
 Audit the CLI and MCP command surfaces for naming consistency and

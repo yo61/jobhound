@@ -1,8 +1,7 @@
-"""Ops: notes, archive, delete, git sync."""
+"""Ops: notes, archive, delete."""
 
 from __future__ import annotations
 
-import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -74,12 +73,3 @@ def delete_opportunity(
         return DeleteResult(deleted=False, opportunity=opp, opp_dir=opp_dir, files=file_list)
     repo.delete(opp_dir)
     return DeleteResult(deleted=True, opportunity=opp, opp_dir=opp_dir, files=file_list)
-
-
-def sync_data(repo: OpportunityRepository, *, direction: str) -> None:
-    """Run `git pull`, `git push`, or both on the data root."""
-    db = repo.paths.db_root
-    if direction in {"pull", "both"}:
-        subprocess.run(["git", "-C", str(db), "pull"], check=True)
-    if direction in {"push", "both"}:
-        subprocess.run(["git", "-C", str(db), "push"], check=True)

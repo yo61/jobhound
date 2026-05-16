@@ -87,14 +87,6 @@ def delete_opportunity(
     return json.dumps(payload)
 
 
-def sync_data(repo: OpportunityRepository, *, direction: str = "pull") -> str:
-    try:
-        ops_service.sync_data(repo, direction=direction)
-    except Exception as exc:
-        return json.dumps(exception_to_response(exc, tool="sync_data"))
-    return json.dumps({"direction": direction, "ok": True})
-
-
 def register(app: FastMCP, repo: OpportunityRepository) -> None:
     @app.tool(
         name="add_note",
@@ -116,10 +108,3 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     )
     def _d(slug: str, confirm: bool = False) -> str:
         return delete_opportunity(repo, slug=slug, confirm=confirm)
-
-    @app.tool(
-        name="sync_data",
-        description="git pull/push/both on the data root.",
-    )
-    def _s(direction: str = "pull") -> str:
-        return sync_data(repo, direction=direction)

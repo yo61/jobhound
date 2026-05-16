@@ -1,4 +1,4 @@
-"""Tests for jh archive, delete, sync."""
+"""Tests for jh archive and delete."""
 
 import subprocess
 
@@ -32,10 +32,3 @@ def test_delete_without_yes_aborts_in_headless(tmp_jh, invoke) -> None:
     result = invoke(["delete", "foo"])
     assert result.exit_code != 0
     assert (tmp_jh.db_path / "opportunities" / "2026-05-foo-em").exists()
-
-
-def test_sync_runs_git_push_or_reports(tmp_jh, invoke) -> None:
-    """No remote configured → push should fail gracefully with a useful message."""
-    result = invoke(["sync"])
-    assert result.exit_code != 0
-    assert "remote" in result.output.lower()

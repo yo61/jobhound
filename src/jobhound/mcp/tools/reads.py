@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from jobhound.application.query import Filters, OpportunityQuery
@@ -14,6 +14,7 @@ from jobhound.application.serialization import (
 )
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
+from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.mcp.errors import exception_to_response
 
@@ -73,7 +74,7 @@ def list_opportunities(
     if isinstance(f, dict):  # error response
         return json.dumps(f)
     try:
-        snaps = _query(repo).list(f, today=date.today())
+        snaps = _query(repo).list(f, now=now_utc())
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="list_opportunities"))
     envelope = list_envelope(
@@ -87,7 +88,7 @@ def list_opportunities(
 def get_opportunity(repo: OpportunityRepository, slug: str) -> str:
     """Show one opportunity by slug (fuzzy match). Returns JSON envelope."""
     try:
-        snap = _query(repo).find(slug, today=date.today())
+        snap = _query(repo).find(slug, now=now_utc())
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="get_opportunity"))
     envelope = show_envelope(

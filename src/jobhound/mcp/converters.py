@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -69,15 +69,15 @@ def mutation_response(
     after: Opportunity,
     opp_dir: Path,
     *,
-    today: date,
+    now: datetime,
     archived: bool = False,
 ) -> dict[str, Any]:
     """Build the {opportunity, changed} payload returned by mutation tools."""
     flags = ComputedFlags(
         is_active=after.is_active,
-        is_stale=after.is_stale(today),
-        looks_ghosted=after.looks_ghosted(today),
-        days_since_activity=after.days_since_activity(today),
+        is_stale=after.is_stale(now),
+        looks_ghosted=after.looks_ghosted(now),
+        days_since_activity=after.days_since_activity(now),
     )
     snap = OpportunitySnapshot(
         opportunity=after,

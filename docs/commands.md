@@ -138,7 +138,7 @@ jh file delete acme research.md --yes
 
 ```bash
 jh set status acme interview
-jh set priority acme high
+jh set priority acme --to high
 jh set next-action acme "Follow up" 2026-05-25
 jh add tag acme fintech
 jh add contact acme --name "Jane Smith" --role-title recruiter

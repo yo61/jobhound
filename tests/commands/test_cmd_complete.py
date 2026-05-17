@@ -71,6 +71,13 @@ def test_complete_show_returns_slugs(tmp_jh, invoke) -> None:
     assert "2026-05-beta-eng" in out
 
 
+def test_complete_archive_returns_slugs(tmp_jh, invoke) -> None:
+    """`jh __complete zsh jh archive ""` lists slugs (archive takes a slug)."""
+    _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    result = invoke(["__complete", "zsh", "jh", "archive", ""])
+    assert "2026-05-acme-em" in result.output
+
+
 def test_complete_show_returns_canonical_not_filtered(tmp_jh, invoke) -> None:
     """Slug completer returns ALL slugs regardless of partial prefix."""
     _seed_slug(tmp_jh.db_path, "2026-05-acme-em")

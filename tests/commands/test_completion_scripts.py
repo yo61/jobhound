@@ -29,6 +29,20 @@ def test_bash_script_uses_printf_q_to_escape() -> None:
     assert "%q" in s
 
 
+def test_bash_script_filters_candidates_by_current_word_prefix() -> None:
+    """bash script must filter COMPREPLY by the partial word.
+
+    Setting COMPREPLY directly (which we do to preserve spaces) bypasses
+    bash's built-in prefix matching. Without an explicit filter, every
+    candidate would be offered even when the user has typed a unique
+    prefix like `jh fi` (expecting `file`).
+    """
+    s = _script("jh.bash")
+    # Either of these patterns is acceptable; both are defensible
+    # ways to express "candidate must start with the current word".
+    assert ('"$cand" == "$current"*' in s) or ('"$cand" == "$cur"*' in s)
+
+
 def test_zsh_script_uses_at_f_split_and_compadd() -> None:
     """zsh script must split on \\n only (preserves spaces) and use compadd -a."""
     s = _script("jh.zsh")

@@ -8,13 +8,9 @@ quoting (the shell scripts handle quoting).
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 import cyclopts
-
-if TYPE_CHECKING:
-    from cyclopts import App
-
 
 # Commands that take a slug as their FIRST positional after the
 # (possibly nested) sub-verb. Tuple key is the path from the top App,
@@ -77,7 +73,7 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
 # Only sub-Apps (groups with children) are listed; leaf commands are not.
 # Update this when a new sub-App group is added or renamed.
 _SUB_APP_NAMES: dict[str, frozenset[str]] = {
-    "file": frozenset({"open", "read", "write", "append", "delete", "list", "export", "import"}),
+    "file": frozenset({"open", "read", "write", "append", "delete", "list", "import"}),
     "completion": frozenset({"bash", "fish", "zsh", "install"}),
     "set": frozenset(
         {
@@ -178,14 +174,6 @@ def _visible_at(cmd_path: tuple[str, ...]) -> Iterable[str]:
         sub = _SUB_APP_NAMES.get(cmd_path[0])
         return sub if sub is not None else frozenset()
     return frozenset()
-
-
-def _top_app() -> App:
-    # Used only when the cyclopts App is needed (e.g. when this module is
-    # registered as a command with the App, not on the completion fast-path).
-    from jobhound.cli import get_app
-
-    return get_app()  # type: ignore[return-value]
 
 
 # (cmd_path after slug) -> enum class spec ('module:Class') for positional 1.

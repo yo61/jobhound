@@ -34,7 +34,6 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
         ("log",),
         ("show",),
         ("withdraw",),
-        ("touch",),  # touch is alias for bump
         # File sub-App
         ("file", "open"),
         ("file", "read"),

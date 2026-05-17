@@ -35,3 +35,11 @@ def test_zsh_script_uses_at_f_split_and_compadd() -> None:
     assert "${(@f)$(jh __complete zsh" in s
     assert "compadd -a" in s
     assert "#compdef jh" in s
+
+
+def test_fish_script_disables_file_fallback() -> None:
+    """fish script must use `complete -f` (no fallback to filename completion)."""
+    s = _script("jh.fish")
+    assert "complete -c jh" in s
+    assert "-f" in s
+    assert "jh __complete fish" in s

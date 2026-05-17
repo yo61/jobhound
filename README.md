@@ -12,6 +12,14 @@ uv tool install jobhound   # or: pipx install jobhound
 
 Exposes the `jh` command.
 
+For tab-completion, run:
+
+```bash
+jh completion install
+```
+
+See `jh completion --help` for per-shell options.
+
 ## Usage
 
 ```bash

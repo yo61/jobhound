@@ -116,6 +116,20 @@ def _visible_command_names(node: App) -> Iterable[str]:
         yield name
 
 
+# Commands where positional 1 (after the slug) is a filename inside
+# the slug's directory. All under `file`.
+_FILENAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
+    {
+        ("file", "open"),
+        ("file", "read"),
+        ("file", "write"),
+        ("file", "append"),
+        ("file", "delete"),
+        ("file", "import"),
+    }
+)
+
+
 def _complete_slug() -> Iterable[str]:
     """Yield canonical slug names from the opportunities directory.
 
@@ -132,6 +146,28 @@ def _complete_slug() -> Iterable[str]:
     for entry in opps.iterdir():
         if entry.is_dir() and not entry.name.startswith("."):
             yield entry.name
+
+
+def _complete_filename(slug: str) -> Iterable[str]:
+    """Yield filenames in the given opportunity, via file_service.
+
+    Lazy imports keep the slug-only completion path cheap.
+    """
+    from jobhound.application import file_service
+    from jobhound.domain.slug import resolve_slug
+    from jobhound.infrastructure.config import load_config
+    from jobhound.infrastructure.paths import paths_from_config
+    from jobhound.infrastructure.storage.git_local import GitLocalFileStore
+
+    cfg = load_config()
+    paths = paths_from_config(cfg)
+    try:
+        canonical = resolve_slug(slug, paths.opportunities_dir)
+    except Exception:
+        return  # ambiguous/missing slug → no candidates
+    store = GitLocalFileStore(paths)
+    for entry in file_service.list_(store, canonical.name):
+        yield entry.name
 
 
 def run(shell: str, /, *words: str) -> None:
@@ -167,6 +203,13 @@ def run(shell: str, /, *words: str) -> None:
     if len(in_positionals) == 0 and cmd_path in _SLUG_AT_POSITION:
         for slug in sorted(_complete_slug()):
             print(slug)
+        return
+
+    # Position 1 = filename (for file sub-App commands)
+    if len(in_positionals) == 1 and cmd_path in _FILENAME_AT_POSITION_1:
+        slug = in_positionals[0]
+        for name in sorted(_complete_filename(slug)):
+            print(name)
         return
 
     # Otherwise, if we're still in the static tree, emit visible commands.

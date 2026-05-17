@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.9.0](https://github.com/yo61/jobhound/compare/v0.8.0...v0.9.0) (2026-05-17)
+
+
+### Features
+
+* **cli:** add jh completion {bash,zsh,fish} for printing scripts ([246a8a9](https://github.com/yo61/jobhound/commit/246a8a9efa564ba495469091ffc9958bfa93e31f))
+* **cli:** enum-value completion for set status and set priority --to ([5f0efe6](https://github.com/yo61/jobhound/commit/5f0efe64bae25671b2f56d84965d17a9af3642a0))
+* **cli:** filename completion after slug for jh file commands ([26091ec](https://github.com/yo61/jobhound/commit/26091ec6ce16d4a753ab9489d003780806e480f9))
+* **cli:** jh completion install with shell auto-detect and backup ([7ff6bd1](https://github.com/yo61/jobhound/commit/7ff6bd194d6db5ceb8aca77f8bc5de71d15a41a8))
+* **cli:** scaffold hidden __complete subcommand for shell completion ([0571402](https://github.com/yo61/jobhound/commit/0571402a1b96c878b329a88f7445d8e829e3241d))
+* **cli:** slug completion for commands taking a slug positional ([4837dde](https://github.com/yo61/jobhound/commit/4837dde9bd3ecb34bd6c87f264327f966143428b))
+* **cli:** static command-tree completer via cyclopts introspection ([2b7d87b](https://github.com/yo61/jobhound/commit/2b7d87b6377934dcacf5fdfe76f3a6dff451da2a))
+* **completion:** add bash completion script with space-safe quoting ([972bc73](https://github.com/yo61/jobhound/commit/972bc7339dbe856edd9490f5e6d0b448f2446223))
+* **completion:** add fish completion script ([66034bf](https://github.com/yo61/jobhound/commit/66034bf5edb6521ef8cb568aede4fa5013049ee4))
+* **completion:** add zsh completion script using compadd -a ([50fc19c](https://github.com/yo61/jobhound/commit/50fc19ce8623353655e7b7b1172a5f46c4fe4ada))
+
+
+### Bug Fixes
+
+* **cli:** add jh archive to slug-position registry; fix priority doc ([f89d963](https://github.com/yo61/jobhound/commit/f89d9637f9d1558e04f02220d03de694bd76066f))
+* **cli:** remove ghost export entry; add static-table drift test ([d522630](https://github.com/yo61/jobhound/commit/d52263014c6784dab9b487060231c47f6ff423bf))
+* **cli:** remove non-existent touch entry from slug-position registry ([601a90e](https://github.com/yo61/jobhound/commit/601a90e603900bf8ed2356f9dfb0544566a9f69c))
+
+
+### Performance Improvements
+
+* **cli:** fast-path __complete via static tree, skip heavy imports ([b0c9816](https://github.com/yo61/jobhound/commit/b0c9816f3e485fc33d3e01d52ebe254a1323aa7a))
+
+
+### Documentation
+
+* document jh completion command and install step ([4557f69](https://github.com/yo61/jobhound/commit/4557f694f3a26a83c12678015836fbe8767b9ce2))
+* fix command reference inaccuracies ([8f7500d](https://github.com/yo61/jobhound/commit/8f7500d1a3c5fc45688b61a103cc0622668ebab3))
+* **plans:** implementation plan for shell completion ([#44](https://github.com/yo61/jobhound/issues/44)) ([94ce7c7](https://github.com/yo61/jobhound/commit/94ce7c7939a39212a988ef8069387b8b56cff968))
+* **specs:** refresh shell-completion design for v1 implementation ([f8cbcb4](https://github.com/yo61/jobhound/commit/f8cbcb41da448bfd2a36d597f2e67ae1f6d7a153))
+
 ## [0.8.0](https://github.com/yo61/jobhound/compare/v0.7.2...v0.8.0) (2026-05-16)
 
 

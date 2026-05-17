@@ -40,6 +40,10 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # Allow release-please's bot to trigger code review on its
+          # auto-generated version-bump PRs. Other bots are still
+          # blocked by default for supply-chain safety.
+          allowed_bots: 'semantic-release-pusher'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 

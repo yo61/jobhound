@@ -27,3 +27,11 @@ def test_bash_script_uses_printf_q_to_escape() -> None:
     """bash script must escape candidates via printf %q for filenames-with-spaces."""
     s = _script("jh.bash")
     assert "%q" in s
+
+
+def test_zsh_script_uses_at_f_split_and_compadd() -> None:
+    """zsh script must split on \\n only (preserves spaces) and use compadd -a."""
+    s = _script("jh.zsh")
+    assert "${(@f)$(jh __complete zsh" in s
+    assert "compadd -a" in s
+    assert "#compdef jh" in s

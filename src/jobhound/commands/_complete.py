@@ -25,6 +25,7 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
         # Lifecycle (slug is the only positional)
         ("accept",),
         ("apply",),
+        ("archive",),
         ("bump",),
         ("decline",),
         ("delete",),

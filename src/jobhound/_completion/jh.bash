@@ -16,10 +16,16 @@ _jh_complete() {
     # Newline-split into an array; preserves spaces inside each line.
     mapfile -t response_lines <<< "$response_raw"
 
+    # Bash does NOT auto-filter COMPREPLY by the current word when we
+    # populate it directly (it would if we used `compgen -W`, but that
+    # word-splits on whitespace and breaks filenames with spaces). So
+    # we apply the prefix filter manually here.
+    local current="${COMP_WORDS[$COMP_CWORD]}"
     COMPREPLY=()
     local cand
     for cand in "${response_lines[@]}"; do
         [[ -z "$cand" ]] && continue
+        [[ "$cand" == "$current"* ]] || continue
         # %q escapes whitespace and shell metacharacters so bash treats
         # the candidate as a single token when inserted.
         COMPREPLY+=("$(printf '%q' "$cand")")

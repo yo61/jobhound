@@ -142,3 +142,30 @@ def test_complete_filename_unresolvable_slug_empty(tmp_jh, invoke) -> None:
     result = invoke(["__complete", "zsh", "jh", "file", "open", "not-a-real-slug", ""])
     assert result.exit_code == 0
     assert result.output.strip() == ""
+
+
+def test_complete_set_status_returns_status_enum(tmp_jh, invoke) -> None:
+    """`jh __complete zsh jh set status <slug> ""` lists Status values."""
+    _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    result = invoke(["__complete", "zsh", "jh", "set", "status", "2026-05-acme-em", ""])
+    out = set(result.output.split())
+    expected = {
+        "prospect",
+        "applied",
+        "screen",
+        "interview",
+        "offer",
+        "accepted",
+        "declined",
+        "rejected",
+        "withdrawn",
+        "ghosted",
+    }
+    assert expected <= out
+
+
+def test_complete_set_priority_to_flag_returns_priority_enum(tmp_jh, invoke) -> None:
+    """`jh __complete zsh jh set priority --to ""` lists Priority values."""
+    result = invoke(["__complete", "zsh", "jh", "set", "priority", "--to", ""])
+    out = set(result.output.split())
+    assert out == {"high", "medium", "low"}

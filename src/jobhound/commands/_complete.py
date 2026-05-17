@@ -8,7 +8,9 @@ quoting (the shell scripts handle quoting).
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
+
+import cyclopts
 
 if TYPE_CHECKING:
     from cyclopts import App
@@ -116,6 +118,29 @@ def _visible_command_names(node: App) -> Iterable[str]:
         yield name
 
 
+# (cmd_path after slug) -> enum class spec ('module:Class') for positional 1.
+# The slug is at position 0; the enum value at position 1.
+_POSITIONAL_ENUM_AT_POSITION_1: dict[tuple[str, ...], str] = {
+    ("set", "status"): "jobhound.domain.status:Status",
+}
+
+# (cmd_path, flag_name) -> enum class spec for the flag's value.
+_FLAG_ENUMS: dict[tuple[tuple[str, ...], str], str] = {
+    (("set", "priority"), "--to"): "jobhound.domain.priority:Priority",
+}
+
+
+def _load_enum(spec: str) -> Iterable[str]:
+    """Import the enum referenced by 'module.path:ClassName' and yield values."""
+    import importlib
+
+    module_name, _, class_name = spec.partition(":")
+    mod = importlib.import_module(module_name)
+    cls = getattr(mod, class_name)
+    for member in cls:
+        yield member.value
+
+
 # Commands where positional 1 (after the slug) is a filename inside
 # the slug's directory. All under `file`.
 _FILENAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
@@ -170,7 +195,9 @@ def _complete_filename(slug: str) -> Iterable[str]:
         yield entry.name
 
 
-def run(shell: str, /, *words: str) -> None:
+def run(
+    shell: str, /, *words: Annotated[str, cyclopts.Parameter(allow_leading_hyphen=True)]
+) -> None:
     """Dispatch entry point.
 
     Args:
@@ -199,6 +226,16 @@ def run(shell: str, /, *words: str) -> None:
     # Tokens after the command path are positional arguments already typed.
     in_positionals = completed[cmd_depth:]
 
+    # Flag-value completion: if the previous completed token is a known flag.
+    if in_positionals:
+        prev = in_positionals[-1]
+        if prev.startswith("--"):
+            spec = _FLAG_ENUMS.get((cmd_path, prev))
+            if spec is not None:
+                for v in sorted(_load_enum(spec)):
+                    print(v)
+                return
+
     # Position 0 of in_positionals: emit slugs if this command takes one.
     if len(in_positionals) == 0 and cmd_path in _SLUG_AT_POSITION:
         for slug in sorted(_complete_slug()):
@@ -210,6 +247,13 @@ def run(shell: str, /, *words: str) -> None:
         slug = in_positionals[0]
         for name in sorted(_complete_filename(slug)):
             print(name)
+        return
+
+    # Position 1 = positional enum (e.g. jh set status <slug> <value>)
+    if len(in_positionals) == 1 and cmd_path in _POSITIONAL_ENUM_AT_POSITION_1:
+        spec = _POSITIONAL_ENUM_AT_POSITION_1[cmd_path]
+        for v in sorted(_load_enum(spec)):
+            print(v)
         return
 
     # Otherwise, if we're still in the static tree, emit visible commands.

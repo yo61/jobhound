@@ -12,10 +12,7 @@ Complete reference of all `jh` CLI commands. For quick help, run `jh --help` or 
 | `jh archive` | Archive an opportunity. |
 | `jh bump` | Bump last-activity to now. |
 | `jh clear` | Clear a nullable field on an opportunity. |
-| `jh completion install` | Install tab-completion for your shell. |
-| `jh completion bash` | Print bash completion script to stdout. |
-| `jh completion zsh` | Print zsh completion script to stdout. |
-| `jh completion fish` | Print fish completion script to stdout. |
+| `jh completion` | Print or install jh shell completion scripts. |
 | `jh decline` | Decline the offer. |
 | `jh delete` | Delete an opportunity permanently. |
 | `jh export` | Export all opportunities as JSON. |
@@ -42,7 +39,7 @@ Use `jh file <command> <slug> [args]` to manage opportunity files.
 | `jh file delete` | Delete a file. |
 | `jh file import` | Import a file from the local filesystem. |
 | `jh file list` | List files in an opportunity. |
-| `jh file open` | Open a file in your default editor. |
+| `jh file open` | Open a file in your default app. |
 | `jh file read` | Print file content to stdout. |
 | `jh file write` | Write or replace a file. |
 
@@ -58,7 +55,7 @@ Use `jh add <command> <slug> [args]` to add contacts, tags, or notes.
 
 ## Set Sub-Commands
 
-Use `jh set <command> <slug> [value]` to set opportunity fields.
+Each `jh set <field>` subcommand has its own signature. See `jh set <field> --help` for details.
 
 | Command | Description |
 | --- | --- |
@@ -99,6 +96,17 @@ Use `jh remove <command> <slug> [args]` to remove contacts, links, or tags.
 | `jh remove link` | Remove a named link from an opportunity. |
 | `jh remove tag` | Remove a tag from an opportunity. |
 
+## Completion Sub-Commands
+
+Use `jh completion <command>` to print or install shell completion scripts.
+
+| Command | Description |
+| --- | --- |
+| `jh completion bash` | Print the bash completion script to stdout. |
+| `jh completion fish` | Print the fish completion script to stdout. |
+| `jh completion install` | Install the jh completion script for the current shell. |
+| `jh completion zsh` | Print the zsh completion script to stdout. |
+
 ## Global Flags
 
 | Flag | Description |
@@ -113,7 +121,7 @@ Use `jh remove <command> <slug> [args]` to remove contacts, links, or tags.
 ```bash
 jh new --company Acme --role "Senior Engineer"
 jh apply acme
-jh log acme --channel email --next-status screen
+jh log acme --channel email --direction outbound --who "Jane Smith" --body notes.txt
 jh show acme
 ```
 
@@ -131,16 +139,16 @@ jh file delete acme research.md --yes
 ```bash
 jh set status acme interview
 jh set priority acme high
-jh set next-action acme "Follow up" --due 2026-05-25
+jh set next-action acme "Follow up" 2026-05-25
 jh add tag acme fintech
-jh add contact acme "Jane Smith" --role recruiter
+jh add contact acme --name "Jane Smith" --role-title recruiter
 ```
 
 ### Export and filter
 
 ```bash
 jh list                                    # All opportunities
-jh list --active-only                     # Active only
+jh export --active-only                   # Active only
 jh export --status applied,screen         # Filter by status
 jh export --priority high,medium          # Filter by priority
 ```

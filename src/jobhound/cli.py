@@ -5,6 +5,7 @@ from __future__ import annotations
 from cyclopts import App
 
 from jobhound import __version__
+from jobhound.commands import _complete as cmd_complete
 from jobhound.commands import accept as cmd_accept
 from jobhound.commands import add as cmd_add
 from jobhound.commands import apply as cmd_apply
@@ -52,6 +53,7 @@ app.command(cmd_clear.app)
 app.command(cmd_add.app)
 app.command(cmd_remove.app)
 app.command(cmd_migrate.app)
+app.command(cmd_complete.run, name="__complete", show=False)
 
 
 def _run_mcp() -> None:

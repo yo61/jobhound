@@ -14,6 +14,65 @@ if TYPE_CHECKING:
     from cyclopts import App
 
 
+# Commands that take a slug as their FIRST positional after the
+# (possibly nested) sub-verb. Tuple key is the path from the top App,
+# e.g. ("show",) or ("file", "open") or ("set", "status").
+#
+# Listed exhaustively rather than introspected because cyclopts'
+# signature inspection is more nuanced than worth implementing for
+# this static set. Update this table when a new slug-taking command
+# is added.
+_SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
+    {
+        # Lifecycle (slug is the only positional)
+        ("accept",),
+        ("apply",),
+        ("bump",),
+        ("decline",),
+        ("delete",),
+        ("ghost",),
+        ("log",),
+        ("show",),
+        ("withdraw",),
+        ("touch",),  # touch is alias for bump
+        # File sub-App
+        ("file", "open"),
+        ("file", "read"),
+        ("file", "write"),
+        ("file", "append"),
+        ("file", "delete"),
+        ("file", "list"),
+        ("file", "import"),
+        # Set / clear / add / remove sub-Apps (slug after sub-verb)
+        ("set", "applied-on"),
+        ("set", "comp-range"),
+        ("set", "company"),
+        ("set", "first-contact"),
+        ("set", "last-activity"),
+        ("set", "link"),
+        ("set", "location"),
+        ("set", "next-action"),
+        ("set", "priority"),
+        ("set", "role"),
+        ("set", "source"),
+        ("set", "status"),
+        ("clear", "applied-on"),
+        ("clear", "comp-range"),
+        ("clear", "first-contact"),
+        ("clear", "last-activity"),
+        ("clear", "location"),
+        ("clear", "next-action"),
+        ("clear", "source"),
+        ("add", "contact"),
+        ("add", "note"),
+        ("add", "tag"),
+        ("remove", "contact"),
+        ("remove", "link"),
+        ("remove", "tag"),
+    }
+)
+
+
 def _top_app() -> App:
     # Imported lazily so this module stays cheap when imported only
     # for static introspection of the App tree.
@@ -58,6 +117,24 @@ def _visible_command_names(node: App) -> Iterable[str]:
         yield name
 
 
+def _complete_slug() -> Iterable[str]:
+    """Yield canonical slug names from the opportunities directory.
+
+    Lazy-imports config / paths to keep the static-completion path fast.
+    """
+    from jobhound.infrastructure.config import load_config
+    from jobhound.infrastructure.paths import paths_from_config
+
+    cfg = load_config()
+    paths = paths_from_config(cfg)
+    opps = paths.opportunities_dir
+    if not opps.exists():
+        return
+    for entry in opps.iterdir():
+        if entry.is_dir() and not entry.name.startswith("."):
+            yield entry.name
+
+
 def run(shell: str, /, *words: str) -> None:
     """Dispatch entry point.
 
@@ -72,15 +149,28 @@ def run(shell: str, /, *words: str) -> None:
     if not words:
         return
 
-    # Strip the leading "jh" token. The shell scripts always include it.
-    rest = list(words[1:])
+    word_list = list(words)
 
-    # The last token is the partial we're completing.
-    # The earlier tokens determine the dispatch context.
-    completed = rest[:-1] if rest else []
+    # Strip the leading "jh" token and the partial being completed.
+    # completed = the tokens that are fully typed (not including the partial).
+    completed = word_list[1:-1] if len(word_list) > 1 else []
 
     node, leftover = _walk_to_node(completed)
+
+    # Number of command-path tokens matched (e.g. 1 for "show", 2 for "file open")
+    cmd_depth = len(completed) - len(leftover)
+    cmd_path = tuple(completed[:cmd_depth])
+
+    # Tokens after the command path are positional arguments already typed.
+    in_positionals = completed[cmd_depth:]
+
+    # Position 0 of in_positionals: emit slugs if this command takes one.
+    if len(in_positionals) == 0 and cmd_path in _SLUG_AT_POSITION:
+        for slug in sorted(_complete_slug()):
+            print(slug)
+        return
+
+    # Otherwise, if we're still in the static tree, emit visible commands.
     if not leftover:
-        # We're at a node in the static tree; emit its visible commands.
         for name in sorted(_visible_command_names(node)):
             print(name)

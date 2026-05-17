@@ -73,49 +73,119 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
     }
 )
 
+# Static command tree for completion: sub-App names at each level.
+# Only sub-Apps (groups with children) are listed; leaf commands are not.
+# Update this when a new sub-App group is added or renamed.
+_SUB_APP_NAMES: dict[str, frozenset[str]] = {
+    "file": frozenset({"open", "read", "write", "append", "delete", "list", "export", "import"}),
+    "completion": frozenset({"bash", "fish", "zsh", "install"}),
+    "set": frozenset(
+        {
+            "applied-on",
+            "comp-range",
+            "company",
+            "first-contact",
+            "last-activity",
+            "link",
+            "location",
+            "next-action",
+            "priority",
+            "role",
+            "source",
+            "status",
+        }
+    ),
+    "clear": frozenset(
+        {
+            "applied-on",
+            "comp-range",
+            "first-contact",
+            "last-activity",
+            "location",
+            "next-action",
+            "source",
+        }
+    ),
+    "add": frozenset({"contact", "note", "tag"}),
+    "remove": frozenset({"contact", "link", "tag"}),
+    "migrate": frozenset({"utc-timestamps"}),
+}
+
+# Top-level visible commands (excluding hidden __complete).
+# Update when a top-level command is added or renamed.
+_TOP_LEVEL_COMMANDS: frozenset[str] = frozenset(
+    {
+        "accept",
+        "add",
+        "apply",
+        "archive",
+        "bump",
+        "clear",
+        "completion",
+        "decline",
+        "delete",
+        "export",
+        "file",
+        "ghost",
+        "list",
+        "log",
+        "mcp",
+        "migrate",
+        "new",
+        "remove",
+        "set",
+        "show",
+        "stats",
+        "withdraw",
+    }
+)
+
+
+def _walk_static(words: list[str]) -> tuple[tuple[str, ...], list[str]]:
+    """Walk the static command tree following `words`.
+
+    Returns (matched_path, remaining_words). Matches any known top-level
+    command at depth 1 (including leaf commands like ``show``), then
+    optionally matches a depth-2 sub-command for grouping commands (like
+    ``file open``).
+
+    This replaces the cyclopts-App-based ``_walk_to_node`` and avoids
+    importing the full App (and its heavy dependencies) on the completion
+    fast-path. In cyclopts, every registered command — leaf or sub-App — is
+    stored as an ``App`` instance, so the original tree-walk entered both.
+    """
+    if not words or words[0] not in _TOP_LEVEL_COMMANDS:
+        return (), list(words)
+    # Matched at depth 1.
+    sub_commands = _SUB_APP_NAMES.get(words[0])
+    if sub_commands is None or len(words) < 2:
+        # Leaf command or no second word: stay at depth 1.
+        return (words[0],), list(words[1:])
+    # First word is a grouped command; try depth 2.
+    if words[1] in sub_commands:
+        return (words[0], words[1]), list(words[2:])
+    return (words[0],), list(words[1:])
+
+
+def _visible_at(cmd_path: tuple[str, ...]) -> Iterable[str]:
+    """Return visible command names at the given tree depth.
+
+    Uses static tables, not the live cyclopts App.
+    """
+    if len(cmd_path) == 0:
+        return _TOP_LEVEL_COMMANDS
+    if len(cmd_path) == 1:
+        sub = _SUB_APP_NAMES.get(cmd_path[0])
+        return sub if sub is not None else frozenset()
+    return frozenset()
+
 
 def _top_app() -> App:
-    # Imported lazily so this module stays cheap when imported only
-    # for static introspection of the App tree.
-    from jobhound.cli import app
+    # Used only when the cyclopts App is needed (e.g. when this module is
+    # registered as a command with the App, not on the completion fast-path).
+    from jobhound.cli import get_app
 
-    return app
-
-
-def _walk_to_node(words: list[str]) -> tuple[App, list[str]]:
-    """Walk the cyclopts tree following `words` from the top App.
-
-    Returns (deepest_matched_node, remaining_words). Stops at the
-    first word that doesn't match a registered subcommand.
-    """
-    node = _top_app()
-    i = 0
-    while i < len(words):
-        sub = getattr(node, "_commands", {}).get(words[i])
-        if sub is None or not _is_app(sub):
-            break
-        node = sub
-        i += 1
-    return node, words[i:]
-
-
-def _is_app(obj: object) -> bool:
-    """True if `obj` is a cyclopts App (a sub-App, not a leaf command)."""
-    from cyclopts import App
-
-    return isinstance(obj, App)
-
-
-def _visible_command_names(node: App) -> Iterable[str]:
-    """Names of visible (show=True) commands registered on `node`."""
-    for name, entry in getattr(node, "_commands", {}).items():
-        # Skip the help/version flag entries cyclopts injects.
-        if name.startswith("-"):
-            continue
-        # Skip hidden commands (show=False).
-        if getattr(entry, "show", True) is False:
-            continue
-        yield name
+    return get_app()  # type: ignore[return-value]
 
 
 # (cmd_path after slug) -> enum class spec ('module:Class') for positional 1.
@@ -217,14 +287,10 @@ def run(
     # completed = the tokens that are fully typed (not including the partial).
     completed = word_list[1:-1] if len(word_list) > 1 else []
 
-    node, leftover = _walk_to_node(completed)
-
-    # Number of command-path tokens matched (e.g. 1 for "show", 2 for "file open")
-    cmd_depth = len(completed) - len(leftover)
-    cmd_path = tuple(completed[:cmd_depth])
+    cmd_path, leftover = _walk_static(completed)
 
     # Tokens after the command path are positional arguments already typed.
-    in_positionals = completed[cmd_depth:]
+    in_positionals = leftover
 
     # Flag-value completion: if the previous completed token is a known flag.
     if in_positionals:
@@ -256,7 +322,8 @@ def run(
             print(v)
         return
 
-    # Otherwise, if we're still in the static tree, emit visible commands.
+    # Otherwise, if we've fully matched the path (no leftover), emit
+    # the visible sub-commands at this node.
     if not leftover:
-        for name in sorted(_visible_command_names(node)):
+        for name in sorted(_visible_at(cmd_path)):
             print(name)

@@ -57,7 +57,7 @@ def test_complete_sub_app_lists_subcommands(invoke) -> None:
     """`jh __complete zsh jh file ""` lists `file` subcommands."""
     result = invoke(["__complete", "zsh", "jh", "file", ""])
     out = set(result.output.split())
-    assert {"list", "read", "write", "append", "delete", "open", "import"} <= out
+    assert out == {"list", "read", "write", "append", "delete", "open", "import"}
 
 
 def test_complete_show_returns_slugs(tmp_jh, invoke) -> None:
@@ -169,3 +169,44 @@ def test_complete_set_priority_to_flag_returns_priority_enum(tmp_jh, invoke) -> 
     result = invoke(["__complete", "zsh", "jh", "set", "priority", "--to", ""])
     out = set(result.output.split())
     assert out == {"high", "medium", "low"}
+
+
+def test_static_tables_match_live_cyclopts_app() -> None:
+    """Catch drift between static completion tables and the live App tree.
+
+    If this test fails, you added or removed a command in cli.py (or a
+    sub-App) without updating the static tables in _complete.py. Update
+    _TOP_LEVEL_COMMANDS and/or _SUB_APP_NAMES to match.
+    """
+    from cyclopts import App
+
+    from jobhound.cli import get_app
+    from jobhound.commands._complete import _SUB_APP_NAMES, _TOP_LEVEL_COMMANDS
+
+    top_app = get_app()
+
+    def _visible_names(node: App) -> set[str]:
+        names = set()
+        for name, entry in getattr(node, "_commands", {}).items():
+            if name.startswith("-"):
+                continue
+            if getattr(entry, "show", True) is False:
+                continue
+            names.add(name)
+        return names
+
+    live_top = _visible_names(top_app)
+    assert live_top == _TOP_LEVEL_COMMANDS, (
+        f"_TOP_LEVEL_COMMANDS drift: only in static={_TOP_LEVEL_COMMANDS - live_top}, "
+        f"only in live={live_top - _TOP_LEVEL_COMMANDS}"
+    )
+
+    for sub_name, static_subverbs in _SUB_APP_NAMES.items():
+        sub_app = top_app._commands[sub_name]
+        assert isinstance(sub_app, App), f"{sub_name!r} is not a sub-App"
+        live_subverbs = _visible_names(sub_app)
+        assert live_subverbs == static_subverbs, (
+            f"_SUB_APP_NAMES[{sub_name!r}] drift: "
+            f"only in static={static_subverbs - live_subverbs}, "
+            f"only in live={live_subverbs - static_subverbs}"
+        )

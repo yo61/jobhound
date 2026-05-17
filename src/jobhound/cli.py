@@ -25,6 +25,7 @@ from jobhound.commands import set as cmd_set
 from jobhound.commands import show as cmd_show
 from jobhound.commands import stats as cmd_stats
 from jobhound.commands import withdraw as cmd_withdraw
+from jobhound.commands.completion import app as completion_app
 from jobhound.commands.file import app as file_app
 
 app = App(
@@ -48,6 +49,7 @@ app.command(cmd_show.run, name="show")
 app.command(cmd_export.run, name="export")
 app.command(cmd_stats.run, name="stats")
 app.command(file_app)
+app.command(completion_app)
 app.command(cmd_set.app)
 app.command(cmd_clear.app)
 app.command(cmd_add.app)

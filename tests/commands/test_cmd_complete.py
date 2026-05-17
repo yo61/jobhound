@@ -97,3 +97,48 @@ def test_complete_no_opps_dir_returns_empty(tmp_jh, invoke) -> None:
     result = invoke(["__complete", "zsh", "jh", "show", ""])
     assert result.exit_code == 0
     assert result.output.strip() == ""
+
+
+def test_complete_file_open_filenames(tmp_jh, invoke) -> None:
+    """`jh __complete zsh jh file open <slug> ""` lists files in the opp."""
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    (opp_dir / "notes.md").write_text("hi\n")
+    (opp_dir / "research.md").write_text("hi\n")
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "files", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+
+    result = invoke(["__complete", "zsh", "jh", "file", "open", "2026-05-acme-em", ""])
+    lines = set(result.output.splitlines())
+    assert "notes.md" in lines
+    assert "research.md" in lines
+    assert "meta.toml" not in lines  # meta.toml is protected; excluded by file_service.list_
+
+
+def test_complete_filename_with_space_is_unquoted(tmp_jh, invoke) -> None:
+    """Filenames with spaces are emitted as-is (one per line).
+
+    The shell script does the quoting; the completer emits raw names.
+    """
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    (opp_dir / "Job Description.md").write_text("hi\n")
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "f", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+
+    result = invoke(["__complete", "zsh", "jh", "file", "open", "2026-05-acme-em", ""])
+    lines = set(result.output.splitlines())
+    assert "Job Description.md" in lines  # exactly one line, with the space
+
+
+def test_complete_filename_unresolvable_slug_empty(tmp_jh, invoke) -> None:
+    """An unresolvable slug at position 0 → empty filename candidates."""
+    result = invoke(["__complete", "zsh", "jh", "file", "open", "not-a-real-slug", ""])
+    assert result.exit_code == 0
+    assert result.output.strip() == ""

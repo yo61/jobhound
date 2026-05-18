@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/yo61/jobhound/compare/v0.9.0...v0.9.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* **completion:** apply prefix filter on bash candidates ([6dcb69b](https://github.com/yo61/jobhound/commit/6dcb69b1b78e572ac05337e32c0abdd565419048))
+
 ## [0.9.0](https://github.com/yo61/jobhound/compare/v0.8.0...v0.9.0) (2026-05-17)
 
 

@@ -57,3 +57,36 @@ def test_fish_script_disables_file_fallback() -> None:
     assert "complete -c jh" in s
     assert "-f" in s
     assert "jh __complete fish" in s
+
+
+def test_bash_script_handles_files_sentinel() -> None:
+    """bash stub must recognise the files sentinel and delegate to native file completion.
+
+    When the completer emits the sentinel, the stub should fall back to
+    bash's built-in path completion for the partial word — either via
+    `compopt -o default` (readline's default completion) or by populating
+    COMPREPLY from `compgen -f`.
+    """
+    from jobhound.commands._complete import FILES_SENTINEL
+
+    s = _script("jh.bash")
+    assert FILES_SENTINEL in s
+    assert ("compopt -o default" in s) or ("compgen -f" in s)
+
+
+def test_zsh_script_handles_files_sentinel() -> None:
+    """zsh stub must recognise the files sentinel and call `_files`."""
+    from jobhound.commands._complete import FILES_SENTINEL
+
+    s = _script("jh.zsh")
+    assert FILES_SENTINEL in s
+    assert "_files" in s
+
+
+def test_fish_script_handles_files_sentinel() -> None:
+    """fish stub must recognise the files sentinel and emit path completions."""
+    from jobhound.commands._complete import FILES_SENTINEL
+
+    s = _script("jh.fish")
+    assert FILES_SENTINEL in s
+    assert "__fish_complete_path" in s

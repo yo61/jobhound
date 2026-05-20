@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 from importlib import resources
 from pathlib import Path
 from typing import Annotated
@@ -102,3 +103,39 @@ def install(
         print("Reload your shell or `source ~/.bashrc` to activate.")
     elif detected == "fish":
         print("Reload fish (functions auto-discover; usually no action needed).")
+
+
+def maybe_refresh_installed_stubs() -> None:
+    """Refresh any installed completion stub that's drifted from the bundled one.
+
+    For each shell whose stub exists at its conventional install path,
+    compare contents against the bundled stub in the wheel. If they
+    differ, back up the old file as ``<name>.bak`` and rewrite from
+    the bundled copy, announcing the refresh on stderr.
+
+    Only honors stubs that already exist — we never auto-install for
+    users who never ran ``jh completion install``. Read/write errors
+    are swallowed silently so a hostile filesystem can't make every
+    ``jh`` invocation noisy.
+    """
+    for shell, (dir_tpl, filename) in _SHELL_TARGETS.items():
+        target = Path(dir_tpl).expanduser() / filename
+        if not target.is_file():
+            continue
+        try:
+            installed = target.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        bundled = _read(shell)
+        if installed == bundled:
+            continue
+        try:
+            backup = target.parent / (target.name + ".bak")
+            shutil.copy2(target, backup)
+            target.write_text(bundled, encoding="utf-8")
+        except OSError:
+            continue
+        print(
+            f"jh: refreshed {shell} completion stub at {target}",
+            file=sys.stderr,
+        )

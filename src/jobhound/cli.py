@@ -122,6 +122,13 @@ def main() -> None:
         _complete_run(*sys.argv[2:])
         return
 
+    # Heal any drift between an installed completion stub and the bundled
+    # one — closes the gap where a jh upgrade leaves stale stubs on disk
+    # until the user re-runs `jh completion install` (issue #61).
+    from jobhound.commands import completion as _completion
+
+    _completion.maybe_refresh_installed_stubs()
+
     from jobhound.application.file_service import FileServiceError
     from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
     from jobhound.domain.transitions import InvalidTransitionError

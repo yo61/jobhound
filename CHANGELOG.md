@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/yo61/jobhound/compare/v0.9.1...v0.9.2) (2026-05-20)
+
+
+### Bug Fixes
+
+* **completion:** defer to shell for local-filesystem paths ([071bcab](https://github.com/yo61/jobhound/commit/071bcab7c610b1de776284fe62c28cc8c928d5de)), closes [#57](https://github.com/yo61/jobhound/issues/57)
+
 ## [0.9.1](https://github.com/yo61/jobhound/compare/v0.9.0...v0.9.1) (2026-05-18)
 
 

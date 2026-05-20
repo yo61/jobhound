@@ -209,7 +209,32 @@ _FILENAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
         ("file", "write"),
         ("file", "append"),
         ("file", "delete"),
-        ("file", "import"),
+    }
+)
+
+
+# Emitted as the sole candidate when the active argument is a local
+# filesystem path. The shell stubs translate this into native file
+# completion (bash: `compopt -o default`; zsh: `_files`; fish:
+# `__fish_complete_path`). Reimplementing glob/tilde expansion in
+# Python would duplicate work the shell already does well.
+FILES_SENTINEL = "__JH_COMPLETE_FILES__"
+
+
+# cmd_path -> positional index whose value is a local-disk path.
+_LOCAL_PATH_AT_POSITION: dict[tuple[str, ...], int] = {
+    ("file", "import"): 1,
+}
+
+
+# (cmd_path, flag) pairs whose value is a local-disk path.
+_LOCAL_PATH_FLAGS: frozenset[tuple[tuple[str, ...], str]] = frozenset(
+    {
+        (("file", "read"), "--out"),
+        (("file", "write"), "--from"),
+        (("file", "append"), "--from"),
+        (("log",), "--body"),
+        (("completion", "install"), "--dest"),
     }
 )
 
@@ -285,6 +310,9 @@ def run(
     if in_positionals:
         prev = in_positionals[-1]
         if prev.startswith("--"):
+            if (cmd_path, prev) in _LOCAL_PATH_FLAGS:
+                print(FILES_SENTINEL)
+                return
             spec = _FLAG_ENUMS.get((cmd_path, prev))
             if spec is not None:
                 for v in sorted(_load_enum(spec)):
@@ -295,6 +323,14 @@ def run(
     if len(in_positionals) == 0 and cmd_path in _SLUG_AT_POSITION:
         for slug in sorted(_complete_slug()):
             print(slug)
+        return
+
+    # Local-filesystem positional: defer to the shell via FILES_SENTINEL.
+    # Checked before the repo-filename branch so a future cmd_path that
+    # appears in both tables (none today) would prefer local-fs.
+    local_pos = _LOCAL_PATH_AT_POSITION.get(cmd_path)
+    if local_pos is not None and len(in_positionals) == local_pos:
+        print(FILES_SENTINEL)
         return
 
     # Position 1 = filename (for file sub-App commands)

@@ -151,6 +151,64 @@ def test_complete_filename_unresolvable_slug_empty(tmp_jh, invoke) -> None:
     assert result.output.strip() == ""
 
 
+def test_complete_file_import_position_path_emits_files_sentinel(invoke) -> None:
+    """`jh file import <slug> <partial>` must signal local-filesystem completion.
+
+    The second positional of `file import` is a local-disk source path, not
+    a repo-side filename. The completer cannot enumerate the user's
+    filesystem itself, so it emits a sentinel that the shell stub
+    translates into native file completion.
+    """
+    from jobhound.commands._complete import FILES_SENTINEL
+
+    result = invoke(["__complete", "bash", "jh", "file", "import", "any-slug", ""])
+    assert result.exit_code == 0
+    assert result.output.strip() == FILES_SENTINEL
+
+
+def test_complete_file_import_does_not_emit_repo_filenames(tmp_jh, invoke) -> None:
+    """`jh file import` position 1 must NOT emit repo-side filenames.
+
+    Regression test for the original bug: `file import` was grouped with
+    the repo-side file commands, so its local-path position completed
+    against the slug's files instead.
+    """
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    (opp_dir / "notes.md").write_text("hi\n")
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "f", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+
+    result = invoke(["__complete", "bash", "jh", "file", "import", "2026-05-acme-em", ""])
+    lines = set(result.output.splitlines())
+    assert "notes.md" not in lines
+
+
+def test_complete_local_path_flag_values_emit_sentinel(invoke) -> None:
+    """Local-filesystem `--flag <path>` positions emit the files sentinel.
+
+    Covers every flag whose value is a local disk path: file read --out,
+    file write --from, file append --from, log --body, completion
+    install --dest.
+    """
+    from jobhound.commands._complete import FILES_SENTINEL
+
+    cases = [
+        ["__complete", "bash", "jh", "file", "read", "slug", "name", "--out", ""],
+        ["__complete", "bash", "jh", "file", "write", "slug", "name", "--from", ""],
+        ["__complete", "bash", "jh", "file", "append", "slug", "name", "--from", ""],
+        ["__complete", "bash", "jh", "log", "slug", "--body", ""],
+        ["__complete", "bash", "jh", "completion", "install", "--dest", ""],
+    ]
+    for args in cases:
+        result = invoke(args)
+        assert result.exit_code == 0, f"args={args!r}"
+        assert result.output.strip() == FILES_SENTINEL, f"args={args!r}"
+
+
 def test_complete_set_status_returns_status_enum(tmp_jh, invoke) -> None:
     """`jh __complete zsh jh set status <slug> ""` lists Status values."""
     _seed_slug(tmp_jh.db_path, "2026-05-acme-em")

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.3](https://github.com/yo61/jobhound/compare/v0.9.2...v0.9.3) (2026-05-21)
+
+
+### Bug Fixes
+
+* **completion:** auto-refresh installed shell stubs on drift ([bf262b7](https://github.com/yo61/jobhound/commit/bf262b7f689715c10f92a0dee9843dbaceffa8f0)), closes [#61](https://github.com/yo61/jobhound/issues/61)
+
 ## [0.9.2](https://github.com/yo61/jobhound/compare/v0.9.1...v0.9.2) (2026-05-20)
 
 

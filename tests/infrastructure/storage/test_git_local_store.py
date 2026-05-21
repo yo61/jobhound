@@ -146,9 +146,9 @@ def test_git_failure_surfaces_stderr(tmp_path: Path) -> None:
     finally:
         lock_path.unlink(missing_ok=True)
     message = str(exc_info.value)
-    assert (
-        "index.lock" in message
-    ), f"expected git stderr (mentioning index.lock) in error message; got: {message!r}"
+    assert "index.lock" in message, (
+        f"expected git stderr (mentioning index.lock) in error message; got: {message!r}"
+    )
 
 
 def test_git_command_error_str_includes_stderr() -> None:
@@ -184,6 +184,6 @@ def test_read_by_revision_failure_surfaces_stderr(tmp_path: Path) -> None:
     with pytest.raises(subprocess.CalledProcessError) as exc_info:
         store.read_by_revision(bogus)
     message = str(exc_info.value)
-    assert (
-        "0000000" in message or "fatal" in message.lower() or "Not a valid" in message
-    ), f"expected git stderr content for bogus revision; got: {message!r}"
+    assert "0000000" in message or "fatal" in message.lower() or "Not a valid" in message, (
+        f"expected git stderr content for bogus revision; got: {message!r}"
+    )

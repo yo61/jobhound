@@ -14,6 +14,7 @@ jobs:
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name:        ${{ steps.rp.outputs.tag_name }}
+      prs:             ${{ steps.rp.outputs.prs }}
     steps:
       # Mint a short-lived App token so PRs opened by release-please look like
       # the semantic-release-pusher App rather than github-actions[bot], which
@@ -31,6 +32,68 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           token: ${{ steps.create_token.outputs.token }}
+
+  # Keep uv.lock in sync with pyproject.toml's version on every release-please
+  # PR. release-please-action only updates pyproject.toml and CHANGELOG.md, so
+  # without this job the jobhound editable pin in uv.lock drifts and the first
+  # `uv run` on main silently rewrites it (issue #66). A comment-based
+  # `extra-files` entry can't fix this — `uv lock` strips comments — so we run
+  # `uv lock` against the release PR branch and push the result back.
+  sync-lockfile:
+    needs: release-please
+    if: needs.release-please.outputs.prs && needs.release-please.outputs.prs != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - id: create_token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3  # v3.1.1
+        with:
+          client-id: ${{ secrets.SEMANTIC_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SEMANTIC_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+      - id: pr_branch
+        env:
+          PRS_JSON: ${{ needs.release-please.outputs.prs }}
+        run: |
+          set -euo pipefail
+          branch=$(printf '%s' "$PRS_JSON" | jq -r '.[0].headBranchName')
+          if [[ -z "$branch" || "$branch" == "null" ]]; then
+            echo "release-please did not report a head branch; skipping" >&2
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.pr_branch.outputs.skip != 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: ${{ steps.pr_branch.outputs.branch }}
+          token: ${{ steps.create_token.outputs.token }}
+          persist-credentials: true
+      - if: steps.pr_branch.outputs.skip != 'true'
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
+        with:
+          python-version: "3.11"
+          enable-cache: false
+      - if: steps.pr_branch.outputs.skip != 'true'
+        name: Sync uv.lock and push if changed
+        env:
+          UV_FROZEN: "0"
+          BRANCH: ${{ steps.pr_branch.outputs.branch }}
+        run: |
+          set -euo pipefail
+          uv lock
+          if [[ -z "$(git status --porcelain uv.lock)" ]]; then
+            echo "uv.lock already in sync"
+            exit 0
+          fi
+          git config user.name "semantic-release-pusher[bot]"
+          git config user.email "semantic-release-pusher[bot]@users.noreply.github.com"
+          git add uv.lock
+          git commit -m "chore: sync uv.lock with version bump"
+          git push origin "HEAD:$BRANCH"
 
   publish:
     needs: release-please

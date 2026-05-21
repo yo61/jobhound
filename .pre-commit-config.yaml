@@ -1,12 +1,21 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.14
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
+  # ruff, ty, and pytest all run via `uv run` so their versions are
+  # single-sourced from uv.lock. Same binary CI uses via `task dev:check`.
+  # No second `rev:` to keep aligned.
   - repo: local
     hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --no-sync ruff check --fix
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --no-sync ruff format
+        language: system
+        types: [python]
+        pass_filenames: false
       - id: ty
         name: ty type check
         entry: uv run --no-sync ty check src

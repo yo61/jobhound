@@ -128,3 +128,62 @@ def test_path_traversal_rejected(tmp_path: Path) -> None:
     store, _ = _seeded(tmp_path)
     with pytest.raises(ValueError, match="must be inside"):
         store.write("2026-05-acme", "../../escape.md", b"x", commit_message="x")
+
+
+def test_git_failure_surfaces_stderr(tmp_path: Path) -> None:
+    """A failing git command (e.g. stale index.lock) must report git's stderr.
+
+    Regression test for #62 — opaque exit-128 errors hid the real diagnosis
+    ("Unable to create '...index.lock': File exists") behind a generic
+    CalledProcessError that printed only the command and return code.
+    """
+    store, paths = _seeded(tmp_path)
+    lock_path = paths.db_root / ".git" / "index.lock"
+    lock_path.touch()
+    try:
+        with pytest.raises(subprocess.CalledProcessError) as exc_info:
+            store.write("2026-05-acme", "cv.md", b"x", commit_message="x")
+    finally:
+        lock_path.unlink(missing_ok=True)
+    message = str(exc_info.value)
+    assert (
+        "index.lock" in message
+    ), f"expected git stderr (mentioning index.lock) in error message; got: {message!r}"
+
+
+def test_git_command_error_str_includes_stderr() -> None:
+    """GitCommandError.__str__ must append git's stderr to the base message."""
+    from jobhound.infrastructure.storage.git_local import GitCommandError
+
+    exc = GitCommandError(
+        returncode=128,
+        cmd=["git", "add", "."],
+        output=b"",
+        stderr=b"fatal: Unable to create '/x/.git/index.lock': File exists.\n",
+    )
+    message = str(exc)
+    assert "returned non-zero exit status 128" in message
+    assert "index.lock" in message
+    assert "File exists" in message
+
+
+def test_git_command_error_str_with_empty_stderr_falls_back_to_base() -> None:
+    """Without stderr content the message is the standard CalledProcessError form."""
+    from jobhound.infrastructure.storage.git_local import GitCommandError
+
+    exc = GitCommandError(returncode=1, cmd=["git", "status"], output=b"", stderr=b"")
+    assert str(exc) == subprocess.CalledProcessError(1, ["git", "status"]).__str__()
+
+
+def test_read_by_revision_failure_surfaces_stderr(tmp_path: Path) -> None:
+    """`git cat-file` failures must also surface stderr (#62)."""
+    from jobhound.application.revisions import Revision
+
+    store, _ = _seeded(tmp_path)
+    bogus = Revision("0" * 40)
+    with pytest.raises(subprocess.CalledProcessError) as exc_info:
+        store.read_by_revision(bogus)
+    message = str(exc_info.value)
+    assert (
+        "0000000" in message or "fatal" in message.lower() or "Not a valid" in message
+    ), f"expected git stderr content for bogus revision; got: {message!r}"

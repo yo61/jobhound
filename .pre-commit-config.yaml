@@ -33,4 +33,4 @@ repos:
       - id: commitlint
         stages: [commit-msg]
         additional_dependencies:
-          - "@commitlint/config-conventional@^21"
+          - "@commitlint/config-conventional@^21.0.1"

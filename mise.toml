@@ -1,0 +1,4 @@
+[env]
+# Prevent `uv run` from rewriting uv.lock during ad-hoc invocations.
+# The project's lockfile is updated deliberately via `uv lock` or release-please.
+UV_FROZEN = "1"

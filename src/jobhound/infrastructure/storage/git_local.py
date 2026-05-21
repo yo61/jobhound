@@ -11,12 +11,50 @@ target and confirming it lies under the opp dir.
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 
 from jobhound.application.revisions import Revision
 from jobhound.infrastructure.paths import Paths
 from jobhound.infrastructure.storage.protocols import FileEntryList
+
+
+class GitCommandError(subprocess.CalledProcessError):
+    """A git subprocess exited non-zero. ``str()`` includes git's stderr.
+
+    Inherits from ``subprocess.CalledProcessError`` so existing
+    ``except subprocess.CalledProcessError`` handlers keep working — they
+    just get a richer message that names the actual failure (stale
+    index.lock, missing object, bad ref, etc.) instead of bare exit code.
+    """
+
+    def __str__(self) -> str:
+        base = super().__str__()
+        stderr = self.stderr
+        if not stderr:
+            return base
+        if isinstance(stderr, bytes | bytearray):
+            stderr_text = bytes(stderr).decode("utf-8", errors="replace")
+        else:
+            stderr_text = str(stderr)
+        stderr_text = stderr_text.strip()
+        if not stderr_text:
+            return base
+        return f"{base}\nstderr: {stderr_text}"
+
+
+def _run_git(cmd: Sequence[str]) -> subprocess.CompletedProcess[bytes]:
+    """Run a git subprocess, raising GitCommandError with stderr on failure."""
+    result = subprocess.run(list(cmd), capture_output=True, check=False)
+    if result.returncode != 0:
+        raise GitCommandError(
+            returncode=result.returncode,
+            cmd=list(cmd),
+            output=result.stdout,
+            stderr=result.stderr,
+        )
+    return result
 
 
 class GitLocalFileStore:
@@ -42,11 +80,7 @@ class GitLocalFileStore:
         return target
 
     def _git(self, *args: str) -> subprocess.CompletedProcess[bytes]:
-        return subprocess.run(
-            ["git", "-C", str(self._paths.db_root), *args],
-            check=True,
-            capture_output=True,
-        )
+        return _run_git(["git", "-C", str(self._paths.db_root), *args])
 
     # ---- FileStore interface --------------------------------------------
 
@@ -131,22 +165,15 @@ class GitLocalFileStore:
         target = self._resolve(opp_slug, filename)
         if not target.is_file():
             raise FileNotFoundError(f"{opp_slug}/{filename}")
-        result = subprocess.run(
-            ["git", "hash-object", str(target)],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return Revision(result.stdout.strip())
+        result = _run_git(["git", "hash-object", str(target)])
+        return Revision(result.stdout.decode("utf-8").strip())
 
     def read_by_revision(self, revision: Revision) -> bytes:
         """Resolve blob content via `git cat-file -p <sha>`.
 
         Works for any blob SHA that has ever been committed in the repo.
         """
-        result = subprocess.run(
+        result = _run_git(
             ["git", "-C", str(self._paths.db_root), "cat-file", "-p", str(revision)],
-            capture_output=True,
-            check=True,
         )
         return result.stdout

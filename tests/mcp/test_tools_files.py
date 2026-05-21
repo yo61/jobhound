@@ -127,16 +127,32 @@ def test_read_file_binary_returns_base64(repo: OpportunityRepository, tmp_path: 
 # ── open_file ────────────────────────────────────────────────────────────────
 
 
+def _passthrough_except(*launcher_cmds: str):
+    """Pass-through mock side_effect — see comment in tests/test_cmd_file.py."""
+    real_run = subprocess.run
+    captured: list[list[str]] = []
+
+    def _side_effect(cmd, **kwargs):
+        if cmd and cmd[0] in launcher_cmds:
+            captured.append(list(cmd))
+            return subprocess.CompletedProcess(args=cmd, returncode=0)
+        return real_run(cmd, **kwargs)
+
+    return _side_effect, captured
+
+
 def test_open_file_darwin_returns_opened(
     repo: OpportunityRepository, monkeypatch: MagicMock
 ) -> None:
     monkeypatch.setattr(sys, "platform", "darwin")
-    with patch("jobhound.application.file_launcher.subprocess.run") as mock_run:
+    side_effect, captured = _passthrough_except("open")
+    with patch("jobhound.application.file_launcher.subprocess.run", side_effect=side_effect):
         payload = json.loads(open_file(repo, "acme", "notes.md"))
     assert payload["opened"] is True
     assert payload["filename"] == "notes.md"
     assert "temp_path" in payload
-    cmd = mock_run.call_args[0][0]
+    assert captured, "launcher was not invoked"
+    cmd = captured[0]
     assert cmd[0] == "open"
     assert cmd[1].endswith("notes.md")
 
@@ -145,10 +161,12 @@ def test_open_file_linux_calls_xdg_open(
     repo: OpportunityRepository, monkeypatch: MagicMock
 ) -> None:
     monkeypatch.setattr(sys, "platform", "linux")
-    with patch("jobhound.application.file_launcher.subprocess.run") as mock_run:
+    side_effect, captured = _passthrough_except("xdg-open")
+    with patch("jobhound.application.file_launcher.subprocess.run", side_effect=side_effect):
         payload = json.loads(open_file(repo, "acme", "notes.md"))
     assert payload["opened"] is True
-    cmd = mock_run.call_args[0][0]
+    assert captured, "launcher was not invoked"
+    cmd = captured[0]
     assert cmd[0] == "xdg-open"
 
 

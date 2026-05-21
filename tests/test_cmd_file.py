@@ -157,15 +157,36 @@ def test_file_delete_with_yes_succeeds(tmp_jh, invoke) -> None:
 # ── jh file open ────────────────────────────────────────────────────────────
 
 
+def _passthrough_except(*launcher_cmds: str):
+    """Mock side_effect that intercepts launcher commands and passes the rest through.
+
+    Needed because patch("...subprocess.run") leaks across modules — `git_local`
+    shares the same `subprocess` module reference, so a naive mock would also
+    swallow git calls and break `compute_revision`.
+    """
+    real_run = subprocess.run
+    captured: list[list[str]] = []
+
+    def _side_effect(cmd, **kwargs):
+        if cmd and cmd[0] in launcher_cmds:
+            captured.append(list(cmd))
+            return subprocess.CompletedProcess(args=cmd, returncode=0)
+        return real_run(cmd, **kwargs)
+
+    return _side_effect, captured
+
+
 def test_file_open_darwin_calls_open(tmp_jh, invoke, monkeypatch) -> None:
     _seed_opp(tmp_jh.db_path)
     monkeypatch.setattr(sys, "platform", "darwin")
-    with patch("jobhound.application.file_launcher.subprocess.run") as mock_run:
+    side_effect, captured = _passthrough_except("open")
+    with patch("jobhound.application.file_launcher.subprocess.run", side_effect=side_effect):
         result = invoke(["file", "open", "acme", "cv.md"])
     assert result.exit_code == 0
     assert "opened" in result.output
     assert "cv.md" in result.output
-    cmd = mock_run.call_args[0][0]
+    assert captured, "launcher was not invoked"
+    cmd = captured[0]
     assert cmd[0] == "open"
     assert cmd[1].endswith("cv.md")
 
@@ -173,10 +194,12 @@ def test_file_open_darwin_calls_open(tmp_jh, invoke, monkeypatch) -> None:
 def test_file_open_linux_calls_xdg_open(tmp_jh, invoke, monkeypatch) -> None:
     _seed_opp(tmp_jh.db_path)
     monkeypatch.setattr(sys, "platform", "linux")
-    with patch("jobhound.application.file_launcher.subprocess.run") as mock_run:
+    side_effect, captured = _passthrough_except("xdg-open")
+    with patch("jobhound.application.file_launcher.subprocess.run", side_effect=side_effect):
         result = invoke(["file", "open", "acme", "cv.md"])
     assert result.exit_code == 0
-    cmd = mock_run.call_args[0][0]
+    assert captured, "launcher was not invoked"
+    cmd = captured[0]
     assert cmd[0] == "xdg-open"
     assert cmd[1].endswith("cv.md")
 

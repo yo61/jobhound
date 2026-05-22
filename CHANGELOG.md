@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.4](https://github.com/yo61/jobhound/compare/v0.9.3...v0.9.4) (2026-05-22)
+
+
+### Bug Fixes
+
+* **storage:** surface git stderr in subprocess errors ([94ce821](https://github.com/yo61/jobhound/commit/94ce821c4a933308d35997a8213128d6973ae460))
+
 ## [0.9.3](https://github.com/yo61/jobhound/compare/v0.9.2...v0.9.3) (2026-05-21)
 
 

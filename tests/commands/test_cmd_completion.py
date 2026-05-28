@@ -179,3 +179,104 @@ def test_refresh_handles_multiple_shells(
     err = capsys.readouterr().err
     assert "bash" in err
     assert "zsh" not in err  # zsh stub matched, so no message
+
+
+# ---- $ZDOTDIR / XDG-style zsh installs (issue #76) ----------------------
+
+
+def test_install_zsh_honors_zdotdir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, invoke
+) -> None:
+    """With $ZDOTDIR set, `completion install` writes to $ZDOTDIR/completions.
+
+    Addresses issue #76: users with XDG-style zsh config (e.g. ~/.config/zsh)
+    expose their dir via $ZDOTDIR; the install default should follow.
+    """
+    monkeypatch.setenv("HOME", str(tmp_path))
+    zdotdir = tmp_path / ".config" / "zsh"
+    monkeypatch.setenv("ZDOTDIR", str(zdotdir))
+
+    result = invoke(["completion", "install", "--shell", "zsh"])
+    assert result.exit_code == 0
+
+    target = zdotdir / "completions" / "_jh"
+    assert target.exists()
+    assert "#compdef jh" in target.read_text(encoding="utf-8")
+    # And nothing leaked into the legacy ~/.zfunc location.
+    assert not (tmp_path / ".zfunc" / "_jh").exists()
+
+
+def test_install_zsh_falls_back_to_zfunc_without_zdotdir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, invoke
+) -> None:
+    """Without $ZDOTDIR, the legacy ~/.zfunc default is preserved."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("ZDOTDIR", raising=False)
+
+    result = invoke(["completion", "install", "--shell", "zsh"])
+    assert result.exit_code == 0
+    assert (tmp_path / ".zfunc" / "_jh").exists()
+
+
+def test_install_zsh_hint_reflects_chosen_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, invoke
+) -> None:
+    """The `fpath+=...` hint names the directory we actually wrote to."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    zdotdir = tmp_path / ".config" / "zsh"
+    monkeypatch.setenv("ZDOTDIR", str(zdotdir))
+
+    result = invoke(["completion", "install", "--shell", "zsh"])
+    assert result.exit_code == 0
+    assert f"fpath+={zdotdir / 'completions'}" in result.output
+    # The legacy default should NOT appear in the hint when $ZDOTDIR drove the install.
+    assert "fpath+=~/.zfunc" not in result.output
+
+
+def test_refresh_picks_up_zdotdir_stub(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A stale stub under $ZDOTDIR/completions is refreshed like a legacy one."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    zdotdir = tmp_path / ".config" / "zsh"
+    monkeypatch.setenv("ZDOTDIR", str(zdotdir))
+    stub_dir = zdotdir / "completions"
+    stub_dir.mkdir(parents=True)
+    target = stub_dir / "_jh"
+    target.write_text("OLD ZSH STUB\n")
+
+    from jobhound.commands.completion import maybe_refresh_installed_stubs
+
+    maybe_refresh_installed_stubs()
+
+    assert target.read_text(encoding="utf-8") == _bundled_stub("zsh")
+    bak = stub_dir / "_jh.bak"
+    assert bak.exists()
+    assert bak.read_text() == "OLD ZSH STUB\n"
+    assert "zsh" in capsys.readouterr().err
+
+
+def test_refresh_handles_both_zsh_paths_simultaneously(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A user who installed under both locations gets both stubs refreshed."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    zdotdir = tmp_path / ".config" / "zsh"
+    monkeypatch.setenv("ZDOTDIR", str(zdotdir))
+
+    legacy_dir = tmp_path / ".zfunc"
+    legacy_dir.mkdir()
+    (legacy_dir / "_jh").write_text("OLD LEGACY\n")
+
+    xdg_dir = zdotdir / "completions"
+    xdg_dir.mkdir(parents=True)
+    (xdg_dir / "_jh").write_text("OLD XDG\n")
+
+    from jobhound.commands.completion import maybe_refresh_installed_stubs
+
+    maybe_refresh_installed_stubs()
+
+    assert (legacy_dir / "_jh").read_text(encoding="utf-8") == _bundled_stub("zsh")
+    assert (xdg_dir / "_jh").read_text(encoding="utf-8") == _bundled_stub("zsh")
+    assert (legacy_dir / "_jh.bak").exists()
+    assert (xdg_dir / "_jh.bak").exists()

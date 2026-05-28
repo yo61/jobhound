@@ -139,3 +139,37 @@ jobs:
           enable-cache: false
       - run: uv build
       - uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
+
+  # Tell the yo61/homebrew-tap repo to bump its jobhound formula to the
+  # version we just published to PyPI. The tap's `bump-jobhound` workflow
+  # regenerates resources, validates locally, and opens a PR.
+  #
+  # Requires the `semantic-release-pusher` GitHub App to be installed on
+  # yo61/homebrew-tap so the App token can mint with `contents:write` for
+  # the dispatches endpoint. Without it, `create_token` returns 404/403
+  # and this job goes red — release itself is unaffected (publish has
+  # already shipped to PyPI), and the tap workflow can be triggered
+  # manually via workflow_dispatch as a fallback.
+  dispatch-homebrew:
+    needs: [release-please, publish]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - id: create_token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3  # v3.1.1
+        with:
+          client-id: ${{ secrets.SEMANTIC_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.SEMANTIC_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: homebrew-tap
+          permission-contents: write
+      - name: Dispatch bump to homebrew-tap
+        env:
+          GH_TOKEN: ${{ steps.create_token.outputs.token }}
+          OWNER: ${{ github.repository_owner }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          gh api -X POST "repos/$OWNER/homebrew-tap/dispatches" \
+            -f event_type=bump-jobhound \
+            -F "client_payload[version]=$TAG_NAME"

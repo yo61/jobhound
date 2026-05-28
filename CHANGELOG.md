@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/yo61/jobhound/compare/v0.9.4...v0.10.0) (2026-05-28)
+
+
+### Features
+
+* **completion:** honor $ZDOTDIR for XDG-style zsh installs ([#77](https://github.com/yo61/jobhound/issues/77)) ([dbf1a52](https://github.com/yo61/jobhound/commit/dbf1a52b6d5ebd876b974deedcdc0ad935aed75c)), closes [#76](https://github.com/yo61/jobhound/issues/76)
+
 ## [0.9.4](https://github.com/yo61/jobhound/compare/v0.9.3...v0.9.4) (2026-05-22)
 
 

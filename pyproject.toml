@@ -3,6 +3,8 @@ name = "jobhound"
 version = "0.10.0"
 description = "Action-based CLI for tracking a job hunt"
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "cyclopts==4.11.2",

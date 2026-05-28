@@ -13,12 +13,54 @@ from cyclopts import App, Parameter
 
 app = App(name="completion", help="Print or install jh shell completion scripts.")
 
-_SHELL_TARGETS: dict[str, tuple[str, str]] = {
-    # shell -> (default_directory_template, filename)
-    "bash": ("~/.local/share/bash-completion/completions", "jh"),
-    "zsh": ("~/.zfunc", "_jh"),
-    "fish": ("~/.config/fish/completions", "jh.fish"),
+_SHELL_FILENAMES: dict[str, str] = {
+    "bash": "jh",
+    "zsh": "_jh",
+    "fish": "jh.fish",
 }
+
+# Legacy zsh install dir, used before $ZDOTDIR was honored. Refresh
+# continues to probe this path so existing installs keep auto-updating
+# even after the user switches to an XDG-style layout.
+_LEGACY_ZSH_DIR = "~/.zfunc"
+
+
+def _default_install_dir(shell: str) -> Path:
+    """Return the default install directory for `shell`.
+
+    For zsh, honors `$ZDOTDIR` (XDG-style layouts at `~/.config/zsh`
+    expose their directory this way) and falls back to `~/.zfunc`.
+    """
+    if shell == "bash":
+        return Path("~/.local/share/bash-completion/completions").expanduser()
+    if shell == "fish":
+        return Path("~/.config/fish/completions").expanduser()
+    if shell == "zsh":
+        zdotdir = os.environ.get("ZDOTDIR")
+        if zdotdir:
+            return Path(zdotdir) / "completions"
+        return Path(_LEGACY_ZSH_DIR).expanduser()
+    raise KeyError(shell)
+
+
+def _refresh_candidate_paths(shell: str) -> list[Path]:
+    """Paths that may host a previously-installed stub for `shell`.
+
+    For zsh we probe both the legacy `~/.zfunc/_jh` and the
+    `$ZDOTDIR`-derived path so a user who installed under either
+    location keeps receiving auto-refreshes after upgrades.
+    """
+    filename = _SHELL_FILENAMES[shell]
+    if shell != "zsh":
+        return [_default_install_dir(shell) / filename]
+
+    paths = [Path(_LEGACY_ZSH_DIR).expanduser() / filename]
+    zdotdir = os.environ.get("ZDOTDIR")
+    if zdotdir:
+        xdg = Path(zdotdir) / "completions" / filename
+        if xdg != paths[0]:
+            paths.append(xdg)
+    return paths
 
 
 def _read(shell: str) -> str:
@@ -31,7 +73,7 @@ def _detect_shell() -> str | None:
     """Detect the user's shell from $SHELL. Return one of bash/zsh/fish, or None."""
     sh = os.environ.get("SHELL", "")
     name = Path(sh).name
-    return name if name in _SHELL_TARGETS else None
+    return name if name in _SHELL_FILENAMES else None
 
 
 @app.command(name="bash")
@@ -66,15 +108,15 @@ def install(
             inside the dir is still determined by shell.
     """
     detected = shell or _detect_shell()
-    if detected is None or detected not in _SHELL_TARGETS:
+    if detected is None or detected not in _SHELL_FILENAMES:
         print(
             "ERROR: could not detect shell. Pass --shell bash|zsh|fish.",
             flush=True,
         )
         raise SystemExit(1)
 
-    dir_tpl, filename = _SHELL_TARGETS[detected]
-    target_dir = Path(dest) if dest else Path(dir_tpl).expanduser()
+    filename = _SHELL_FILENAMES[detected]
+    target_dir = Path(dest) if dest else _default_install_dir(detected)
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / filename
 
@@ -97,7 +139,7 @@ def install(
     # Per-shell hint.
     if detected == "zsh":
         print("Add this to your ~/.zshrc if you haven't already:")
-        print("  fpath+=~/.zfunc")
+        print(f"  fpath+={target_dir}")
         print("  autoload -U compinit && compinit")
     elif detected == "bash":
         print("Reload your shell or `source ~/.bashrc` to activate.")
@@ -118,24 +160,24 @@ def maybe_refresh_installed_stubs() -> None:
     are swallowed silently so a hostile filesystem can't make every
     ``jh`` invocation noisy.
     """
-    for shell, (dir_tpl, filename) in _SHELL_TARGETS.items():
-        target = Path(dir_tpl).expanduser() / filename
-        if not target.is_file():
-            continue
-        try:
-            installed = target.read_text(encoding="utf-8")
-        except OSError:
-            continue
+    for shell in _SHELL_FILENAMES:
         bundled = _read(shell)
-        if installed == bundled:
-            continue
-        try:
-            backup = target.parent / (target.name + ".bak")
-            shutil.copy2(target, backup)
-            target.write_text(bundled, encoding="utf-8")
-        except OSError:
-            continue
-        print(
-            f"jh: refreshed {shell} completion stub at {target}",
-            file=sys.stderr,
-        )
+        for target in _refresh_candidate_paths(shell):
+            if not target.is_file():
+                continue
+            try:
+                installed = target.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if installed == bundled:
+                continue
+            try:
+                backup = target.parent / (target.name + ".bak")
+                shutil.copy2(target, backup)
+                target.write_text(bundled, encoding="utf-8")
+            except OSError:
+                continue
+            print(
+                f"jh: refreshed {shell} completion stub at {target}",
+                file=sys.stderr,
+            )

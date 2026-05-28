@@ -78,10 +78,18 @@ jobs:
           python-version: "3.11"
           enable-cache: false
       - if: steps.pr_branch.outputs.skip != 'true'
-        name: Sync uv.lock and push if changed
+        name: Sync uv.lock and commit (signed) if changed
         env:
           UV_FROZEN: "0"
+          GH_TOKEN: ${{ steps.create_token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           BRANCH: ${{ steps.pr_branch.outputs.branch }}
+        # Use the GraphQL createCommitOnBranch mutation rather than
+        # `git commit`/`git push`. Commits created via the GitHub API on
+        # an App's behalf are signed by GitHub's app-flow key, which the
+        # `required_signatures` ruleset on `main` requires. A plain
+        # `git commit` from the runner produces an unsigned commit
+        # because no GPG key is provisioned, which blocks the release PR.
         run: |
           set -euo pipefail
           uv lock
@@ -89,11 +97,26 @@ jobs:
             echo "uv.lock already in sync"
             exit 0
           fi
-          git config user.name "semantic-release-pusher[bot]"
-          git config user.email "semantic-release-pusher[bot]@users.noreply.github.com"
-          git add uv.lock
-          git commit -m "chore: sync uv.lock with version bump"
-          git push origin "HEAD:$BRANCH"
+          head_sha=$(git rev-parse HEAD)
+          content_b64=$(base64 -w0 < uv.lock)
+          # shellcheck disable=SC2016 # GraphQL variables, not shell expansions.
+          gh api graphql \
+            -f repo="$GITHUB_REPOSITORY" \
+            -f branch="$BRANCH" \
+            -f sha="$head_sha" \
+            -f content="$content_b64" \
+            -f query='
+              mutation($repo: String!, $branch: String!, $sha: GitObjectID!, $content: Base64String!) {
+                createCommitOnBranch(input: {
+                  branch: { repositoryNameWithOwner: $repo, branchName: $branch },
+                  message: { headline: "chore: sync uv.lock with version bump" },
+                  expectedHeadOid: $sha,
+                  fileChanges: { additions: [{ path: "uv.lock", contents: $content }] }
+                }) {
+                  commit { url }
+                }
+              }
+            '
 
   publish:
     needs: release-please

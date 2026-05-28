@@ -98,29 +98,45 @@ jobs:
             exit 0
           fi
           head_sha=$(git rev-parse HEAD)
-          # Write the base64 to a file and pass via `-f key=@file`, not
-          # an inline shell variable. uv.lock is ~200KB; base64'd it
-          # exceeds the kernel's MAX_ARG_STRLEN limit (128KB per arg
-          # on x86_64), causing `gh api` to exit with E2BIG / 126.
           base64 -w0 < uv.lock > /tmp/uv.lock.b64
-          # shellcheck disable=SC2016 # GraphQL variables, not shell expansions.
-          gh api graphql \
-            -f repo="$GITHUB_REPOSITORY" \
-            -f branch="$BRANCH" \
-            -f sha="$head_sha" \
-            -f content=@/tmp/uv.lock.b64 \
-            -f query='
-              mutation($repo: String!, $branch: String!, $sha: GitObjectID!, $content: Base64String!) {
-                createCommitOnBranch(input: {
-                  branch: { repositoryNameWithOwner: $repo, branchName: $branch },
-                  message: { headline: "chore: sync uv.lock with version bump" },
-                  expectedHeadOid: $sha,
-                  fileChanges: { additions: [{ path: "uv.lock", contents: $content }] }
-                }) {
-                  commit { url }
-                }
+          # Build the full GraphQL request (query + variables) as JSON via
+          # jq, with the base64 content streamed in via --rawfile, and
+          # submit via `gh api graphql --input`. Two failure modes this
+          # avoids:
+          #   1. Inline `-f content=$content_b64` exceeds the kernel's
+          #      MAX_ARG_STRLEN (128KB per arg) once uv.lock grew past
+          #      ~95KB (E2BIG / exit 126).
+          #   2. `-f content=@/tmp/file` does NOT work — verified
+          #      empirically that gh's @filename expansion does not
+          #      apply to graphql variables; gh sends the literal path
+          #      as the value and the server rejects "Invalid Base64".
+          # shellcheck disable=SC2016 # jq references, not shell expansions.
+          query='mutation($repo: String!, $branch: String!, $sha: GitObjectID!, $content: Base64String!) {
+            createCommitOnBranch(input: {
+              branch: { repositoryNameWithOwner: $repo, branchName: $branch },
+              message: { headline: "chore: sync uv.lock with version bump" },
+              expectedHeadOid: $sha,
+              fileChanges: { additions: [{ path: "uv.lock", contents: $content }] }
+            }) {
+              commit { url }
+            }
+          }'
+          jq -n \
+            --arg query "$query" \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg branch "$BRANCH" \
+            --arg sha "$head_sha" \
+            --rawfile content /tmp/uv.lock.b64 \
+            '{
+              query: $query,
+              variables: {
+                repo: $repo,
+                branch: $branch,
+                sha: $sha,
+                content: ($content | rtrimstr("\n"))
               }
-            '
+            }' > /tmp/graphql.json
+          gh api graphql --input /tmp/graphql.json
 
   publish:
     needs: release-please

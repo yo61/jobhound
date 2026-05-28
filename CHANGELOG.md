@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.1](https://github.com/yo61/jobhound/compare/v0.10.0...v0.10.1) (2026-05-28)
+
+
+### Bug Fixes
+
+* add Apache-2.0 LICENSE and PyPI license metadata ([#82](https://github.com/yo61/jobhound/issues/82)) ([ebeb3b2](https://github.com/yo61/jobhound/commit/ebeb3b22a93bc3c1d27e313c5efe88712b7c4fa4))
+* **release:** pass uv.lock base64 via file, not arg ([#84](https://github.com/yo61/jobhound/issues/84)) ([b57754e](https://github.com/yo61/jobhound/commit/b57754ec09c751dcd76ad25ac7dc543a0ec5f8de))
+* **release:** submit graphql via --input file, not -f args ([#85](https://github.com/yo61/jobhound/issues/85)) ([1f6a9b5](https://github.com/yo61/jobhound/commit/1f6a9b5a1c52830ba3bd82ed42db4f7dbdcb6ffe))
+
 ## [0.10.0](https://github.com/yo61/jobhound/compare/v0.9.4...v0.10.0) (2026-05-28)
 
 

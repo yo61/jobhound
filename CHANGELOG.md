@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.2](https://github.com/yo61/jobhound/compare/v0.10.1...v0.10.2) (2026-05-29)
+
+
+### Bug Fixes
+
+* **completion:** quote current word in zsh/fish completion stubs ([#86](https://github.com/yo61/jobhound/issues/86)) ([bfa2458](https://github.com/yo61/jobhound/commit/bfa24589df6a1464c753830309ca182a138eb2ff))
+
 ## [0.10.1](https://github.com/yo61/jobhound/compare/v0.10.0...v0.10.1) (2026-05-28)
 
 

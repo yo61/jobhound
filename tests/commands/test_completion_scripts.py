@@ -51,12 +51,49 @@ def test_zsh_script_uses_at_f_split_and_compadd() -> None:
     assert "#compdef jh" in s
 
 
+def test_zsh_script_quotes_current_word() -> None:
+    """zsh script must quote ${words[$CURRENT]} so an empty current word
+    is still passed as an empty positional argument.
+
+    Without quoting, zsh elides empty unquoted expansions to zero
+    arguments, and the completer sees `jh __complete zsh jh show`
+    instead of `jh __complete zsh jh show ""`. It would then treat
+    `show` as the partial being typed and return top-level commands
+    rather than opportunity slugs.
+    """
+    s = _script("jh.zsh")
+    assert '"${words[$CURRENT]}"' in s
+
+
+def test_zsh_script_preserves_prefix_array_boundaries() -> None:
+    """zsh script must use the (@) flag when expanding the prefix tokens
+    so a previously-typed token containing whitespace (e.g. a flag value
+    like `--body "long note"`) is preserved as a single argument rather
+    than being word-split."""
+    s = _script("jh.zsh")
+    assert '"${(@)words[1,$CURRENT-1]}"' in s
+
+
 def test_fish_script_disables_file_fallback() -> None:
     """fish script must use `complete -f` (no fallback to filename completion)."""
     s = _script("jh.fish")
     assert "complete -c jh" in s
     assert "-f" in s
     assert "jh __complete fish" in s
+
+
+def test_fish_script_quotes_current_token() -> None:
+    """fish script must pass the current token as a quoted argument so
+    an empty current token reaches the completer as an empty positional.
+
+    Fish's `(cmd)` substitution contributes zero elements when `cmd`
+    outputs nothing, so an unquoted current-token expansion would be
+    elided. Quoted, an empty fish variable still produces one empty
+    string argument. Symptom of the buggy form: `jh show <TAB>` lists
+    top-level commands instead of opportunity slugs.
+    """
+    s = _script("jh.fish")
+    assert '"$current"' in s
 
 
 def test_bash_script_handles_files_sentinel() -> None:

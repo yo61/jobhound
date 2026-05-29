@@ -57,3 +57,13 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 asyncio_mode = "auto"
 pythonpath = ["."]
+# Cyclopts heuristically warns when its app is invoked without explicit
+# tokens under pytest, suggesting `app([])`. `tests/test_cli.py`
+# deliberately monkeypatches `sys.argv` and then calls `main()` (which
+# invokes `app()` with no positional tokens, so cyclopts reads the
+# replaced `sys.argv`) — exercising the production argv-reading branch.
+# Cyclopts' stack inspection can't distinguish this from a forgotten
+# `[]` and false-positives. Tracked in #89.
+filterwarnings = [
+    "ignore:Cyclopts application invoked without tokens.*:UserWarning",
+]

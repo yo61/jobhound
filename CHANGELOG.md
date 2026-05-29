@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.3](https://github.com/yo61/jobhound/compare/v0.10.2...v0.10.3) (2026-05-29)
+
+
+### Bug Fixes
+
+* **tests:** suppress cyclopts pytest-detection UserWarning ([#91](https://github.com/yo61/jobhound/issues/91)) ([e5bea7f](https://github.com/yo61/jobhound/commit/e5bea7f98feae530575ef7f3eee5089e22ee3310))
+
 ## [0.10.2](https://github.com/yo61/jobhound/compare/v0.10.1...v0.10.2) (2026-05-29)
 
 

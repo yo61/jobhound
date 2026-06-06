@@ -1,6 +1,6 @@
 [project]
 name = "jobhound"
-version = "0.10.3"
+version = "0.11.0"
 description = "Action-based CLI for tracking a job hunt"
 readme = "README.md"
 license = "Apache-2.0"

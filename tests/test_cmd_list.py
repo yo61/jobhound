@@ -101,3 +101,14 @@ def test_list_all_status_filter_composes(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
     assert "2026-05-gone-staff" in result.output
     assert "2026-05-foo-em" in result.output
+
+
+def test_list_archived_status_filter_composes(tmp_jh, invoke) -> None:
+    _seed_active_plus_archived(invoke)
+    # "gone" was archived as prospect; "foo"/"bar" are active prospects.
+    # Filter to archived rows with status prospect — should only show "gone".
+    result = invoke(["list", "--archived", "--status", "prospect"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-gone-staff" in result.output
+    assert "2026-05-foo-em" not in result.output
+    assert "2026-05-bar-ic" not in result.output

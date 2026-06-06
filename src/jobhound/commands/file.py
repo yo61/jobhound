@@ -103,7 +103,7 @@ def read(
     name: str,
     /,
     *,
-    out: Annotated[Path | None, Parameter(name=["--out"])] = None,
+    out: Annotated[Path | None, Parameter(name=["--out", "-o"])] = None,
     overwrite: Annotated[bool, Parameter(name=["--overwrite"], negative=())] = False,
 ) -> None:
     """Show the content of a file."""
@@ -125,7 +125,7 @@ def import_(
     local_path: Path,
     /,
     *,
-    name: Annotated[str | None, Parameter(name=["--name"])] = None,
+    name: Annotated[str | None, Parameter(name=["--name", "-n"])] = None,
     overwrite: Annotated[bool, Parameter(name=["--overwrite"], negative=())] = False,
 ) -> None:
     """Import a file from local disk."""
@@ -152,8 +152,8 @@ def write(
     name: str,
     /,
     *,
-    content: Annotated[str | None, Parameter(name=["--content"])] = None,
-    from_: Annotated[Path | None, Parameter(name=["--from"])] = None,
+    content: Annotated[str | None, Parameter(name=["--content", "-c"])] = None,
+    from_: Annotated[Path | None, Parameter(name=["--from", "-f"])] = None,
     overwrite: Annotated[bool, Parameter(name=["--overwrite"], negative=())] = False,
     base_revision: Annotated[str | None, Parameter(name=["--base-revision"])] = None,
 ) -> None:
@@ -195,8 +195,8 @@ def append(
     name: str,
     /,
     *,
-    content: Annotated[str | None, Parameter(name=["--content"])] = None,
-    from_: Annotated[Path | None, Parameter(name=["--from"])] = None,
+    content: Annotated[str | None, Parameter(name=["--content", "-c"])] = None,
+    from_: Annotated[Path | None, Parameter(name=["--from", "-f"])] = None,
 ) -> None:
     """Append content to a file."""
     if (content is None) == (from_ is None):
@@ -223,7 +223,7 @@ def delete(
     /,
     *,
     base_revision: Annotated[str | None, Parameter(name=["--base-revision"])] = None,
-    yes: Annotated[bool, Parameter(name=["--yes"], negative=())] = False,
+    yes: Annotated[bool, Parameter(name=["--yes", "-y"], negative=())] = False,
 ) -> None:
     """Delete a file."""
     if not yes and not questionary.confirm(f"Delete {slug}/{name}?", default=False).ask():

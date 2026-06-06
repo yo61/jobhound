@@ -290,3 +290,47 @@ def test_file_open_launcher_failure_temp_file_remains(tmp_jh, invoke, monkeypatc
     assert captured_path
     # Temp file must still be on disk so user can retry manually
     assert captured_path[0].exists()
+
+
+# ── short flag aliases ──────────────────────────────────────────────────────
+
+
+def test_file_read_short_flag_o_equals_out(tmp_jh, invoke, tmp_path) -> None:
+    _seed_opp(tmp_jh.db_path)
+    dst = tmp_path / "exported.md"
+    result = invoke(["file", "read", "acme", "cv.md", "-o", str(dst)])
+    assert result.exit_code == 0
+    assert "Experienced engineer" in dst.read_text()
+
+
+def test_file_import_short_flag_n_equals_name(tmp_jh, invoke, tmp_path) -> None:
+    _seed_opp(tmp_jh.db_path)
+    src = tmp_path / "cover.md"
+    src.write_text("cover letter content")
+    result = invoke(["file", "import", "acme", str(src), "-n", "letter.md"])
+    assert result.exit_code == 0, result.output
+    written = tmp_jh.db_path / "opportunities" / "2026-05-acme-em" / "letter.md"
+    assert written.read_text() == "cover letter content"
+
+
+def test_file_write_short_flag_c_equals_content(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    result = invoke(["file", "write", "acme", "draft.md", "-c", "v1"])
+    assert result.exit_code == 0
+    written = tmp_jh.db_path / "opportunities" / "2026-05-acme-em" / "draft.md"
+    assert written.read_text() == "v1"
+
+
+def test_file_write_short_flag_f_equals_from(tmp_jh, invoke, tmp_path) -> None:
+    _seed_opp(tmp_jh.db_path)
+    src = tmp_path / "external.md"
+    src.write_text("external content")
+    result = invoke(["file", "write", "acme", "imported.md", "-f", str(src)])
+    assert result.exit_code == 0
+
+
+def test_file_delete_short_flag_y_equals_yes(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    result = invoke(["file", "delete", "acme", "cv.md", "-y"])
+    assert result.exit_code == 0
+    assert not (tmp_jh.db_path / "opportunities" / "2026-05-acme-em" / "cv.md").exists()

@@ -20,8 +20,8 @@ from jobhound.infrastructure.paths import paths_from_config
 
 def run(
     *,
-    status: Annotated[tuple[str, ...], Parameter(name=["--status"])] = (),
-    priority: Annotated[tuple[str, ...], Parameter(name=["--priority"])] = (),
+    status: Annotated[tuple[str, ...], Parameter(name=["--status", "-s"])] = (),
+    priority: Annotated[tuple[str, ...], Parameter(name=["--priority", "-p"])] = (),
     slug: Annotated[str | None, Parameter(name=["--slug"])] = None,
     active_only: Annotated[bool, Parameter(name=["--active-only"])] = False,
     include_archived: Annotated[bool, Parameter(name=["--include-archived"])] = False,

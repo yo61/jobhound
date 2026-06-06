@@ -128,3 +128,19 @@ def test_export_empty_result_still_exits_0(tmp_jh, invoke) -> None:
     assert result.exit_code == 0
     payload = json.loads(result.output)
     assert payload["opportunities"] == []
+
+
+def test_export_short_flag_s_equals_status(tmp_jh, invoke) -> None:
+    _seed_all(tmp_jh.db_path)
+    result = invoke(["export", "-s", "applied"])
+    payload = json.loads(result.output)
+    slugs = sorted(o["slug"] for o in payload["opportunities"])
+    assert slugs == ["2026-05-acme", "2026-05-charlie"]
+
+
+def test_export_short_flag_p_equals_priority(tmp_jh, invoke) -> None:
+    _seed_all(tmp_jh.db_path)
+    result = invoke(["export", "-p", "high"])
+    payload = json.loads(result.output)
+    slugs = [o["slug"] for o in payload["opportunities"]]
+    assert slugs == ["2026-05-acme"]

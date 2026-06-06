@@ -92,3 +92,20 @@ def test_stats_archived_with_status_filter(tmp_jh, invoke) -> None:
     payload = json.loads(result.output)
     assert payload["funnel"]["prospect"] == 1
     assert payload["funnel"]["applied"] == 0
+
+
+def test_stats_short_flags_compose(tmp_jh, invoke) -> None:
+    _seed_active_plus_archived(invoke)
+    # -a (all), -s (status), -j (json) all together
+    result = invoke(["stats", "-a", "-s", "prospect", "-j"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["funnel"]["prospect"] == 2
+
+
+def test_stats_short_flag_A_equals_archived(tmp_jh, invoke) -> None:
+    _seed_active_plus_archived(invoke)
+    result = invoke(["stats", "-A", "-j"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["funnel"]["prospect"] == 1

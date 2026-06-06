@@ -22,7 +22,7 @@ def run(
     slug: str,
     /,
     *,
-    json_out: Annotated[bool, Parameter(name=["--json"])] = False,
+    json_out: Annotated[bool, Parameter(name=["--json", "-j"])] = False,
 ) -> None:
     """Show an opportunity."""
     cfg = load_config()

@@ -48,6 +48,13 @@ def test_completion_install_backs_up_existing_different_content(tmp_path: Path, 
     assert bak.read_text() == "OLD CONTENT\n"
 
 
+def test_completion_install_short_flag_d_equals_dest(tmp_path: Path, invoke) -> None:
+    result = invoke(["completion", "install", "--shell", "bash", "-d", str(tmp_path)])
+    assert result.exit_code == 0
+    target = tmp_path / "jh"
+    assert target.exists()
+
+
 # ---- maybe_refresh_installed_stubs --------------------------------------
 
 import pytest  # noqa: E402

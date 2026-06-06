@@ -193,3 +193,37 @@ def test_all_empty_dir(tmp_path: Path) -> None:
     repo = OpportunityRepository(paths, cfg)
 
     assert list(repo.all()) == []
+
+
+def test_unarchive_moves_dir_back(tmp_path: Path) -> None:
+    cfg = _make_config(tmp_path)
+    paths = paths_from_config(cfg)
+    Paths.ensure(paths)
+    repo = OpportunityRepository(paths, cfg)
+    repo.create(_make_opp(), message="new")
+    _, opp_dir = repo.find("acme")
+    repo.archive(opp_dir)
+
+    archived_dir = paths.archive_dir / "2026-05-acme-eng"
+    repo.unarchive(archived_dir)
+
+    assert not archived_dir.exists()
+    assert (paths.opportunities_dir / "2026-05-acme-eng" / "meta.toml").is_file()
+
+
+def test_unarchive_rejects_collision(tmp_path: Path) -> None:
+    cfg = _make_config(tmp_path)
+    paths = paths_from_config(cfg)
+    Paths.ensure(paths)
+    repo = OpportunityRepository(paths, cfg)
+    repo.create(_make_opp(), message="new")
+    _, opp_dir = repo.find("acme")
+    repo.archive(opp_dir)
+
+    # Re-create an active opportunity with the same slug, then try to unarchive
+    # the archived one — target exists.
+    repo.create(_make_opp(), message="new")
+    archived_dir = paths.archive_dir / "2026-05-acme-eng"
+
+    with pytest.raises(FileExistsError):
+        repo.unarchive(archived_dir)

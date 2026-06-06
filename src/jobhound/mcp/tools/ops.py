@@ -52,6 +52,22 @@ def archive_opportunity(repo: OpportunityRepository, *, slug: str) -> str:
     )
 
 
+def unarchive_opportunity(repo: OpportunityRepository, *, slug: str) -> str:
+    try:
+        before, after, new_dir = ops_service.unarchive_opportunity(repo, slug)
+    except Exception as exc:
+        return json.dumps(exception_to_response(exc, tool="unarchive_opportunity"))
+    return json.dumps(
+        mutation_response(
+            before,
+            after,
+            new_dir,
+            now=now_utc(),
+            archived=False,
+        )
+    )
+
+
 def delete_opportunity(
     repo: OpportunityRepository,
     *,
@@ -101,6 +117,13 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     )
     def _a(slug: str) -> str:
         return archive_opportunity(repo, slug=slug)
+
+    @app.tool(
+        name="unarchive_opportunity",
+        description="Restore an archived opportunity.",
+    )
+    def _u(slug: str) -> str:
+        return unarchive_opportunity(repo, slug=slug)
 
     @app.tool(
         name="delete_opportunity",

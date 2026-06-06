@@ -91,6 +91,15 @@ class OpportunityRepository:
         shutil.move(opp_dir, dst)
         self._commit(f"archive: {opp_dir.name}")
 
+    def unarchive(self, opp_dir: Path) -> None:
+        """Move `opp_dir` from archive/ back to opportunities/."""
+        dst = self.paths.opportunities_dir / opp_dir.name
+        if dst.exists():
+            raise FileExistsError(f"target folder already exists: {dst}")
+        self.paths.opportunities_dir.mkdir(parents=True, exist_ok=True)
+        shutil.move(opp_dir, dst)
+        self._commit(f"unarchive: {opp_dir.name}")
+
     def delete(self, opp_dir: Path) -> None:
         """Remove `opp_dir` from disk."""
         name = opp_dir.name

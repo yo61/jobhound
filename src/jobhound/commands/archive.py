@@ -1,4 +1,4 @@
-"""`jh archive` — move <slug> from opportunities/ to archive/."""
+"""`jh archive` — move an opportunity to the archived state."""
 
 from __future__ import annotations
 

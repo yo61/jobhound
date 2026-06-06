@@ -33,6 +33,7 @@ def _build_cyclopts_app() -> Any:
     from jobhound.commands import set as cmd_set
     from jobhound.commands import show as cmd_show
     from jobhound.commands import stats as cmd_stats
+    from jobhound.commands import unarchive as cmd_unarchive
     from jobhound.commands import withdraw as cmd_withdraw
     from jobhound.commands.completion import app as completion_app
     from jobhound.commands.file import app as file_app
@@ -53,6 +54,7 @@ def _build_cyclopts_app() -> Any:
     _cyclopts_app.command(cmd_bump.run, name="bump")
     _cyclopts_app.command(cmd_list.run, name="list")
     _cyclopts_app.command(cmd_archive.run, name="archive")
+    _cyclopts_app.command(cmd_unarchive.run, name="unarchive")
     _cyclopts_app.command(cmd_delete.run, name="delete")
     _cyclopts_app.command(cmd_show.run, name="show")
     _cyclopts_app.command(cmd_export.run, name="export")

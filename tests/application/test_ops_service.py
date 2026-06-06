@@ -93,3 +93,15 @@ def test_delete_with_confirm_removes_dir(tmp_path: Path) -> None:
     result = ops_service.delete_opportunity(repo, "acme", confirm=True)
     assert result.deleted is True
     assert not (paths.opportunities_dir / "2026-05-acme").exists()
+
+
+def test_unarchive_moves_back_to_opportunities(tmp_path: Path) -> None:
+    repo, paths, _ = _seeded(tmp_path)
+    ops_service.archive_opportunity(repo, "acme")
+    assert (paths.archive_dir / "2026-05-acme").exists()
+
+    _, _, new_dir = ops_service.unarchive_opportunity(repo, "acme")
+
+    assert not (paths.archive_dir / "2026-05-acme").exists()
+    assert (paths.opportunities_dir / "2026-05-acme").exists()
+    assert new_dir == paths.opportunities_dir / "2026-05-acme"

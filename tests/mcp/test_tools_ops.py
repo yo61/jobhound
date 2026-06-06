@@ -10,6 +10,7 @@ from jobhound.mcp.tools.ops import (
     add_note,
     archive_opportunity,
     delete_opportunity,
+    unarchive_opportunity,
 )
 
 
@@ -46,3 +47,16 @@ def test_delete_with_confirm_removes(
     payload = json.loads(delete_opportunity(repo, slug="acme", confirm=True))
     assert payload["deleted"] is True
     assert not (mcp_paths.opportunities_dir / "2026-05-acme-em").exists()
+
+
+def test_unarchive_round_trips_archive(
+    repo: OpportunityRepository,
+    mcp_paths: Paths,
+) -> None:
+    archive_payload = json.loads(archive_opportunity(repo, slug="acme"))
+    assert archive_payload["opportunity"]["archived"] is True
+
+    unarchive_payload = json.loads(unarchive_opportunity(repo, slug="acme"))
+    assert unarchive_payload["opportunity"]["archived"] is False
+    assert (mcp_paths.opportunities_dir / "2026-05-acme-em").exists()
+    assert not (mcp_paths.archive_dir / "2026-05-acme-em").exists()

@@ -112,3 +112,28 @@ def test_list_archived_status_filter_composes(tmp_jh, invoke) -> None:
     assert "2026-05-gone-staff" in result.output
     assert "2026-05-foo-em" not in result.output
     assert "2026-05-bar-ic" not in result.output
+
+
+def test_list_short_flag_a_equals_all(tmp_jh, invoke) -> None:
+    _seed_active_plus_archived(invoke)
+    result = invoke(["list", "-a"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-gone-staff" in result.output
+    assert "2026-05-foo-em" in result.output
+
+
+def test_list_short_flag_A_equals_archived(tmp_jh, invoke) -> None:
+    _seed_active_plus_archived(invoke)
+    result = invoke(["list", "-A"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-gone-staff" in result.output
+    assert "2026-05-foo-em" not in result.output
+
+
+def test_list_short_flag_s_equals_status(tmp_jh, invoke) -> None:
+    _seed_active(invoke)
+    invoke(["set", "status", "foo", "applied"])
+    result = invoke(["list", "-s", "applied"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-foo-em" in result.output
+    assert "2026-05-bar-ic" not in result.output

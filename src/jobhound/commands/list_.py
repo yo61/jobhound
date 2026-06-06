@@ -16,9 +16,9 @@ from jobhound.infrastructure.paths import paths_from_config
 
 def run(
     *,
-    all_: Annotated[bool, Parameter(name=["--all"])] = False,
-    archived: Annotated[bool, Parameter(name=["--archived"])] = False,
-    status: Annotated[list[str] | None, Parameter(name=["--status"])] = None,
+    all_: Annotated[bool, Parameter(name=["--all", "-a"])] = False,
+    archived: Annotated[bool, Parameter(name=["--archived", "-A"])] = False,
+    status: Annotated[list[str] | None, Parameter(name=["--status", "-s"])] = None,
 ) -> None:
     """List opportunities."""
     if all_ and archived:

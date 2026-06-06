@@ -236,6 +236,34 @@ def test_complete_set_priority_to_flag_returns_priority_enum(tmp_jh, invoke) -> 
     assert out == {"high", "medium", "low"}
 
 
+def test_complete_top_level_includes_unarchive(invoke) -> None:
+    """`jh __complete zsh jh ""` lists `unarchive`."""
+    result = invoke(["__complete", "zsh", "jh", ""])
+    out = set(result.output.split())
+    assert "unarchive" in out
+
+
+def test_complete_unarchive_returns_archived_slugs_only(tmp_jh, invoke) -> None:
+    """`jh __complete zsh jh unarchive ""` lists slugs from archive_dir, not opportunities."""
+    # Seed one active and one archived opportunity, both with deterministic slugs.
+    _seed_slug(tmp_jh.db_path, "2026-05-active-em")
+    archived = tmp_jh.db_path / "archive" / "2026-05-archived-em"
+    archived.mkdir(parents=True)
+    (archived / "correspondence").mkdir()
+    (archived / "meta.toml").write_text(
+        'company = "X"\nrole = "Y"\nslug = "2026-05-archived-em"\n'
+        'status = "rejected"\npriority = "high"\nsource = "X"\n'
+        "applied_on = 2026-05-01T12:00:00+00:00\n"
+        "last_activity = 2026-05-01T12:00:00+00:00\n"
+        "tags = []\n",
+    )
+
+    result = invoke(["__complete", "zsh", "jh", "unarchive", ""])
+    out = set(result.output.split())
+    assert "2026-05-archived-em" in out
+    assert "2026-05-active-em" not in out
+
+
 def test_static_tables_match_live_cyclopts_app() -> None:
     """Catch drift between static completion tables and the live App tree.
 

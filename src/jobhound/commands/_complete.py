@@ -32,6 +32,7 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
         ("ghost",),
         ("log",),
         ("show",),
+        ("unarchive",),
         ("withdraw",),
         # File sub-App
         ("file", "open"),
@@ -133,6 +134,7 @@ _TOP_LEVEL_COMMANDS: frozenset[str] = frozenset(
         "set",
         "show",
         "stats",
+        "unarchive",
         "withdraw",
     }
 )
@@ -239,20 +241,29 @@ _LOCAL_PATH_FLAGS: frozenset[tuple[tuple[str, ...], str]] = frozenset(
 )
 
 
-def _complete_slug() -> Iterable[str]:
-    """Yield canonical slug names from the opportunities directory.
+# cmd_path -> attribute name on `Paths` whose dir holds the slugs to complete.
+# Default (when a cmd_path is missing) is `opportunities_dir`.
+_SLUG_SOURCE_DIR: dict[tuple[str, ...], str] = {
+    ("unarchive",): "archive_dir",
+}
 
-    Lazy-imports config / paths to keep the static-completion path fast.
+
+def _complete_slug(cmd_path: tuple[str, ...]) -> Iterable[str]:
+    """Yield canonical slug names from the relevant directory for `cmd_path`.
+
+    Most commands take active slugs; `unarchive` takes archived ones. Lazy-imports
+    config / paths to keep the static-completion path fast.
     """
     from jobhound.infrastructure.config import load_config
     from jobhound.infrastructure.paths import paths_from_config
 
     cfg = load_config()
     paths = paths_from_config(cfg)
-    opps = paths.opportunities_dir
-    if not opps.exists():
+    source_attr = _SLUG_SOURCE_DIR.get(cmd_path, "opportunities_dir")
+    source_dir = getattr(paths, source_attr)
+    if not source_dir.exists():
         return
-    for entry in opps.iterdir():
+    for entry in source_dir.iterdir():
         if entry.is_dir() and not entry.name.startswith("."):
             yield entry.name
 
@@ -321,7 +332,7 @@ def run(
 
     # Position 0 of in_positionals: emit slugs if this command takes one.
     if len(in_positionals) == 0 and cmd_path in _SLUG_AT_POSITION:
-        for slug in sorted(_complete_slug()):
+        for slug in sorted(_complete_slug(cmd_path)):
             print(slug)
         return
 

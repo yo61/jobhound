@@ -8,7 +8,9 @@ from pathlib import Path
 
 from jobhound.application import file_service
 from jobhound.domain.opportunities import Opportunity
+from jobhound.domain.slug import resolve_slug
 from jobhound.domain.timekeeping import _format_z_seconds
+from jobhound.infrastructure.meta_io import read_meta
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.infrastructure.storage.protocols import FileStore
 
@@ -47,6 +49,18 @@ def archive_opportunity(
     opp, opp_dir = repo.find(slug)
     repo.archive(opp_dir)
     new_dir = repo.paths.archive_dir / opp_dir.name
+    return opp, opp, new_dir
+
+
+def unarchive_opportunity(
+    repo: OpportunityRepository,
+    slug: str,
+) -> tuple[Opportunity, Opportunity, Path]:
+    """Restore an archived opportunity. Returns (opp, opp, new_dir)."""
+    opp_dir = resolve_slug(slug, repo.paths.archive_dir)
+    opp = read_meta(opp_dir / "meta.toml")
+    repo.unarchive(opp_dir)
+    new_dir = repo.paths.opportunities_dir / opp_dir.name
     return opp, opp, new_dir
 
 

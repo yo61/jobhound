@@ -1,3 +1,3 @@
 """jh — action-based CLI for tracking a job hunt."""
 
-__version__ = "0.10.3"
+__version__ = "0.11.0"

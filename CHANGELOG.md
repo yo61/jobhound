@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/yo61/jobhound/compare/v0.10.3...v0.11.0) (2026-06-06)
+
+
+### Features
+
+* add jh unarchive and list/stats filters ([#95](https://github.com/yo61/jobhound/issues/95)) ([ac8ac97](https://github.com/yo61/jobhound/commit/ac8ac971211e90071aa53dca840d920f7063addd))
+* add short-flag aliases across commands ([#97](https://github.com/yo61/jobhound/issues/97)) ([243dad3](https://github.com/yo61/jobhound/commit/243dad33fc5298e59113ad246c493dc67cc10689))
+
 ## [0.10.3](https://github.com/yo61/jobhound/compare/v0.10.2...v0.10.3) (2026-05-29)
 
 

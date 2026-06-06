@@ -23,8 +23,19 @@ def run(
     try:
         _, _, new_dir = ops_service.unarchive_opportunity(repo, slug_query)
     except SlugNotFoundError:
+        from jobhound.domain.slug import AmbiguousSlugError, resolve_slug
+
+        try:
+            active_dir = resolve_slug(slug_query, paths.opportunities_dir)
+        except (SlugNotFoundError, AmbiguousSlugError):
+            print(
+                f"jh: no archived opportunity matches {slug_query!r}",
+                file=sys.stderr,
+            )
+            raise SystemExit(1) from None
         print(
-            f"jh: no archived opportunity matches {slug_query!r}",
+            f"jh: {slug_query!r} matches an active opportunity "
+            f"({active_dir.name}); nothing to unarchive",
             file=sys.stderr,
         )
         raise SystemExit(1) from None

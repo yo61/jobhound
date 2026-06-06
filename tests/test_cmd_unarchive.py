@@ -28,3 +28,14 @@ def test_unarchive_missing_slug_errors(tmp_jh, invoke) -> None:
     result = invoke(["unarchive", "nonesuch"])
     assert result.exit_code != 0
     assert "no archived opportunity matches" in result.output
+
+
+def test_unarchive_smart_error_when_slug_is_active(tmp_jh, invoke) -> None:
+    invoke(["new", "--company", "Foo", "--role", "EM", "--now", "2026-05-01T12:00:00Z"])
+    result = invoke(["unarchive", "foo"])
+    assert result.exit_code != 0
+    assert "matches an active opportunity" in result.output
+    assert "2026-05-foo-em" in result.output
+    # Sanity: nothing was moved.
+    assert (tmp_jh.db_path / "opportunities" / "2026-05-foo-em").exists()
+    assert not (tmp_jh.db_path / "archive" / "2026-05-foo-em").exists()

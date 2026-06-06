@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import Annotated
 
 from cyclopts import Parameter
 
-from jobhound.application.query import OpportunityQuery
+from jobhound.application.query import Filters, OpportunityQuery
 from jobhound.application.serialization import stats_to_dict
+from jobhound.application.snapshots import Stats
+from jobhound.domain.status import Status
+from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 
@@ -16,16 +20,65 @@ from jobhound.infrastructure.paths import paths_from_config
 def run(
     *,
     json_out: Annotated[bool, Parameter(name=["--json"])] = False,
+    all_: Annotated[bool, Parameter(name=["--all"])] = False,
+    archived: Annotated[bool, Parameter(name=["--archived"])] = False,
+    status: Annotated[list[str] | None, Parameter(name=["--status"])] = None,
 ) -> None:
     """Show pipeline stats."""
+    if all_ and archived:
+        print("jh: --all and --archived are mutually exclusive", file=sys.stderr)
+        raise SystemExit(2)
+
+    statuses = _parse_statuses(status)
+
     cfg = load_config()
     paths = paths_from_config(cfg)
     query = OpportunityQuery(paths)
-    stats = query.stats()
+
+    if archived:
+        # Active+archived then drop active rows. Filters has no archived-only mode;
+        # this keeps the read API unchanged.
+        snaps = [
+            s
+            for s in query.list(
+                Filters(statuses=statuses, include_archived=True),
+                now=now_utc(),
+            )
+            if s.archived
+        ]
+        stats = _aggregate(snaps)
+    else:
+        stats = query.stats(
+            Filters(statuses=statuses, include_archived=all_),
+        )
+
     if json_out:
         print(json.dumps(stats_to_dict(stats), indent=2))
     else:
         _print_human(stats_to_dict(stats))
+
+
+def _parse_statuses(raw: list[str] | None) -> frozenset[Status]:
+    """Accept repeated `--status` and comma-separated values."""
+    if not raw:
+        return frozenset()
+    tokens = [t.strip() for chunk in raw for t in chunk.split(",") if t.strip()]
+    try:
+        return frozenset(Status(t) for t in tokens)
+    except ValueError as exc:
+        print(f"jh: unknown status: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None
+
+
+def _aggregate(snaps: list) -> Stats:
+    """Build a Stats aggregate from a snapshot list (used for --archived only)."""
+    funnel: dict[Status, int] = dict.fromkeys(Status, 0)
+    sources: dict[str, int] = {}
+    for snap in snaps:
+        funnel[snap.opportunity.status] += 1
+        key = snap.opportunity.source or "(unspecified)"
+        sources[key] = sources.get(key, 0) + 1
+    return Stats(funnel=funnel, sources=sources)
 
 
 def _print_human(data: dict) -> None:

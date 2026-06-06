@@ -57,6 +57,14 @@ def test_show_json_output_is_envelope(tmp_jh, invoke) -> None:
     assert payload["opportunity"]["computed"]["is_active"] is True
 
 
+def test_show_short_flag_j_equals_long_json(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    result = invoke(["show", "acme", "-j"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["opportunity"]["slug"] == "2026-05-acme-em"
+
+
 def test_show_unknown_slug_exits_2(tmp_jh, invoke) -> None:
     result = invoke(["show", "nonexistent"])
     assert result.exit_code == 2

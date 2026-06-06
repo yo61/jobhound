@@ -98,7 +98,7 @@ def fish() -> None:
 def install(
     *,
     shell: Annotated[str | None, Parameter(name=["--shell"])] = None,
-    dest: Annotated[str | None, Parameter(name=["--dest"])] = None,
+    dest: Annotated[str | None, Parameter(name=["--dest", "-d"])] = None,
 ) -> None:
     """Install the jh completion script for the current shell.
 

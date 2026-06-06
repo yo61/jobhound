@@ -19,10 +19,10 @@ from jobhound.infrastructure.paths import paths_from_config
 
 def run(
     *,
-    json_out: Annotated[bool, Parameter(name=["--json"])] = False,
-    all_: Annotated[bool, Parameter(name=["--all"])] = False,
-    archived: Annotated[bool, Parameter(name=["--archived"])] = False,
-    status: Annotated[list[str] | None, Parameter(name=["--status"])] = None,
+    json_out: Annotated[bool, Parameter(name=["--json", "-j"])] = False,
+    all_: Annotated[bool, Parameter(name=["--all", "-a"])] = False,
+    archived: Annotated[bool, Parameter(name=["--archived", "-A"])] = False,
+    status: Annotated[list[str] | None, Parameter(name=["--status", "-s"])] = None,
 ) -> None:
     """Show pipeline stats."""
     if all_ and archived:

@@ -82,3 +82,13 @@ def test_stats_unknown_status_errors(tmp_jh, invoke) -> None:
     result = invoke(["stats", "--status", "made-up"])
     assert result.exit_code != 0
     assert "unknown status" in result.output
+
+
+def test_stats_archived_with_status_filter(tmp_jh, invoke) -> None:
+    _seed_active_plus_archived(invoke)
+    # "gone" was archived as prospect. Filter archived to prospect → 1 prospect.
+    result = invoke(["stats", "--archived", "--status", "prospect", "--json"])
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["funnel"]["prospect"] == 1
+    assert payload["funnel"]["applied"] == 0

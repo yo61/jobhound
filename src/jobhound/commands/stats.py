@@ -10,7 +10,7 @@ from cyclopts import Parameter
 
 from jobhound.application.query import Filters, OpportunityQuery
 from jobhound.application.serialization import stats_to_dict
-from jobhound.application.snapshots import Stats
+from jobhound.application.snapshots import OpportunitySnapshot, Stats
 from jobhound.domain.status import Status
 from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.config import load_config
@@ -70,7 +70,7 @@ def _parse_statuses(raw: list[str] | None) -> frozenset[Status]:
         raise SystemExit(2) from None
 
 
-def _aggregate(snaps: list) -> Stats:
+def _aggregate(snaps: list[OpportunitySnapshot]) -> Stats:
     """Build a Stats aggregate from a snapshot list (used for --archived only)."""
     funnel: dict[Status, int] = dict.fromkeys(Status, 0)
     sources: dict[str, int] = {}

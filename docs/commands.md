@@ -2,6 +2,27 @@
 
 Complete reference of all `jh` CLI commands. For quick help, run `jh --help` or `jh <command> --help`.
 
+## Naming convention
+
+- **Top-level verbs apply to opportunities.** `jh apply`, `jh accept`,
+  `jh archive`, `jh new`, `jh list`, `jh show`, etc. all act on the
+  opportunity identified by `SLUG_QUERY`. The `set` and `clear`
+  groups also stay at the top level because their subcommands name
+  opportunity *fields* (`jh set status`, `jh clear applied-on`), not
+  separate objects.
+- **Everything else is `jh <object> <verb>`.** Operations on child
+  collections of an opportunity (files, contacts, notes, tags, links)
+  group under the object: `jh file open`, `jh contact add`,
+  `jh note remove`, `jh tag list`, `jh link set`.
+
+The rationale and trade-offs are recorded in
+[decisions/2026-06-07-cli-verb-object-convention.md](../decisions/2026-06-07-cli-verb-object-convention.md).
+
+> **Migration in progress.** The `jh add`, `jh remove`, and
+> `jh set link` groups predate this convention and are being
+> migrated to `jh <object> <verb>`. The tables below reflect the
+> current command surface, not the post-migration shape.
+
 ## Main Commands
 
 | Command | Description |

@@ -189,3 +189,167 @@ def test_apply_creates_per_opp_commit(tmp_path: Path) -> None:
         ["git", "-C", str(db), "log", "--oneline"], text=True
     ).strip()
     assert len(final_log.splitlines()) == initial_count + 1
+
+
+# ── find_legacy_opps tests ────────────────────────────────────────────────
+
+
+def test_find_legacy_opps_empty(tmp_path: Path) -> None:
+    from jobhound.application.notes_migration import find_legacy_opps
+
+    opps = tmp_path / "opps"
+    arch = tmp_path / "arch"
+    opps.mkdir()
+    arch.mkdir()
+    assert find_legacy_opps(opps, arch) == []
+
+
+def test_find_legacy_opps_returns_only_dirs_with_notes_md(tmp_path: Path) -> None:
+    from jobhound.application.notes_migration import find_legacy_opps
+
+    opps = tmp_path / "opps"
+    arch = tmp_path / "arch"
+    opps.mkdir()
+    arch.mkdir()
+    (opps / "with-legacy").mkdir()
+    (opps / "with-legacy" / "notes.md").write_text("- 2026-05-02T14:11:08Z x\n")
+    (opps / "already-migrated").mkdir()
+    (opps / "already-migrated" / "notes").mkdir()
+    (arch / "archived-legacy").mkdir()
+    (arch / "archived-legacy" / "notes.md").write_text("- 2026-05-02T14:11:08Z y\n")
+    legacy = find_legacy_opps(opps, arch)
+    assert {p.name for p in legacy} == {"with-legacy", "archived-legacy"}
+
+
+# ── auto_migrate tests ────────────────────────────────────────────────────
+
+
+def test_auto_migrate_no_op_when_no_legacy(tmp_path: Path) -> None:
+    from jobhound.application.notes_migration import auto_migrate
+
+    opps = tmp_path / "opps"
+    arch = tmp_path / "arch"
+    opps.mkdir()
+    arch.mkdir()
+    # No git repo needed — auto_migrate returns 0 without touching anything.
+    assert auto_migrate(opps, arch, tmp_path) == 0
+
+
+def test_auto_migrate_processes_legacy_opps(tmp_path: Path) -> None:
+    """End-to-end: legacy opp gets migrated and a commit is created."""
+    from jobhound.application.notes_migration import auto_migrate
+
+    db = tmp_path / "db"
+    opps = db / "opportunities" / "2026-05-acme"
+    opps.mkdir(parents=True)
+    (db / "archive").mkdir()
+    (opps / "meta.toml").write_text(
+        'company = "Acme"\nrole = "EM"\nslug = "2026-05-acme"\n'
+        'status = "applied"\npriority = "medium"\n'
+    )
+    (opps / "notes.md").write_text("- 2026-05-02T14:11:08Z first\n")
+    subprocess.run(["git", "init", "--quiet", str(db)], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.name", "t"], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.email", "t@t"], check=True)
+    subprocess.run(["git", "-C", str(db), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(db), "commit", "-q", "-m", "seed"], check=True)
+
+    count = auto_migrate(db / "opportunities", db / "archive", db)
+    assert count == 1
+    assert (opps / "notes" / "1.md").exists()
+    assert not (opps / "notes.md").exists()
+    log = subprocess.check_output(["git", "-C", str(db), "log", "--oneline"], text=True)
+    assert "migrate: notes.md → notes/ for 2026-05-acme" in log
+
+
+def test_auto_migrate_idempotent(tmp_path: Path) -> None:
+    """Second invocation finds nothing to do."""
+    from jobhound.application.notes_migration import auto_migrate
+
+    db = tmp_path / "db"
+    opps = db / "opportunities" / "2026-05-acme"
+    opps.mkdir(parents=True)
+    (db / "archive").mkdir()
+    (opps / "meta.toml").write_text(
+        'company = "Acme"\nrole = "EM"\nslug = "2026-05-acme"\n'
+        'status = "applied"\npriority = "medium"\n'
+    )
+    (opps / "notes.md").write_text("- 2026-05-02T14:11:08Z x\n")
+    subprocess.run(["git", "init", "--quiet", str(db)], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.name", "t"], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.email", "t@t"], check=True)
+    subprocess.run(["git", "-C", str(db), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(db), "commit", "-q", "-m", "seed"], check=True)
+    auto_migrate(db / "opportunities", db / "archive", db)
+    # Second run should be a no-op.
+    assert auto_migrate(db / "opportunities", db / "archive", db) == 0
+
+
+# ── restore_legacy_notes_md tests ─────────────────────────────────────────
+
+
+def _load_restore_script():
+    """Import the restore script as a module."""
+    repo_root = Path(__file__).resolve().parents[2]
+    path = repo_root / "scripts" / "restore_legacy_notes_md.py"
+    spec = importlib.util.spec_from_file_location("restore_legacy", path)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["restore_legacy"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_restore_legacy_notes_md_after_migration(tmp_path: Path) -> None:
+    """End-to-end: migrate, then restore — old notes.md reappears."""
+    from jobhound.application.notes_migration import auto_migrate
+
+    db = tmp_path / "db"
+    opps = db / "opportunities" / "2026-05-acme"
+    opps.mkdir(parents=True)
+    (db / "archive").mkdir()
+    (opps / "meta.toml").write_text(
+        'company = "Acme"\nrole = "EM"\nslug = "2026-05-acme"\n'
+        'status = "applied"\npriority = "medium"\n'
+    )
+    original_notes = "- 2026-05-02T14:11:08Z original content\n"
+    (opps / "notes.md").write_text(original_notes)
+    subprocess.run(["git", "init", "--quiet", str(db)], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.name", "t"], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.email", "t@t"], check=True)
+    subprocess.run(["git", "-C", str(db), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(db), "commit", "-q", "-m", "seed"], check=True)
+
+    auto_migrate(db / "opportunities", db / "archive", db)
+    assert not (opps / "notes.md").exists()
+
+    mod = _load_restore_script()
+    assert mod.restore_notes_md(db, opps, "2026-05-acme") == 0
+    assert (opps / "notes.md").read_text() == original_notes
+
+
+def test_restore_refuses_when_notes_md_already_exists(tmp_path: Path) -> None:
+    from jobhound.application.notes_migration import auto_migrate
+
+    db = tmp_path / "db"
+    opps = db / "opportunities" / "2026-05-acme"
+    opps.mkdir(parents=True)
+    (db / "archive").mkdir()
+    (opps / "meta.toml").write_text(
+        'company = "Acme"\nrole = "EM"\nslug = "2026-05-acme"\n'
+        'status = "applied"\npriority = "medium"\n'
+    )
+    (opps / "notes.md").write_text("- 2026-05-02T14:11:08Z x\n")
+    subprocess.run(["git", "init", "--quiet", str(db)], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.name", "t"], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.email", "t@t"], check=True)
+    subprocess.run(["git", "-C", str(db), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(db), "commit", "-q", "-m", "seed"], check=True)
+
+    auto_migrate(db / "opportunities", db / "archive", db)
+    # Manually re-create notes.md
+    (opps / "notes.md").write_text("already exists")
+
+    mod = _load_restore_script()
+    # Should refuse with non-zero exit
+    assert mod.restore_notes_md(db, opps, "2026-05-acme") != 0

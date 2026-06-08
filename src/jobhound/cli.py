@@ -135,6 +135,29 @@ def main() -> None:
 
     _completion.maybe_refresh_installed_stubs()
 
+    # Auto-migrate legacy notes.md before any command runs. No-op when nothing
+    # to migrate; fail-fast (raises) if any opp can't be migrated.
+    try:
+        from jobhound.application.notes_migration import auto_migrate
+        from jobhound.infrastructure.config import load_config
+        from jobhound.infrastructure.paths import paths_from_config
+
+        cfg = load_config()
+        paths = paths_from_config(cfg)
+        auto_migrate(paths.opportunities_dir, paths.archive_dir, paths.db_root)
+    except FileNotFoundError:
+        # No config / no data root yet — that's fine; the command itself
+        # will report the missing config in a more useful way.
+        pass
+    except RuntimeError as exc:
+        # Per-opp migration failed; refuse to run the requested command.
+        print(f"jh: auto-migration aborted: {exc}", file=sys.stderr)
+        print(
+            "jh: run `uv run scripts/migrate_notes_to_directory.py` to investigate.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     from jobhound.application.file_service import FileServiceError
     from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
     from jobhound.domain.transitions import InvalidTransitionError

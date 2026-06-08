@@ -67,6 +67,7 @@ _FIELD_ORDER: tuple[str, ...] = (
     "tags",
     "contacts",
     "links",
+    "notes_next_seq",
 )
 
 
@@ -121,6 +122,7 @@ def _as_serializable(opp: Opportunity) -> dict[str, Any]:
         "tags": list(opp.tags) if opp.tags else None,
         "contacts": [c.to_dict() for c in opp.contacts] if opp.contacts else None,
         "links": dict(opp.links) if opp.links else None,
+        "notes_next_seq": opp.notes_next_seq,
     }
     return {k: raw[k] for k in _FIELD_ORDER if raw.get(k) is not None}
 

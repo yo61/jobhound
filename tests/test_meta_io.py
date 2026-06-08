@@ -102,3 +102,31 @@ def test_write_omits_none_fields(tmp_path: Path) -> None:
     text = path.read_text()
     assert "source" not in text
     assert "applied_on" not in text
+
+
+def test_meta_io_roundtrips_notes_next_seq(tmp_path: Path) -> None:
+    opp = _full_opp().with_notes_next_seq(7)
+    path = tmp_path / "meta.toml"
+    write_meta(opp, path)
+    loaded = read_meta(path)
+    assert loaded.notes_next_seq == 7
+
+
+def test_meta_io_rejects_notes_next_seq_zero(tmp_path: Path) -> None:
+    path = tmp_path / "meta.toml"
+    path.write_text(
+        'company = "X"\nrole = "EM"\nslug = "x"\n'
+        'status = "prospect"\npriority = "medium"\n'
+        "notes_next_seq = 0\n"
+    )
+    with pytest.raises(ValidationError):
+        read_meta(path)
+
+
+def test_meta_io_defaults_notes_next_seq_to_1_when_absent(tmp_path: Path) -> None:
+    path = tmp_path / "meta.toml"
+    path.write_text(
+        'company = "X"\nrole = "EM"\nslug = "x"\nstatus = "prospect"\npriority = "medium"\n'
+    )
+    loaded = read_meta(path)
+    assert loaded.notes_next_seq == 1

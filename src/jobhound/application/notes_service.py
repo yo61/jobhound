@@ -168,6 +168,8 @@ def _iter_notes_dir(store: FileStore, canonical: str) -> Iterator[tuple[int, str
             continue
         if name.startswith("."):
             continue
+        if "/" in name:
+            raise NoteFilenameError(name, "unexpected nested path inside notes/")
         seq = _parse_filename(name)
         if seq is None:
             raise NoteFilenameError(name, "does not match <seq>[-<slug>].md")
@@ -210,11 +212,12 @@ def read_note(
     _, opp_dir = repo.find(slug)
     canonical = opp_dir.name
     name: str | None = None
-    for s, n in _iter_notes_dir(store, canonical):
-        if s == seq:
+    # Full scan rather than early-exit: surfaces duplicate-seq corruption.
+    for found_seq, candidate in _iter_notes_dir(store, canonical):
+        if found_seq == seq:
             if name is not None:
-                raise NoteFilenameError(n, f"multiple files with seq {seq}")
-            name = n
+                raise NoteFilenameError(candidate, f"multiple files with seq {seq}")
+            name = candidate
     if name is None:
         raise NoteNotFoundError(slug, seq)
     content, revision = file_service.read(store, canonical, f"notes/{name}")
@@ -227,3 +230,63 @@ def read_note(
         body=doc.body,
         revision=revision,
     )
+
+
+def edit_note(
+    repo: OpportunityRepository,
+    store: FileStore,
+    slug: str,
+    seq: int,
+    *,
+    body: str,
+    base_revision: Revision | None = None,
+    now: datetime,
+) -> tuple[Opportunity, Opportunity, Note]:
+    """Rewrite a note's body, preserving frontmatter (`created`, `title`).
+
+    Passes `base_revision` through to `file_service.write` so the existing
+    six-case state machine handles 3-way merge on concurrent text edits.
+    Defaults to the revision read at start-of-edit if none is supplied,
+    so the common case is conflict-safe without the caller threading it.
+    """
+    body = body.strip()
+    if not body:
+        raise EmptyBodyError()
+    before, opp_dir = repo.find(slug)
+    canonical = opp_dir.name
+    note = read_note(repo, store, slug, seq)
+    new_doc = Document(
+        frontmatter=Frontmatter(created=note.created, title=note.title),
+        body=body,
+    )
+    file_service.write(
+        store,
+        canonical,
+        f"notes/{note.filename}",
+        frontmatter.serialize(new_doc),
+        base_revision=base_revision or note.revision,
+    )
+    after = before.bump(now=now)
+    repo.save(after, opp_dir, message=f"note: edit {after.slug} #{seq}")
+    refreshed = read_note(repo, store, slug, seq)
+    return before, after, refreshed
+
+
+def remove_note(
+    repo: OpportunityRepository,
+    store: FileStore,
+    slug: str,
+    seq: int,
+    *,
+    now: datetime,
+) -> tuple[Opportunity, Opportunity, int]:
+    """Delete a note's file. Does NOT decrement `notes_next_seq` — seq gaps
+    are permanent so user-facing IDs stay stable for the life of the opp.
+    """
+    before, opp_dir = repo.find(slug)
+    canonical = opp_dir.name
+    note = read_note(repo, store, slug, seq)
+    file_service.delete(store, canonical, f"notes/{note.filename}")
+    after = before.bump(now=now)
+    repo.save(after, opp_dir, message=f"note: remove {after.slug} #{seq}")
+    return before, after, seq

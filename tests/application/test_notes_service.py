@@ -11,6 +11,7 @@ import pytest
 from jobhound.application import notes_service
 from jobhound.application.notes_service import (
     EmptyBodyError,
+    NoteNotFoundError,
     TitleSlugError,
 )
 from jobhound.domain.opportunities import Opportunity
@@ -115,7 +116,6 @@ def test_add_note_rejects_title_that_slugifies_empty(tmp_path: Path) -> None:
         notes_service.add_note(repo, store, "acme", body="body", title="!!!", now=NOW)
 
 
-@pytest.mark.xfail(reason="remove_note added in Task 6")
 def test_add_note_seq_stable_after_delete(tmp_path: Path) -> None:
     repo, _, store = _seeded(tmp_path)
     notes_service.add_note(repo, store, "acme", body="a", now=NOW)
@@ -178,7 +178,62 @@ def test_read_note_returns_full_note(tmp_path: Path) -> None:
 
 def test_read_note_raises_on_missing_seq(tmp_path: Path) -> None:
     repo, _, store = _seeded(tmp_path)
-    from jobhound.application.notes_service import NoteNotFoundError
-
     with pytest.raises(NoteNotFoundError):
         notes_service.read_note(repo, store, "acme", 42)
+
+
+def test_edit_note_preserves_created_and_title(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="v1", title="greeting", now=NOW)
+    later = datetime(2026, 5, 15, 9, 0, tzinfo=UTC)
+    notes_service.edit_note(repo, store, "acme", 1, body="v2", now=later)
+    note = notes_service.read_note(repo, store, "acme", 1)
+    assert note.body == "v2"
+    assert note.title == "greeting"
+    assert note.created == NOW
+
+
+def test_edit_note_bumps_last_activity(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="v1", now=NOW)
+    later = datetime(2026, 5, 15, 9, 0, tzinfo=UTC)
+    _, after, _ = notes_service.edit_note(repo, store, "acme", 1, body="v2", now=later)
+    assert after.last_activity == later
+
+
+def test_edit_note_raises_on_missing_seq(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    with pytest.raises(NoteNotFoundError):
+        notes_service.edit_note(repo, store, "acme", 99, body="x", now=NOW)
+
+
+def test_edit_note_rejects_empty_body(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="ok", now=NOW)
+    with pytest.raises(EmptyBodyError):
+        notes_service.edit_note(repo, store, "acme", 1, body="   ", now=NOW)
+
+
+def test_remove_note_deletes_file(tmp_path: Path) -> None:
+    repo, paths, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="x", now=NOW)
+    notes_service.remove_note(repo, store, "acme", 1, now=NOW)
+    assert not (paths.opportunities_dir / "2026-05-acme" / "notes" / "1.md").exists()
+
+
+def test_remove_note_raises_on_missing_seq(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    with pytest.raises(NoteNotFoundError):
+        notes_service.remove_note(repo, store, "acme", 5, now=NOW)
+
+
+def test_remove_note_does_not_decrement_counter(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="a", now=NOW)
+    notes_service.add_note(repo, store, "acme", body="b", now=NOW)
+    notes_service.remove_note(repo, store, "acme", 2, now=NOW)
+    _, opp_dir = repo.find("acme")
+    from jobhound.infrastructure.meta_io import read_meta
+
+    opp = read_meta(opp_dir / "meta.toml")
+    assert opp.notes_next_seq == 3  # was 3 after second add; remove does not decrement

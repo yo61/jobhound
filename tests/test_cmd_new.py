@@ -26,7 +26,7 @@ def test_new_creates_directory_and_meta(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
     opp_dir = tmp_jh.db_path / "opportunities" / "2026-05-foo-corp-engineering-manager"
     assert opp_dir.is_dir()
-    assert (opp_dir / "notes.md").exists()
+    assert (opp_dir / "notes").is_dir()
     assert (opp_dir / "research.md").exists()
     assert (opp_dir / "correspondence").is_dir()
 

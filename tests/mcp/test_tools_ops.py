@@ -17,8 +17,10 @@ from jobhound.mcp.tools.ops import (
 def test_add_note(repo: OpportunityRepository, mcp_paths: Paths) -> None:
     payload = json.loads(add_note(repo, slug="acme", msg="follow-up Mon"))
     assert "opportunity" in payload
-    notes = (mcp_paths.opportunities_dir / "2026-05-acme-em" / "notes.md").read_text()
-    assert "follow-up Mon" in notes
+    notes_dir = mcp_paths.opportunities_dir / "2026-05-acme-em" / "notes"
+    assert (notes_dir / "1.md").exists()
+    contents = (notes_dir / "1.md").read_text()
+    assert "follow-up Mon" in contents
 
 
 def test_archive_moves_dir(

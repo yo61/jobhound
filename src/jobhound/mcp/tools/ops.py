@@ -25,15 +25,19 @@ def add_note(
     msg: str,
     today: str | None = None,
 ) -> str:
+    from jobhound.application import notes_service
     from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-    now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC) if today else now_utc()
+    if today:
+        now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC)
+    else:
+        now = now_utc().replace(microsecond=0)
     store = GitLocalFileStore(repo.paths)
     try:
-        before, after, opp_dir = ops_service.add_note(repo, store, slug, msg=msg, now=now)
+        result = notes_service.add_note(repo, store, slug, body=msg, now=now)
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="add_note"))
-    return json.dumps(mutation_response(before, after, opp_dir, now=now))
+    return json.dumps(mutation_response(result.before, result.after, result.opp_dir, now=now))
 
 
 def archive_opportunity(repo: OpportunityRepository, *, slug: str) -> str:

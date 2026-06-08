@@ -1,44 +1,14 @@
-"""Ops: notes, archive, delete."""
+"""Ops: archive, delete."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
-from jobhound.application import file_service
 from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.slug import resolve_slug
-from jobhound.domain.timekeeping import _format_z_seconds
 from jobhound.infrastructure.meta_io import read_meta
 from jobhound.infrastructure.repository import OpportunityRepository
-from jobhound.infrastructure.storage.protocols import FileStore
-
-
-def add_note(
-    repo: OpportunityRepository,
-    store: FileStore,
-    slug: str,
-    *,
-    msg: str,
-    now: datetime,
-) -> tuple[Opportunity, Opportunity, Path]:
-    """Append `- <timestamp> <msg>` to notes.md AND bump last_activity.
-
-    Produces TWO commits: one from file_service.append (notes.md), one
-    from repo.save (meta.toml last_activity bump). This is the deliberate
-    trade-off — each mutation is a discrete, auditable git event.
-
-    Returns (before, after, opp_dir).
-    """
-    before, opp_dir = repo.find(slug)
-    canonical = opp_dir.name
-    timestamp = _format_z_seconds(now)
-    line = f"- {timestamp} {msg}\n".encode()
-    file_service.append(store, canonical, "notes.md", line)
-    after = before.bump(now=now)
-    repo.save(after, opp_dir, message=f"note: {after.slug}")
-    return before, after, opp_dir
 
 
 def archive_opportunity(

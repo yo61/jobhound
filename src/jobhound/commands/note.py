@@ -7,7 +7,7 @@ from typing import Annotated
 
 from cyclopts import App, Parameter
 
-from jobhound.application import ops_service
+from jobhound.application import notes_service
 from jobhound.domain.timekeeping import now_utc, to_utc
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
@@ -33,6 +33,6 @@ def add(
     """Add a timestamped note."""
     repo = _repo()
     store = GitLocalFileStore(repo.paths)
-    now_obj = to_utc(now) if now else now_utc()
-    _, after, _ = ops_service.add_note(repo, store, slug_query, msg=msg, now=now_obj)
-    print(f"noted: {after.slug}")
+    now_obj = to_utc(now) if now else now_utc().replace(microsecond=0)
+    result = notes_service.add_note(repo, store, slug_query, body=msg, now=now_obj)
+    print(f"noted: {result.after.slug}")

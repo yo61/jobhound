@@ -1,99 +1,142 @@
-# Decision: Move notes from notes.md to notes/ directory
+# Decision: Per-item file storage for append-only streams
 
 ## Decision
-Replace the single per-opportunity `notes.md` file with a per-note
-file under a `notes/` directory, mirroring the existing
-`correspondence/` pattern. Each note becomes its own markdown file
-named by an ISO-8601-derived timestamp.
 
-Concrete shape:
+Append-only data streams on an opportunity (today: notes and
+correspondence) move to a directory of **per-item files**, with
+**Unix-timestamp filenames** (optionally suffixed with a title
+slug for filesystem-backend browsability) and **TOML frontmatter**
+as the source of truth for per-item metadata.
 
-- Path: `<opp>/notes/<YYYY-MM-DDTHH-MM-SSZ>.md` (colons replaced
-  with dashes in the time portion for filesystem portability).
-- Optional `--title <slug>` flag on `jh note add` produces
-  `<timestamp>-<title-slug>.md` for human-readable names.
-- Body: bare markdown. No frontmatter. Timestamp comes from the
-  filename; nothing else is currently load-bearing.
-- One note per file. Symmetry with correspondence: one file per
-  interaction.
+Concrete shape per item:
 
-`jh note add SLUG "msg"` writes the file with `"msg"` as the body
-and bumps `last_activity` on the opportunity (same semantics as
-`ops_service.add_note` today, different storage). Longer notes
-via `--from <path>` or `--from -` (stdin), matching
-`jh file write`'s shape.
+- Path on the filesystem backend:
+  `<opp>/<stream>/<unix_ts>.md` or
+  `<opp>/<stream>/<unix_ts>-<title-slug>.md` (the slug is
+  optional, supplied via `--title` at write time).
+- File contents start with TOML frontmatter, then bare markdown
+  body:
+
+```
++++
+created = 2026-06-08T14:23:05Z
+title = "Charlotte Eyre background"
++++
+
+Body markdown — bullets, paragraphs, code, whatever.
+```
+
+The frontmatter contains at minimum `created` (TOML datetime).
+Optional and stream-specific fields (`title`, `channel`,
+`direction`, `who`, …) populate as load-bearing needs emerge.
+
+The rule applies to both notes and correspondence. Notes
+implementation lands first (#102); correspondence follows in a
+separate, deferred migration.
 
 ## Context
+
 `notes.md` was an append-only single file. `jh add note` appended
 `- <ISO-Z-timestamp> <msg>\n` (`ops_service.py:37`); users and
 assistants also wrote freeform markdown (H2 day headers,
 multi-paragraph prose) directly into the same file.
 
-The real corpus (6 files total):
+Real corpus (6 files total):
 
-- 2 are essentially empty (template stub, archived opp).
-- 2 are canonical bullet-style (Menlo files — 38 bullets between
+- 2 essentially empty (template stub, archived opp).
+- 2 canonical bullet-style (Menlo files — 38 bullets between
   them).
-- 2 are pure prose with H2 day headers and no bullets at all
+- 2 pure prose with H2 day headers and no bullets at all
   (Tailscale, UKHSA).
 
-The mixed shape made CRUD on individual notes awkward: addressing
-required either a parser (timestamp prefix? substring? line
-index?) or accepting that "notes" were only the bullet lines,
-with prose forever unaddressable.
+The mixed shape made CRUD on individual notes awkward and
+ultimately drove the move to per-item files.
 
-The CRUD coverage work in #101 forced the question: can we make
-`note list`, `note show`, `note remove`, `note edit` trivial?
+A subsequent design pass surfaced a constraint not in the
+original framing: the data model should not embed
+filesystem-specific addressing conventions, because backend
+portability (SQLite, HTTP API, KV store) is a possible future
+direction. Two implications:
+
+- **Identity must look like a primary key, not a path.** Whatever
+  the filesystem uses as filename should slot cleanly into any
+  future backend as an integer ID, JSON field, or row key.
+- **Data must be self-describing.** A note's creation timestamp
+  can't live only in its filename — that's a filesystem
+  convention. The truth has to be in the data so any backend can
+  carry it without parsing a path.
+
+This reframes the choice of filename and metadata: pure ISO
+filenames look like paths and bind to filesystem layout; pure
+Unix timestamps look like IDs and survive backend migration.
+Bare markdown bodies lose metadata when divorced from filenames;
+TOML frontmatter keeps metadata with the data.
 
 ## Alternatives considered
 
-**(a) Keep notes.md, write a parser (lenient grammar — bullet
+**(a) Keep `notes.md`, write a parser (lenient grammar — bullet
 lines are notes, prose is context).** The original Q1 of #101.
 Works but requires a parser, an addressing scheme decision, and
 never makes the prose addressable.
 
-**(b) Keep notes.md, enforce strict structure (only bullet lines
-allowed).** Hostile to how users and assistants actually use the
-file today. Forces a parser anyway.
+**(b) Keep `notes.md`, enforce strict structure (only bullet
+lines allowed).** Hostile to how users and assistants actually
+use the file today. Forces a parser anyway.
 
-**(c) One file per note under `notes/` (chosen).** Filesystem is
-the parser. Each note has a stable identity (its path). CRUD
-operations become file operations. Symmetric with
-`correspondence/`. Enables a cheap derived timeline view across
-parallel structured streams.
+**(c) Per-item files with ISO-timestamp filenames + bare-markdown
+bodies (earlier draft of this decision).** CRUD becomes trivial,
+filesystem symmetry with `correspondence/` is preserved. But
+binds metadata to filesystem-specific conventions — a future
+backend migration would have to re-write all data.
+
+**(d) Per-item files with opaque IDs + self-describing metadata
+(chosen).** Filename is just an addressable key; metadata lives
+in the data. Backend-portable: works as-is in SQL (integer
+primary key), JSON APIs, KV stores, and the current filesystem.
 
 ## Reasoning
-Option (c) was chosen because:
 
-- **CRUD becomes trivial.** Every note is a file; every operation
-  on a note is a file operation. No parser, no addressing scheme
-  to design. Update (previously n/a) becomes a meaningful verb —
-  edit a file.
-- **Git audit trail per note.** Each `note add`, `note edit`,
-  `note remove` becomes its own commit (alongside the existing
-  `last_activity` bump commit, matching the current
-  two-commit-per-note pattern in `ops_service.add_note`).
-- **Symmetric with correspondence.** Already-established mental
-  model: one file per chronological event. Timeline derivation
-  becomes "iterate notes/ + correspondence/ + meta.toml
-  transitions" — three structured streams.
-- **No speculative structure.** Bare markdown body, no
-  frontmatter, no schemas. Add structure only when an attribute
-  becomes load-bearing.
+Option (d) was chosen because:
+
+- **Backend portability is preserved.** Unix-timestamp IDs slot
+  into any backend as integers. TOML frontmatter is parseable in
+  any environment. Migrating storage in the future is a backend
+  swap, not a data re-encoding.
+- **CRUD becomes trivial.** Every note is a file (today); every
+  operation on a note is a file operation. No parser for the
+  body, no addressing scheme. Update (previously n/a in the
+  single-file model) becomes a meaningful verb.
+- **TOML matches the project's existing convention.** Already
+  the format for `meta.toml`. Native datetime support means
+  `created = 2026-06-08T14:23:05Z` is a typed value, not a
+  string consumers must parse.
+- **Git audit trail per item.** Each `note add`, `note edit`,
+  `note remove` is its own commit. Cleaner than line-level diffs
+  against a single file.
+- **No speculative metadata schema.** Frontmatter starts with
+  just `created` (mandatory) and `title` (optional). Other
+  fields appear only when something needs them.
 
 ## Trade-offs accepted
 
 - **Migration cost.** Existing `notes.md` files need a one-shot
-  migration. Mixed structure makes the migration non-trivial;
-  algorithm below.
-- **More files in the data repo.** Per-opportunity directory
-  gains a `notes/` directory with N files instead of one
-  `notes.md`. Negligible at this scale.
-- **Lost ability to scroll one file for chronological review.**
-  Users who previously ran `cat notes.md` get a `ls notes/` +
-  per-file read flow. `jh note list` and the deferred
-  `jh timeline` cover this; raw filesystem access remains
-  available (`cat notes/*.md`).
+  migration. Mixed structure makes the migration non-trivial.
+  Algorithm below.
+- **Filename readability regresses.** `ls notes/` shows
+  Unix-timestamp filenames (e.g. `1812345785.md`) rather than
+  ISO dates. The optional `--title` slug suffix offsets this for
+  FS-backend DX (`1812345785-charlotte-prep.md`); raw
+  ordered-by-time browsing is still available via `ls -t`.
+- **Two layers of `created` timestamp.** Both filename and
+  frontmatter carry the creation time. Filename is a backend
+  affordance; frontmatter is the source of truth. If they ever
+  disagree (corruption, hand-editing the filename), prefer
+  frontmatter.
+- **Filesystem symmetry with `correspondence/` breaks until the
+  correspondence migration lands.** Notes adopt the new shape
+  immediately; correspondence keeps its semantic filenames
+  (`YYYY-MM-DD-channel-direction-who.md`) until its own
+  migration. Known asymmetry, intentional sequencing.
 - **No backwards compatibility.** Per "Replace, don't deprecate"
   — hard cut. The migration script runs once; old `notes.md` is
   gone afterward.
@@ -107,57 +150,94 @@ if it matches either:
 - `^- YYYY-MM-DDTHH:MM:SSZ .*` (timestamped bullet from
   `jh add note`)
 
-Each date marker starts a new note. The note's body is the marker
-line itself plus every following line up to (but not including)
-the next date marker. The note's timestamp is the date from the
-marker — H2 markers synthesize `T00:00:00Z`; bullets keep their
-full timestamp. Filename uses the dash-separated time form
-(`YYYY-MM-DDTHH-MM-SSZ.md`).
+Each date marker starts a new note. The marker's ISO timestamp
+becomes the note's `created` (H2 markers synthesize
+`T00:00:00Z`). The Unix-timestamp form of that ISO time becomes
+the filename: `notes/<unix_ts>.md`.
 
-**One note per bullet** (not day-bundled): each `jh add note`
-invocation's text was a discrete write; the migration preserves
-that discrete identity.
+Body shape after migration:
+
+```
++++
+created = <original ISO timestamp>
++++
+
+<body content>
+```
+
+Body content:
+
+- **Bullet markers:** strip the `- <ISO-timestamp> ` prefix; the
+  body is just the message text.
+- **H2 markers:** strip the `## <date>[ — suffix]` header line;
+  the body is everything below it up to (but not including) the
+  next marker.
+
+**One note per bullet** (not day-bundled).
 
 **Edge cases:**
 
 - **Pre-first-marker preamble** (e.g. `# Menlo Security Inc. —
   Running Notes`): discard. All observed preamble is a redundant
   title line.
-- **Empty placeholder notes** (body = marker line only, no real
-  content following): skip. These are leftover scaffolding
-  headers from the legacy format.
-- **Filename collisions** (two markers in the same second, or two
-  H2 headers with the same date): suffix with a counter
-  (`-2.md`, `-3.md`, …).
+- **Empty placeholder notes** (body after stripping = whitespace
+  only): skip.
+- **Filename collisions** (two markers in the same Unix second):
+  integer suffix `-2`, `-3`, … on the filename. Frontmatter
+  `created` remains the original ISO timestamp; the suffix is a
+  pure filesystem disambiguator.
 - **H2 date differing from bullet timestamps under it** (Menlo
   EM file): both still count as markers. The H2 becomes its own
   (likely empty → skipped) note; each bullet becomes its own
-  note. The "mismatch" is what we want — each bullet is when the
-  actual event happened.
+  note.
 - **Date-like strings in body content**: not markers. Only
   line-anchored `^## …` and `^- <ISO-Z-timestamp> …` count.
 - **Empty / template files**: skip entirely. The template stub
-  gets a different update (replace `notes.md` with an empty
-  `notes/` directory).
+  replaces `notes.md` with an empty `notes/` directory.
 
 **Migration script shape:** mirrors `scripts/migrate_from_yaml.py`
-— dry-run-by-default; prints the planned per-file output; applies
-on `--apply`; one bulk commit per opportunity in the data repo.
+— dry-run-by-default; prints the planned per-file output;
+applies on `--apply`; one bulk commit per opportunity in the
+data repo.
+
+## Correspondence: same rule, deferred
+
+Correspondence currently uses semantic filenames
+(`YYYY-MM-DD-channel-direction-who.md`) and a separate file per
+interaction with bare-markdown bodies. The same per-item-file
+rule applies — `correspondence/<unix_ts>.md` with TOML
+frontmatter carrying `created`, `channel`, `direction`, `who`,
+and optionally `title`.
+
+Migration is **out of scope for #102** because:
+
+- Correspondence is a smaller, less-active stream than notes.
+- Bundling both migrations widens the blast radius of one PR.
+- Notes is the immediate gating need (it blocks #101's CRUD
+  coverage); correspondence's current shape blocks nothing.
+
+Tracked separately as a follow-up issue.
 
 ## Supersedes
-None directly. Dissolves the original open design question 1 in
-#101 ("notes parser grammar + addressing scheme") — the question
-no longer applies because the filesystem is the parser.
+
+None directly. Dissolves the original Q1 of #101 ("notes parser
+grammar + addressing scheme") — the question no longer applies
+because the filesystem is just one possible backend, and item
+identity lives in the data.
 
 ## Outcome
-- This file records the decision.
-- New issue files the migration script and call-site updates
-  (`ops_service.add_note`, MCP `add_note`, file-store writes,
-  template, tests).
-- #101's `note` row in the CRUD matrix updates:
+
+- This file records the decision and the rule that covers both
+  streams.
+- Notes implementation tracked in #102 (filename, frontmatter,
+  migration script, call-site updates, CRUD verbs).
+- Correspondence migration tracked separately as a deferred
+  follow-up issue.
+- #101's `note` row in the CRUD matrix reflects the new model:
   `note add` (write file), `note list` (enumerate dir),
   `note show` (read file), `note remove` (delete file),
-  `note edit` (now a real verb — was n/a).
+  `note edit` (now a real verb).
+- `jh timeline` (#103) reads `created` from TOML frontmatter
+  rather than parsing filenames — robust to future field
+  additions and to backend swaps.
 - Open design question 1 in #101 is dissolved.
-- Future `jh timeline` (separate decision and issue) iterates
-  `notes/` and `correspondence/` as parallel structured streams.

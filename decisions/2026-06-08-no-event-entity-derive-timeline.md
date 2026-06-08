@@ -8,12 +8,18 @@ streams:
 
 - `notes/*.md` (per-note files after the notes-storage-model
   migration — see
-  [2026-06-08-notes-storage-model.md](2026-06-08-notes-storage-model.md))
+  [2026-06-08-notes-storage-model.md](2026-06-08-notes-storage-model.md)).
+  Timestamp comes from each note's TOML frontmatter `created`
+  field — robust to future field additions and to backend swaps.
 - `correspondence/*.md` (per-interaction files written by
-  `jh log`)
+  `jh log`). Today's correspondence files don't carry frontmatter
+  — the timeline derives their timestamp from the filename
+  (`YYYY-MM-DD-channel-direction-who.md`) until the correspondence
+  migration lands, then switches to frontmatter on the same rule
+  as notes.
 - meta.toml field changes (current scalar timestamp fields
   directly; git history replay for full transition history if
-  later needed)
+  later needed).
 
 Each stream's entries get tagged with their type (`note`,
 `correspondence`, `status_change`, `field_change`) and merged on

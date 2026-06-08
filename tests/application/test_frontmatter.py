@@ -64,6 +64,21 @@ def test_parse_rejects_naive_created():
         parse(b"+++\ncreated = 2026-06-08T14:23:05\n+++\n\nbody")
 
 
+def test_serialize_rejects_naive_created():
+    doc = Document(Frontmatter(created=datetime(2026, 6, 8, 14, 23, 5)), body="x")
+    with pytest.raises(FrontmatterError, match="tz-aware"):
+        serialize(doc)
+
+
+def test_serialize_rejects_microseconds():
+    doc = Document(
+        Frontmatter(created=datetime(2026, 6, 8, 14, 23, 5, 500, tzinfo=UTC)),
+        body="x",
+    )
+    with pytest.raises(FrontmatterError, match="microsecond"):
+        serialize(doc)
+
+
 def test_parse_rejects_invalid_toml():
     with pytest.raises(FrontmatterError):
         parse(b"+++\nthis is = = not toml\n+++\n\nbody")
@@ -90,13 +105,19 @@ def test_extras_passthrough():
     title=st.one_of(
         st.none(),
         st.text(
-            alphabet=st.characters(min_codepoint=32, max_codepoint=126, blacklist_characters='"\\'),
+            alphabet=st.characters(
+                whitelist_categories=("L", "N", "P", "Z"),
+                blacklist_characters=('"', "\\", "\n", "\r"),
+            ),
             min_size=1,
             max_size=40,
         ),
     ),
     body=st.text(
-        alphabet=st.characters(min_codepoint=32, max_codepoint=126),
+        alphabet=st.characters(
+            whitelist_categories=("L", "N", "P", "Z"),
+            blacklist_characters=("\r",),
+        ),
         min_size=1,
         max_size=400,
     ),

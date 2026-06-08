@@ -9,7 +9,7 @@ from __future__ import annotations
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import tomli_w
@@ -51,6 +51,13 @@ def _format_datetime(dt: datetime) -> str:
 
 def serialize(doc: Document) -> bytes:
     """Render a Document to canonical bytes."""
+    dt = doc.frontmatter.created
+    if dt.tzinfo is None:
+        raise FrontmatterError("created must be tz-aware UTC")
+    if dt.utcoffset() != timedelta(0):
+        raise FrontmatterError("created must be UTC")
+    if dt.microsecond != 0:
+        raise FrontmatterError("created must not carry microseconds")
     # Build the frontmatter lines manually for created to get `Z` suffix.
     created_line = f"created = {_format_datetime(doc.frontmatter.created)}\n".encode()
     extras: dict[str, Any] = {}
@@ -86,7 +93,8 @@ def parse(content: bytes) -> Document:
         after_marker = rest[idx + len(end_marker) :]
         # serialize() places a blank line between the closing +++ and the body;
         # strip exactly that one leading newline so body roundtrips cleanly.
-        body_raw = after_marker.lstrip(b"\n").decode("utf-8")
+        stripped = after_marker[1:] if after_marker.startswith(b"\n") else after_marker
+        body_raw = stripped.decode("utf-8")
     try:
         fm_data = tomllib.loads(fm_raw)
     except tomllib.TOMLDecodeError as exc:

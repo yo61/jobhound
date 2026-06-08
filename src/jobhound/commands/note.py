@@ -52,8 +52,9 @@ def _resolve_body(body: str | None, from_: str | None) -> str:
 def _handle_error(exc: Exception, *, verb: str) -> None:
     if isinstance(exc, (NoteNotFoundError, EmptyBodyError, NoteFilenameError, TitleSlugError)):
         print(f"{verb}: {exc}", file=sys.stderr)
-        raise SystemExit(1)
-    raise exc
+    else:
+        print(f"{verb}: error: {exc}", file=sys.stderr)
+    raise SystemExit(1)
 
 
 @app.command(name="add")

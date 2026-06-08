@@ -18,6 +18,12 @@ from jobhound.application.file_service import (
     MetaTomlProtectedError,
     TextConflictError,
 )
+from jobhound.application.notes_service import (
+    EmptyBodyError,
+    NoteFilenameError,
+    NoteNotFoundError,
+    TitleSlugError,
+)
 from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
 from jobhound.domain.transitions import InvalidTransitionError
 from jobhound.infrastructure.meta_io import ValidationError
@@ -60,6 +66,22 @@ def exception_to_response(
 
     if isinstance(exc, ValidationError):
         return tool_error_response("validation_error", str(exc))
+
+    if isinstance(exc, NoteNotFoundError):
+        return tool_error_response("note_not_found", str(exc), slug=exc.slug, seq=exc.seq)
+
+    if isinstance(exc, NoteFilenameError):
+        return tool_error_response(
+            "note_filename_invalid", str(exc), filename=exc.filename, reason=exc.reason
+        )
+
+    if isinstance(exc, EmptyBodyError):
+        return tool_error_response("empty_body", str(exc))
+
+    if isinstance(exc, TitleSlugError):
+        return tool_error_response(
+            "title_slug_invalid", str(exc), title=exc.title, reason=exc.reason
+        )
 
     if isinstance(exc, MetaTomlProtectedError):
         return tool_error_response(

@@ -49,7 +49,10 @@ def test_complete_top_level_lists_visible_commands(invoke) -> None:
     assert "file" in out
     assert "set" in out
     assert "clear" in out
-    assert "remove" in out
+    assert "contact" in out
+    assert "note" in out
+    assert "tag" in out
+    assert "link" in out
     assert "__complete" not in out  # hidden
 
 

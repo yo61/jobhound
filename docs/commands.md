@@ -18,36 +18,33 @@ Complete reference of all `jh` CLI commands. For quick help, run `jh --help` or 
 The rationale and trade-offs are recorded in
 [decisions/2026-06-07-cli-verb-object-convention.md](../decisions/2026-06-07-cli-verb-object-convention.md).
 
-> **Migration in progress.** The `jh add`, `jh remove`, and
-> `jh set link` groups predate this convention and are being
-> migrated to `jh <object> <verb>`. The tables below reflect the
-> current command surface, not the post-migration shape.
-
 ## Main Commands
 
 | Command | Description |
 | --- | --- |
 | `jh accept` | Accept the offer. |
-| `jh add` | Add a tag, contact, or note to an opportunity. |
 | `jh apply` | Apply to an opportunity. |
 | `jh archive` | Archive an opportunity. |
 | `jh bump` | Bump last-activity to now. |
 | `jh clear` | Clear a nullable field on an opportunity. |
 | `jh completion` | Print or install jh shell completion scripts. |
+| `jh contact` | Manage contacts on an opportunity. |
 | `jh decline` | Decline the offer. |
 | `jh delete` | Delete an opportunity permanently. |
 | `jh export` | Export all opportunities as JSON. |
 | `jh file` | Manage files inside an opportunity. |
 | `jh ghost` | Mark an opportunity as ghosted. |
+| `jh link` | Manage named links on an opportunity. |
 | `jh list` | List opportunities. |
 | `jh log` | Log an interaction with an opportunity. |
 | `jh mcp` | Run the MCP server over stdio. |
 | `jh migrate` | Run one-shot data migrations. |
 | `jh new` | Create a new opportunity. |
-| `jh remove` | Remove a tag, contact, or link from an opportunity. |
+| `jh note` | Manage notes on an opportunity. |
 | `jh set` | Set a single field on an opportunity. |
 | `jh show` | Show an opportunity. |
 | `jh stats` | Show pipeline stats. |
+| `jh tag` | Manage tags on an opportunity. |
 | `jh withdraw` | Withdraw from an opportunity. |
 
 ## File Sub-Commands
@@ -64,15 +61,40 @@ Use `jh file <command> <slug> [args]` to manage opportunity files.
 | `jh file read` | Print file content to stdout. |
 | `jh file write` | Write or replace a file. |
 
-## Add Sub-Commands
+## Contact Sub-Commands
 
-Use `jh add <command> <slug> [args]` to add contacts, tags, or notes.
+Use `jh contact <command> <slug> [args]` to manage contacts on an opportunity.
 
 | Command | Description |
 | --- | --- |
-| `jh add contact` | Add a contact to an opportunity. |
-| `jh add note` | Add a timestamped note to an opportunity. |
-| `jh add tag` | Add a tag to an opportunity. |
+| `jh contact add` | Add a contact to an opportunity. |
+| `jh contact remove` | Remove a contact from an opportunity. |
+
+## Note Sub-Commands
+
+Use `jh note <command> <slug> [args]` to manage notes on an opportunity.
+
+| Command | Description |
+| --- | --- |
+| `jh note add` | Add a timestamped note to an opportunity. |
+
+## Tag Sub-Commands
+
+Use `jh tag <command> <slug> <name>` to manage tags on an opportunity.
+
+| Command | Description |
+| --- | --- |
+| `jh tag add` | Add a tag to an opportunity. |
+| `jh tag remove` | Remove a tag from an opportunity. |
+
+## Link Sub-Commands
+
+Use `jh link <command> <slug> [args]` to manage named links on an opportunity.
+
+| Command | Description |
+| --- | --- |
+| `jh link set` | Add or update a named link. |
+| `jh link remove` | Remove a named link from an opportunity. |
 
 ## Set Sub-Commands
 
@@ -85,7 +107,6 @@ Each `jh set <field>` subcommand has its own signature. See `jh set <field> --he
 | `jh set company` | Set company name. |
 | `jh set first-contact` | Set first contact date. |
 | `jh set last-activity` | Set last activity timestamp. |
-| `jh set link` | Add or update a named link. |
 | `jh set location` | Set job location. |
 | `jh set next-action` | Set next action and due date. |
 | `jh set priority` | Set priority level (high, medium, low). |
@@ -106,16 +127,6 @@ Use `jh clear <command> <slug>` to clear nullable fields.
 | `jh clear location` | Clear job location. |
 | `jh clear next-action` | Clear next action. |
 | `jh clear source` | Clear opportunity source. |
-
-## Remove Sub-Commands
-
-Use `jh remove <command> <slug> [args]` to remove contacts, links, or tags.
-
-| Command | Description |
-| --- | --- |
-| `jh remove contact` | Remove a contact from an opportunity. |
-| `jh remove link` | Remove a named link from an opportunity. |
-| `jh remove tag` | Remove a tag from an opportunity. |
 
 ## Completion Sub-Commands
 
@@ -161,8 +172,8 @@ jh file delete acme research.md --yes
 jh set status acme interview
 jh set priority acme --to high
 jh set next-action acme "Follow up" 2026-05-25
-jh add tag acme fintech
-jh add contact acme --name "Jane Smith" --role-title recruiter
+jh tag add acme fintech
+jh contact add acme --name "Jane Smith" --role-title recruiter
 ```
 
 ### Export and filter

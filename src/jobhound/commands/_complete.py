@@ -42,13 +42,12 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
         ("file", "delete"),
         ("file", "list"),
         ("file", "import"),
-        # Set / clear / add / remove sub-Apps (slug after sub-verb)
+        # Set / clear sub-Apps (slug after sub-verb)
         ("set", "applied-on"),
         ("set", "comp-range"),
         ("set", "company"),
         ("set", "first-contact"),
         ("set", "last-activity"),
-        ("set", "link"),
         ("set", "location"),
         ("set", "next-action"),
         ("set", "priority"),
@@ -62,12 +61,14 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
         ("clear", "location"),
         ("clear", "next-action"),
         ("clear", "source"),
-        ("add", "contact"),
-        ("add", "note"),
-        ("add", "tag"),
-        ("remove", "contact"),
-        ("remove", "link"),
-        ("remove", "tag"),
+        # Child-object sub-Apps (slug after sub-verb)
+        ("contact", "add"),
+        ("contact", "remove"),
+        ("note", "add"),
+        ("tag", "add"),
+        ("tag", "remove"),
+        ("link", "set"),
+        ("link", "remove"),
     }
 )
 
@@ -84,7 +85,6 @@ _SUB_APP_NAMES: dict[str, frozenset[str]] = {
             "company",
             "first-contact",
             "last-activity",
-            "link",
             "location",
             "next-action",
             "priority",
@@ -104,8 +104,10 @@ _SUB_APP_NAMES: dict[str, frozenset[str]] = {
             "source",
         }
     ),
-    "add": frozenset({"contact", "note", "tag"}),
-    "remove": frozenset({"contact", "link", "tag"}),
+    "contact": frozenset({"add", "remove"}),
+    "note": frozenset({"add"}),
+    "tag": frozenset({"add", "remove"}),
+    "link": frozenset({"set", "remove"}),
     "migrate": frozenset({"utc-timestamps"}),
 }
 
@@ -114,26 +116,28 @@ _SUB_APP_NAMES: dict[str, frozenset[str]] = {
 _TOP_LEVEL_COMMANDS: frozenset[str] = frozenset(
     {
         "accept",
-        "add",
         "apply",
         "archive",
         "bump",
         "clear",
         "completion",
+        "contact",
         "decline",
         "delete",
         "export",
         "file",
         "ghost",
+        "link",
         "list",
         "log",
         "mcp",
         "migrate",
         "new",
-        "remove",
+        "note",
         "set",
         "show",
         "stats",
+        "tag",
         "unarchive",
         "withdraw",
     }

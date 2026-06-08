@@ -16,23 +16,25 @@ def _build_cyclopts_app() -> Any:
     from jobhound import __version__
     from jobhound.commands import _complete as cmd_complete
     from jobhound.commands import accept as cmd_accept
-    from jobhound.commands import add as cmd_add
     from jobhound.commands import apply as cmd_apply
     from jobhound.commands import archive as cmd_archive
     from jobhound.commands import bump as cmd_bump
     from jobhound.commands import clear as cmd_clear
+    from jobhound.commands import contact as cmd_contact
     from jobhound.commands import decline as cmd_decline
     from jobhound.commands import delete as cmd_delete
     from jobhound.commands import export as cmd_export
     from jobhound.commands import ghost as cmd_ghost
+    from jobhound.commands import link as cmd_link
     from jobhound.commands import list_ as cmd_list
     from jobhound.commands import log as cmd_log
     from jobhound.commands import migrate as cmd_migrate
     from jobhound.commands import new as cmd_new
-    from jobhound.commands import remove as cmd_remove
+    from jobhound.commands import note as cmd_note
     from jobhound.commands import set as cmd_set
     from jobhound.commands import show as cmd_show
     from jobhound.commands import stats as cmd_stats
+    from jobhound.commands import tag as cmd_tag
     from jobhound.commands import unarchive as cmd_unarchive
     from jobhound.commands import withdraw as cmd_withdraw
     from jobhound.commands.completion import app as completion_app
@@ -63,8 +65,10 @@ def _build_cyclopts_app() -> Any:
     _cyclopts_app.command(completion_app)
     _cyclopts_app.command(cmd_set.app)
     _cyclopts_app.command(cmd_clear.app)
-    _cyclopts_app.command(cmd_add.app)
-    _cyclopts_app.command(cmd_remove.app)
+    _cyclopts_app.command(cmd_contact.app)
+    _cyclopts_app.command(cmd_note.app)
+    _cyclopts_app.command(cmd_tag.app)
+    _cyclopts_app.command(cmd_link.app)
     _cyclopts_app.command(cmd_migrate.app)
     _cyclopts_app.command(cmd_complete.run, name="__complete", show=False)
 

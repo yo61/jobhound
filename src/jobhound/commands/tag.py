@@ -1,4 +1,4 @@
-"""`jh remove` subgroup — remove entries from an opportunity."""
+"""`jh tag` subgroup — manage tags on an opportunity."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 
-app = App(name="remove", help="Remove a tag, contact, or link from an opportunity.")
+app = App(name="tag", help="Manage tags on an opportunity.")
 
 
 def _repo() -> OpportunityRepository:
@@ -17,28 +17,24 @@ def _repo() -> OpportunityRepository:
     return OpportunityRepository(paths_from_config(cfg), cfg)
 
 
-@app.command(name="contact")
-def contact(
+@app.command(name="add")
+def add(
     slug_query: str,
+    tag_name: str,
     /,
-    *,
-    name: str,
-    role: str | None = None,
-    channel: str | None = None,
 ) -> None:
-    """Remove a contact."""
-    _, after, _ = relation_service.remove_contact(
+    """Add a tag."""
+    _, after, _ = relation_service.set_tags(
         _repo(),
         slug_query,
-        name=name,
-        role=role,
-        channel=channel,
+        add={tag_name},
+        remove=set(),
     )
-    print(f"contact removed: {after.slug} {name}")
+    print(f"tags {after.slug}: {after.tags}")
 
 
-@app.command(name="tag")
-def tag(
+@app.command(name="remove")
+def remove(
     slug_query: str,
     tag_name: str,
     /,
@@ -51,10 +47,3 @@ def tag(
         remove={tag_name},
     )
     print(f"tags {after.slug}: {after.tags}")
-
-
-@app.command(name="link")
-def link(slug_query: str, /, *, name: str) -> None:
-    """Remove a named link."""
-    _, after, _ = relation_service.remove_link(_repo(), slug_query, name=name)
-    print(f"link removed: {after.slug} {name}")

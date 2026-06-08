@@ -1,4 +1,4 @@
-"""Tests for `jh set` subgroup — priority, link, and the 10 deferred setters."""
+"""Tests for `jh set` subgroup — priority and the 10 deferred setters."""
 
 from datetime import UTC, datetime
 
@@ -26,15 +26,6 @@ def test_set_priority_rejects_invalid_value(tmp_jh, invoke) -> None:
     _seed(invoke)
     result = invoke(["set", "priority", "foo", "--to", "ultra"])
     assert result.exit_code != 0
-
-
-def test_set_link_add_and_update(tmp_jh, invoke) -> None:
-    _seed(invoke)
-    invoke(["set", "link", "foo", "--name", "posting", "--url", "https://e.com/1"])
-    assert _opp(tmp_jh).links == {"posting": "https://e.com/1"}
-
-    invoke(["set", "link", "foo", "--name", "posting", "--url", "https://e.com/2"])
-    assert _opp(tmp_jh).links == {"posting": "https://e.com/2"}
 
 
 def test_set_company(tmp_jh, invoke) -> None:

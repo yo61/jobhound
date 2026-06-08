@@ -7,7 +7,7 @@ from datetime import datetime
 
 from cyclopts import App
 
-from jobhound.application import field_service, relation_service
+from jobhound.application import field_service
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
 from jobhound.domain.timekeeping import to_utc
@@ -38,19 +38,6 @@ def priority(
         raise SystemExit(1) from None
     _, after, _ = field_service.set_priority(_repo(), slug_query, p)
     print(f"priority {after.slug}: {after.priority.value}")
-
-
-@app.command(name="link")
-def link(
-    slug_query: str,
-    /,
-    *,
-    name: str,
-    url: str,
-) -> None:
-    """Set or replace a named link."""
-    _, after, _ = relation_service.set_link(_repo(), slug_query, name=name, url=url)
-    print(f"link {after.slug}: {name} = {url}")
 
 
 @app.command(name="company")

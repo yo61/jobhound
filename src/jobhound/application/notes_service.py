@@ -90,6 +90,7 @@ class AddNoteResult:
     opp_dir: Path
     seq: int
     filename: str
+    created: datetime
 
 
 # ---- Filename helpers ---------------------------------------------------
@@ -149,7 +150,14 @@ def add_note(
     file_service.write(store, canonical, f"notes/{filename}", frontmatter.serialize(doc))
     after = before.bump(now=now).with_notes_next_seq(seq + 1)
     repo.save(after, opp_dir, message=f"note: {after.slug} #{seq}")
-    return AddNoteResult(before=before, after=after, opp_dir=opp_dir, seq=seq, filename=filename)
+    return AddNoteResult(
+        before=before,
+        after=after,
+        opp_dir=opp_dir,
+        seq=seq,
+        filename=filename,
+        created=now,
+    )
 
 
 # ---- Private helpers ----------------------------------------------------

@@ -49,7 +49,7 @@ def add_note(
     payload["note"] = {
         "seq": result.seq,
         "filename": result.filename,
-        "created": now.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "created": result.created.isoformat().replace("+00:00", "Z"),
         "title": title,
     }
     return json.dumps(payload)

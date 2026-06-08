@@ -28,10 +28,7 @@ def add_note(
     from jobhound.application import notes_service
     from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-    if today:
-        now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC)
-    else:
-        now = now_utc().replace(microsecond=0)
+    now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC) if today else now_utc()
     store = GitLocalFileStore(repo.paths)
     try:
         result = notes_service.add_note(repo, store, slug, body=msg, now=now)

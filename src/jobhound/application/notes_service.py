@@ -135,6 +135,9 @@ def add_note(
     body = body.strip()
     if not body:
         raise EmptyBodyError()
+    # Frontmatter stores `created` at second precision; truncate here so every
+    # adapter (CLI, MCP, migration) gets the same canonical shape automatically.
+    now = now.replace(microsecond=0)
     before, opp_dir = repo.find(slug)
     canonical = opp_dir.name
     seq = before.notes_next_seq

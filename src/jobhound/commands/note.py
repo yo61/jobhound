@@ -33,6 +33,6 @@ def add(
     """Add a timestamped note."""
     repo = _repo()
     store = GitLocalFileStore(repo.paths)
-    now_obj = to_utc(now) if now else now_utc().replace(microsecond=0)
+    now_obj = to_utc(now) if now else now_utc()
     result = notes_service.add_note(repo, store, slug_query, body=msg, now=now_obj)
     print(f"noted: {result.after.slug}")

@@ -105,7 +105,7 @@ _SUB_APP_NAMES: dict[str, frozenset[str]] = {
         }
     ),
     "contact": frozenset({"add", "remove"}),
-    "note": frozenset({"add"}),
+    "note": frozenset({"add", "list", "show", "edit", "remove"}),
     "tag": frozenset({"add", "remove"}),
     "link": frozenset({"set", "remove"}),
     "migrate": frozenset({"utc-timestamps"}),

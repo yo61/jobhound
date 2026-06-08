@@ -123,3 +123,62 @@ def test_add_note_seq_stable_after_delete(tmp_path: Path) -> None:
     notes_service.remove_note(repo, store, "acme", 2, now=NOW)
     r = notes_service.add_note(repo, store, "acme", body="c", now=NOW)
     assert r.seq == 3  # gap at 2 stays; next is 3
+
+
+def test_list_notes_empty(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    assert notes_service.list_notes(repo, store, "acme") == []
+
+
+def test_list_notes_sorted_ascending(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="first", now=NOW)
+    notes_service.add_note(repo, store, "acme", body="second", title="kickoff", now=NOW)
+    notes_service.add_note(repo, store, "acme", body="third", now=NOW)
+    summaries = notes_service.list_notes(repo, store, "acme")
+    assert [s.seq for s in summaries] == [1, 2, 3]
+    assert summaries[1].title == "kickoff"
+    assert summaries[1].filename == "2-kickoff.md"
+
+
+def test_list_notes_preserves_gaps_after_manual_delete(tmp_path: Path) -> None:
+    """We can't use remove_note (Task 6) — simulate by deleting a file directly."""
+    repo, paths, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="a", now=NOW)
+    notes_service.add_note(repo, store, "acme", body="b", now=NOW)
+    notes_service.add_note(repo, store, "acme", body="c", now=NOW)
+    (paths.opportunities_dir / "2026-05-acme" / "notes" / "2.md").unlink()
+    summaries = notes_service.list_notes(repo, store, "acme")
+    assert [s.seq for s in summaries] == [1, 3]
+
+
+def test_list_notes_raises_on_corrupt_filename(tmp_path: Path) -> None:
+    repo, paths, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="real", now=NOW)
+    # Now plant a corrupt filename next to the real one
+    notes_dir = paths.opportunities_dir / "2026-05-acme" / "notes"
+    (notes_dir / "garbage.md").write_text("+++\ncreated = 2026-01-01T00:00:00Z\n+++\n\nx")
+    from jobhound.application.notes_service import NoteFilenameError
+
+    with pytest.raises(NoteFilenameError):
+        notes_service.list_notes(repo, store, "acme")
+
+
+def test_read_note_returns_full_note(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    notes_service.add_note(repo, store, "acme", body="hello there", title="greeting", now=NOW)
+    note = notes_service.read_note(repo, store, "acme", 1)
+    assert note.seq == 1
+    assert note.filename == "1-greeting.md"
+    assert note.title == "greeting"
+    assert note.body == "hello there"
+    assert note.created == NOW
+    assert note.revision  # any non-empty Revision
+
+
+def test_read_note_raises_on_missing_seq(tmp_path: Path) -> None:
+    repo, _, store = _seeded(tmp_path)
+    from jobhound.application.notes_service import NoteNotFoundError
+
+    with pytest.raises(NoteNotFoundError):
+        notes_service.read_note(repo, store, "acme", 42)

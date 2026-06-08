@@ -131,7 +131,8 @@ def add_note(
     file, one from repo.save for the meta.toml update (last_activity
     bump + notes_next_seq increment).
     """
-    if not body.strip():
+    body = body.strip()
+    if not body:
         raise EmptyBodyError()
     before, opp_dir = repo.find(slug)
     canonical = opp_dir.name
@@ -139,7 +140,7 @@ def add_note(
     filename = _filename(seq, title)
     doc = Document(
         frontmatter=Frontmatter(created=now, title=title),
-        body=body.strip(),
+        body=body,
     )
     file_service.write(store, canonical, f"notes/{filename}", frontmatter.serialize(doc))
     after = before.bump(now=now).with_notes_next_seq(seq + 1)

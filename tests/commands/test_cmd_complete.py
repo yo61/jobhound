@@ -316,3 +316,75 @@ def test_static_tables_match_live_cyclopts_app() -> None:
             f"only in static={static_subverbs - live_subverbs}, "
             f"only in live={live_subverbs - static_subverbs}"
         )
+
+
+def test_complete_contact_show_returns_contact_names(tmp_jh, invoke) -> None:
+    """`jh __complete zsh jh contact show <slug> ""` lists contact names."""
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    # Append contacts to meta.toml
+    meta = opp_dir / "meta.toml"
+    meta.write_text(
+        meta.read_text()
+        + '[[contacts]]\nname = "Charlotte Eyre"\nrole = "EM"\n'
+        + '[[contacts]]\nname = "Jane Smith"\nrole = "Recruiter"\n'
+    )
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "contacts", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    result = invoke(["__complete", "zsh", "jh", "contact", "show", "2026-05-acme-em", ""])
+    lines = set(result.output.splitlines())
+    assert "Charlotte Eyre" in lines
+    assert "Jane Smith" in lines
+
+
+def test_complete_contact_edit_returns_contact_names(tmp_jh, invoke) -> None:
+    """`jh contact edit` also gets name completion at position 1."""
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    meta = opp_dir / "meta.toml"
+    meta.write_text(meta.read_text() + '[[contacts]]\nname = "Bob Smith"\n')
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "c", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    result = invoke(["__complete", "zsh", "jh", "contact", "edit", "2026-05-acme-em", ""])
+    assert "Bob Smith" in result.output.splitlines()
+
+
+def test_complete_contact_show_dedupes_duplicate_names(tmp_jh, invoke) -> None:
+    """When two contacts share a name, the completer emits it once."""
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    meta = opp_dir / "meta.toml"
+    meta.write_text(
+        meta.read_text()
+        + '[[contacts]]\nname = "Jane Doe"\nrole = "Recruiter"\n'
+        + '[[contacts]]\nname = "Jane Doe"\nrole = "HM"\n'
+    )
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "c", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    result = invoke(["__complete", "zsh", "jh", "contact", "show", "2026-05-acme-em", ""])
+    lines = result.output.splitlines()
+    assert lines.count("Jane Doe") == 1
+
+
+def test_complete_contact_show_no_contacts_empty(tmp_jh, invoke) -> None:
+    """Opp with no contacts → no candidates, no crash."""
+    _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    result = invoke(["__complete", "zsh", "jh", "contact", "show", "2026-05-acme-em", ""])
+    assert result.exit_code == 0
+    assert result.output.strip() == ""
+
+
+def test_complete_contact_show_unresolvable_slug_empty(tmp_jh, invoke) -> None:
+    """Unresolvable slug at position 0 → empty contact-name candidates."""
+    result = invoke(["__complete", "zsh", "jh", "contact", "show", "not-a-real-slug", ""])
+    assert result.exit_code == 0
+    assert result.output.strip() == ""

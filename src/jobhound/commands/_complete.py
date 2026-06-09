@@ -226,6 +226,18 @@ _FILENAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
 )
 
 
+# Commands whose position-1 positional is an existing contact's name
+# (e.g. `jh contact show SLUG NAME`). The completer dedupes names —
+# if multiple contacts share a name, you complete it once and pass
+# --match-role / --match-channel to disambiguate.
+_CONTACT_NAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
+    {
+        ("contact", "show"),
+        ("contact", "edit"),
+    }
+)
+
+
 # Emitted as the sole candidate when the active argument is a local
 # filesystem path. The shell stubs translate this into native file
 # completion (bash: `compopt -o default`; zsh: `_files`; fish:
@@ -301,6 +313,33 @@ def _complete_filename(slug: str) -> Iterable[str]:
         yield entry.name
 
 
+def _complete_contact_name(slug: str) -> Iterable[str]:
+    """Yield unique contact names from the given opportunity.
+
+    Lazy imports keep the slug-only completion path cheap.
+    """
+    from jobhound.domain.slug import resolve_slug
+    from jobhound.infrastructure.config import load_config
+    from jobhound.infrastructure.meta_io import read_meta
+    from jobhound.infrastructure.paths import paths_from_config
+
+    cfg = load_config()
+    paths = paths_from_config(cfg)
+    try:
+        canonical = resolve_slug(slug, paths.opportunities_dir)
+    except Exception:
+        return  # ambiguous/missing slug → no candidates
+    try:
+        opp = read_meta(canonical / "meta.toml")
+    except Exception:
+        return  # corrupt meta.toml → no candidates
+    seen: set[str] = set()
+    for c in opp.contacts:
+        if c.name not in seen:
+            seen.add(c.name)
+            yield c.name
+
+
 def run(
     shell: str, /, *words: Annotated[str, cyclopts.Parameter(allow_leading_hyphen=True)]
 ) -> None:
@@ -359,6 +398,13 @@ def run(
     if len(in_positionals) == 1 and cmd_path in _FILENAME_AT_POSITION_1:
         slug = in_positionals[0]
         for name in sorted(_complete_filename(slug)):
+            print(name)
+        return
+
+    # Position 1 = contact name (for `jh contact show/edit SLUG NAME`)
+    if len(in_positionals) == 1 and cmd_path in _CONTACT_NAME_AT_POSITION_1:
+        slug = in_positionals[0]
+        for name in sorted(_complete_contact_name(slug)):
             print(name)
         return
 

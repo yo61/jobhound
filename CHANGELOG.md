@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/yo61/jobhound/compare/v0.14.0...v0.14.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* **show:** hide meta.toml and protected stream files from output ([#120](https://github.com/yo61/jobhound/issues/120)) ([1e89600](https://github.com/yo61/jobhound/commit/1e8960022444dc714de88714f97f98c4548cbae3))
+
 ## [0.14.0](https://github.com/yo61/jobhound/compare/v0.13.0...v0.14.0) (2026-06-09)
 
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.12.0](https://github.com/yo61/jobhound/compare/v0.11.0...v0.12.0) (2026-06-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* jh note add no longer takes --msg; pass BODY positionally or via --from PATH|-. New verbs: list, show, edit, remove.
+* `jh add ...`, `jh remove ...`, and `jh set link` are removed with no aliases. Existing scripts must update to the new `jh <object> <verb>` shapes listed above.
+
+### Features
+
+* **cli:** group top-level commands in --help output ([#108](https://github.com/yo61/jobhound/issues/108)) ([100d15b](https://github.com/yo61/jobhound/commit/100d15b1e395d3b2a9927d865a2209da3dfefc0b))
+* move child-object ops under jh &lt;object&gt; &lt;verb&gt; ([#106](https://github.com/yo61/jobhound/issues/106)) ([29c8c44](https://github.com/yo61/jobhound/commit/29c8c441ec53672c07fecfcdbab4cce7f73a87b3))
+* replace notes.md with per-note files under notes/ ([#102](https://github.com/yo61/jobhound/issues/102)) ([#107](https://github.com/yo61/jobhound/issues/107)) ([945103b](https://github.com/yo61/jobhound/commit/945103b82b50105d21ca726c8906bd194da5f16c))
+
+
+### Documentation
+
+* codify CLI verb/object naming convention ([#99](https://github.com/yo61/jobhound/issues/99)) ([2bb4fc3](https://github.com/yo61/jobhound/commit/2bb4fc360017c6c2c7088da797d7854091c6fccc))
+* decide notes storage model and timeline derivation ([#104](https://github.com/yo61/jobhound/issues/104)) ([14ae7d9](https://github.com/yo61/jobhound/commit/14ae7d93f2e95b12d279d2eacba31cbd010e6ce6))
+
 ## [0.11.0](https://github.com/yo61/jobhound/compare/v0.10.3...v0.11.0) (2026-06-06)
 
 

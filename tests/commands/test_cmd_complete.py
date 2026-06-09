@@ -440,3 +440,48 @@ def test_complete_link_show_returns_existing_link_names(tmp_jh, invoke) -> None:
     lines = set(result.output.splitlines())
     assert "posting" in lines
     assert "company" in lines
+
+
+# ── Flag-value completion: enum-typed flags ──────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "cmd,flag",
+    [
+        (["list"], "--status"),
+        (["list"], "-s"),
+        (["stats"], "--status"),
+        (["stats"], "-s"),
+        (["export"], "--status"),
+        (["export"], "-s"),
+        (["log"], "--next-status"),
+    ],
+)
+def test_complete_status_flag_returns_status_values(invoke, cmd, flag) -> None:
+    """--status / -s / --next-status complete to the Status enum values."""
+    from jobhound.domain.status import Status
+
+    result = invoke(["__complete", "zsh", "jh", *cmd, flag, ""])
+    assert result.exit_code == 0
+    out = set(result.output.split())
+    for status in Status:
+        assert status.value in out, f"missing {status.value} in {sorted(out)}"
+
+
+@pytest.mark.parametrize("flag", ["--priority", "-p"])
+def test_complete_export_priority_flag_returns_priority_values(invoke, flag) -> None:
+    from jobhound.domain.priority import Priority
+
+    result = invoke(["__complete", "zsh", "jh", "export", flag, ""])
+    assert result.exit_code == 0
+    out = set(result.output.split())
+    for p in Priority:
+        assert p.value in out
+
+
+def test_complete_completion_install_shell_flag(invoke) -> None:
+    """jh completion install --shell <TAB> → bash / fish / zsh."""
+    result = invoke(["__complete", "zsh", "jh", "completion", "install", "--shell", ""])
+    assert result.exit_code == 0
+    out = set(result.output.split())
+    assert out == {"bash", "fish", "zsh"}

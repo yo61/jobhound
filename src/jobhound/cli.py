@@ -11,7 +11,7 @@ def _build_cyclopts_app() -> Any:
     Called lazily so that the heavy command-module imports (questionary,
     prompt_toolkit, etc.) are skipped on the ``__complete`` fast-path.
     """
-    from cyclopts import App
+    from cyclopts import App, Group
 
     from jobhound import __version__
     from jobhound.commands import _complete as cmd_complete
@@ -46,30 +46,40 @@ def _build_cyclopts_app() -> Any:
         version=__version__,
     )
 
-    _cyclopts_app.command(cmd_new.run, name="new")
-    _cyclopts_app.command(cmd_apply.run, name="apply")
-    _cyclopts_app.command(cmd_log.run, name="log")
-    _cyclopts_app.command(cmd_withdraw.run, name="withdraw")
-    _cyclopts_app.command(cmd_ghost.run, name="ghost")
-    _cyclopts_app.command(cmd_accept.run, name="accept")
-    _cyclopts_app.command(cmd_decline.run, name="decline")
-    _cyclopts_app.command(cmd_bump.run, name="bump")
-    _cyclopts_app.command(cmd_list.run, name="list")
-    _cyclopts_app.command(cmd_archive.run, name="archive")
-    _cyclopts_app.command(cmd_unarchive.run, name="unarchive")
-    _cyclopts_app.command(cmd_delete.run, name="delete")
-    _cyclopts_app.command(cmd_show.run, name="show")
-    _cyclopts_app.command(cmd_export.run, name="export")
-    _cyclopts_app.command(cmd_stats.run, name="stats")
-    _cyclopts_app.command(file_app)
-    _cyclopts_app.command(completion_app)
-    _cyclopts_app.command(cmd_set.app)
-    _cyclopts_app.command(cmd_clear.app)
-    _cyclopts_app.command(cmd_contact.app)
-    _cyclopts_app.command(cmd_note.app)
-    _cyclopts_app.command(cmd_tag.app)
-    _cyclopts_app.command(cmd_link.app)
+    opp_group = Group("Opportunity actions", sort_key=1)
+    object_group = Group("Object groups", sort_key=2)
+    utility_group = Group("Utilities", sort_key=3)
+
+    _cyclopts_app.command(cmd_new.run, name="new", group=opp_group)
+    _cyclopts_app.command(cmd_apply.run, name="apply", group=opp_group)
+    _cyclopts_app.command(cmd_log.run, name="log", group=opp_group)
+    _cyclopts_app.command(cmd_accept.run, name="accept", group=opp_group)
+    _cyclopts_app.command(cmd_decline.run, name="decline", group=opp_group)
+    _cyclopts_app.command(cmd_withdraw.run, name="withdraw", group=opp_group)
+    _cyclopts_app.command(cmd_ghost.run, name="ghost", group=opp_group)
+    _cyclopts_app.command(cmd_bump.run, name="bump", group=opp_group)
+    _cyclopts_app.command(cmd_archive.run, name="archive", group=opp_group)
+    _cyclopts_app.command(cmd_unarchive.run, name="unarchive", group=opp_group)
+    _cyclopts_app.command(cmd_delete.run, name="delete", group=opp_group)
+    _cyclopts_app.command(cmd_show.run, name="show", group=opp_group)
+    _cyclopts_app.command(cmd_list.run, name="list", group=opp_group)
+    _cyclopts_app.command(cmd_stats.run, name="stats", group=opp_group)
+    # Sub-Apps carry their own group via the .group attribute; cyclopts rejects
+    # `group=` as a kwarg on .command() for App instances.
+    for sub in (cmd_set.app, cmd_clear.app):
+        sub.group = opp_group
+        _cyclopts_app.command(sub)
+
+    for sub in (file_app, cmd_contact.app, cmd_note.app, cmd_tag.app, cmd_link.app):
+        sub.group = object_group
+        _cyclopts_app.command(sub)
+
+    _cyclopts_app.command(cmd_export.run, name="export", group=utility_group)
+    cmd_migrate.app.group = utility_group
     _cyclopts_app.command(cmd_migrate.app)
+    completion_app.group = utility_group
+    _cyclopts_app.command(completion_app)
+
     _cyclopts_app.command(cmd_complete.run, name="__complete", show=False)
 
     def _run_mcp() -> None:
@@ -78,7 +88,7 @@ def _build_cyclopts_app() -> Any:
 
         mcp_main()
 
-    _cyclopts_app.command(_run_mcp, name="mcp")
+    _cyclopts_app.command(_run_mcp, name="mcp", group=utility_group)
 
     return _cyclopts_app
 

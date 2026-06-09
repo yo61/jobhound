@@ -27,7 +27,7 @@ jh new --company Acme --role "Senior Engineer"
 jh apply acme
 jh log acme --channel email --direction to --who recruiter \
             --body draft.md --next-status screen
-jh note acme --msg "Recruiter mentioned a hybrid setup"
+jh note add acme "Recruiter mentioned a hybrid setup"
 jh withdraw acme
 jh list
 jh show acme                # human-readable detail; --json for the envelope

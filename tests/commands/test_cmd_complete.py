@@ -485,3 +485,108 @@ def test_complete_completion_install_shell_flag(invoke) -> None:
     assert result.exit_code == 0
     out = set(result.output.split())
     assert out == {"bash", "fish", "zsh"}
+
+
+# ── Slug-aware flag-value completion ─────────────────────────────────────
+
+
+def _seed_with_contacts(db_path: Path, contacts: list[dict]) -> Path:
+    """Seed an opp with arbitrary contacts."""
+    opp_dir = _seed_slug(db_path, "2026-05-acme-em")
+    meta = opp_dir / "meta.toml"
+    body = meta.read_text()
+    for c in contacts:
+        body += "[[contacts]]\n"
+        for k, v in c.items():
+            body += f'{k} = "{v}"\n'
+    meta.write_text(body)
+    subprocess.run(["git", "-C", str(db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(db_path), "commit", "-m", "contacts", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    return opp_dir
+
+
+def test_complete_contact_remove_name_flag_returns_names(tmp_jh, invoke) -> None:
+    """`jh contact remove SLUG --name <TAB>` → existing contact names."""
+    _seed_with_contacts(
+        tmp_jh.db_path,
+        [{"name": "Charlotte Eyre"}, {"name": "Jane Smith"}],
+    )
+    result = invoke(
+        ["__complete", "zsh", "jh", "contact", "remove", "2026-05-acme-em", "--name", ""]
+    )
+    assert result.exit_code == 0
+    out = set(result.output.split("\n"))
+    assert "Charlotte Eyre" in out
+    assert "Jane Smith" in out
+
+
+def test_complete_contact_show_match_role_flag(tmp_jh, invoke) -> None:
+    """`jh contact show SLUG --match-role <TAB>` → distinct roles seen."""
+    _seed_with_contacts(
+        tmp_jh.db_path,
+        [
+            {"name": "Jane Doe", "role": "Recruiter"},
+            {"name": "Jane Doe", "role": "HM"},
+            {"name": "Bob Smith", "role": "Recruiter"},  # dup → emit once
+        ],
+    )
+    result = invoke(
+        ["__complete", "zsh", "jh", "contact", "show", "2026-05-acme-em", "--match-role", ""]
+    )
+    assert result.exit_code == 0
+    lines = result.output.strip().splitlines()
+    assert sorted(lines) == ["HM", "Recruiter"]
+
+
+def test_complete_contact_edit_match_channel_flag(tmp_jh, invoke) -> None:
+    _seed_with_contacts(
+        tmp_jh.db_path,
+        [
+            {"name": "Alice", "channel": "email"},
+            {"name": "Bob", "channel": "linkedin"},
+        ],
+    )
+    result = invoke(
+        [
+            "__complete",
+            "zsh",
+            "jh",
+            "contact",
+            "edit",
+            "2026-05-acme-em",
+            "--match-channel",
+            "",
+        ]
+    )
+    assert result.exit_code == 0
+    out = set(result.output.split())
+    assert "email" in out
+    assert "linkedin" in out
+
+
+def test_complete_link_remove_name_flag(tmp_jh, invoke) -> None:
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    meta = opp_dir / "meta.toml"
+    meta.write_text(meta.read_text() + '[links]\nposting = "https://x"\ncompany = "https://y"\n')
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "l", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    result = invoke(["__complete", "zsh", "jh", "link", "remove", "2026-05-acme-em", "--name", ""])
+    assert result.exit_code == 0
+    out = set(result.output.split())
+    assert "posting" in out
+    assert "company" in out
+
+
+def test_complete_slug_aware_flag_without_slug_no_crash(invoke) -> None:
+    """If no positional slug yet, slug-aware flag-value completer emits nothing."""
+    result = invoke(["__complete", "zsh", "jh", "contact", "remove", "--name", ""])
+    assert result.exit_code == 0
+    assert result.output.strip() == ""

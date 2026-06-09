@@ -202,6 +202,26 @@ _POSITIONAL_ENUM_AT_POSITION_1: dict[tuple[str, ...], str] = {
 # (cmd_path, flag_name) -> enum class spec for the flag's value.
 _FLAG_ENUMS: dict[tuple[tuple[str, ...], str], str] = {
     (("set", "priority"), "--to"): "jobhound.domain.priority:Priority",
+    # `--status` filter — same enum for list / stats / export, plus their -s alias.
+    (("list",), "--status"): "jobhound.domain.status:Status",
+    (("list",), "-s"): "jobhound.domain.status:Status",
+    (("stats",), "--status"): "jobhound.domain.status:Status",
+    (("stats",), "-s"): "jobhound.domain.status:Status",
+    (("export",), "--status"): "jobhound.domain.status:Status",
+    (("export",), "-s"): "jobhound.domain.status:Status",
+    # `jh export --priority` filter.
+    (("export",), "--priority"): "jobhound.domain.priority:Priority",
+    (("export",), "-p"): "jobhound.domain.priority:Priority",
+    # `jh log --next-status` — accepts any Status value (`stay` is the
+    # no-change default; users wanting that literal can type it directly).
+    (("log",), "--next-status"): "jobhound.domain.status:Status",
+}
+
+
+# (cmd_path, flag_name) -> fixed tuple of candidates. For small sets that
+# don't have (or need) a domain enum class — e.g. `--shell bash|zsh|fish`.
+_FLAG_FIXED_VALUES: dict[tuple[tuple[str, ...], str], tuple[str, ...]] = {
+    (("completion", "install"), "--shell"): ("bash", "fish", "zsh"),
 }
 
 
@@ -412,13 +432,18 @@ def run(
     # Flag-value completion: if the previous completed token is a known flag.
     if in_positionals:
         prev = in_positionals[-1]
-        if prev.startswith("--"):
+        if prev.startswith("-"):  # `--long` or short `-s` form
             if (cmd_path, prev) in _LOCAL_PATH_FLAGS:
                 print(FILES_SENTINEL)
                 return
             spec = _FLAG_ENUMS.get((cmd_path, prev))
             if spec is not None:
                 for v in sorted(_load_enum(spec)):
+                    print(v)
+                return
+            fixed = _FLAG_FIXED_VALUES.get((cmd_path, prev))
+            if fixed is not None:
+                for v in fixed:
                     print(v)
                 return
 

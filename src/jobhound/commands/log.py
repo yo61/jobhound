@@ -60,6 +60,7 @@ def run(
         opp_dir.name,
         f"correspondence/{corr_name}",
         body.read_bytes(),
+        allow_protected=True,
     )
 
     try:

@@ -25,6 +25,7 @@ from jobhound.application.file_service import (
     FileExistsConflictError,
     InvalidFilenameError,
     MetaTomlProtectedError,
+    ProtectedPathError,
     TextConflictError,
 )
 from jobhound.application.revisions import Revision
@@ -49,6 +50,12 @@ def _handle_error(exc: Exception) -> None:
     if isinstance(exc, MetaTomlProtectedError):
         tools = ", ".join(exc.use_instead[:6]) + ", ..."
         print(f"jh: meta.toml is protected; use one of: {tools}", file=sys.stderr)
+    elif isinstance(exc, ProtectedPathError):
+        verbs = ", ".join(exc.use_instead[:4])
+        print(
+            f"jh: {exc.directory}/ is managed by structured commands; use one of: {verbs}",
+            file=sys.stderr,
+        )
     elif isinstance(exc, InvalidFilenameError):
         print(f"jh: invalid filename: {exc.reason}", file=sys.stderr)
     elif isinstance(exc, FileExistsConflictError):

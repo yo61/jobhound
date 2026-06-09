@@ -23,6 +23,15 @@ class ContactNotFoundError(RelationServiceError):
         self.name = name
 
 
+class LinkNotFoundError(RelationServiceError):
+    """No link with the given name exists on this opportunity."""
+
+    def __init__(self, slug: str, name: str) -> None:
+        super().__init__(f"no link named {name!r} in {slug}")
+        self.slug = slug
+        self.name = name
+
+
 class AmbiguousContactError(RelationServiceError):
     """More than one contact matched; caller must disambiguate."""
 
@@ -213,3 +222,28 @@ def remove_link(
     after = before.without_link(name=name)
     repo.save(after, opp_dir, message=f"link: {after.slug} -{name}")
     return before, after, opp_dir
+
+
+def list_tags(repo: OpportunityRepository, slug: str) -> tuple[Opportunity, tuple[str, ...]]:
+    """Return the opp's tags in their stored order."""
+    opp, _ = repo.find(slug)
+    return opp, opp.tags
+
+
+def list_links(repo: OpportunityRepository, slug: str) -> tuple[Opportunity, dict[str, str]]:
+    """Return the opp's named links as a name → url mapping."""
+    opp, _ = repo.find(slug)
+    return opp, dict(opp.links)
+
+
+def find_link(
+    repo: OpportunityRepository,
+    slug: str,
+    *,
+    name: str,
+) -> tuple[Opportunity, str]:
+    """Return the URL for `name`. Raises LinkNotFoundError if absent."""
+    opp, _ = repo.find(slug)
+    if name not in opp.links:
+        raise LinkNotFoundError(slug, name)
+    return opp, opp.links[name]

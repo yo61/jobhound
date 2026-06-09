@@ -95,6 +95,7 @@ Use `jh tag <command> <slug> <name>` to manage tags on an opportunity.
 | Command | Description |
 | --- | --- |
 | `jh tag add` | Add a tag to an opportunity. |
+| `jh tag list` | List tags on an opportunity (one per line). |
 | `jh tag remove` | Remove a tag from an opportunity. |
 
 ## Link Sub-Commands
@@ -104,6 +105,8 @@ Use `jh link <command> <slug> [args]` to manage named links on an opportunity.
 | Command | Description |
 | --- | --- |
 | `jh link set` | Add or update a named link. |
+| `jh link list` | List named links on an opportunity (name  url, two columns). |
+| `jh link show` | Print one link's URL (pipe-friendly: URL only). |
 | `jh link remove` | Remove a named link from an opportunity. |
 
 ## Set Sub-Commands

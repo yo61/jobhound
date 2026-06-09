@@ -74,8 +74,11 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
         ("note", "remove"),
         ("tag", "add"),
         ("tag", "remove"),
+        ("tag", "list"),
         ("link", "set"),
         ("link", "remove"),
+        ("link", "list"),
+        ("link", "show"),
     }
 )
 
@@ -113,8 +116,8 @@ _SUB_APP_NAMES: dict[str, frozenset[str]] = {
     ),
     "contact": frozenset({"add", "remove", "list", "show", "edit"}),
     "note": frozenset({"add", "list", "show", "edit", "remove"}),
-    "tag": frozenset({"add", "remove"}),
-    "link": frozenset({"set", "remove"}),
+    "tag": frozenset({"add", "remove", "list"}),
+    "link": frozenset({"set", "remove", "list", "show"}),
     "migrate": frozenset({"utc-timestamps"}),
 }
 
@@ -238,6 +241,25 @@ _CONTACT_NAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
 )
 
 
+# Commands whose position-1 positional is an existing tag (e.g.
+# `jh tag remove SLUG TAG`). `tag add` takes a NEW tag at position 1
+# so it is intentionally absent.
+_TAG_NAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
+    {
+        ("tag", "remove"),
+    }
+)
+
+
+# Commands whose position-1 positional is an existing named link
+# (e.g. `jh link show SLUG NAME`).
+_LINK_NAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
+    {
+        ("link", "show"),
+    }
+)
+
+
 # Emitted as the sole candidate when the active argument is a local
 # filesystem path. The shell stubs translate this into native file
 # completion (bash: `compopt -o default`; zsh: `_files`; fish:
@@ -313,11 +335,8 @@ def _complete_filename(slug: str) -> Iterable[str]:
         yield entry.name
 
 
-def _complete_contact_name(slug: str) -> Iterable[str]:
-    """Yield unique contact names from the given opportunity.
-
-    Lazy imports keep the slug-only completion path cheap.
-    """
+def _load_opp_for_completion(slug: str):
+    """Resolve `slug` and read meta.toml. Returns Opportunity or None."""
     from jobhound.domain.slug import resolve_slug
     from jobhound.infrastructure.config import load_config
     from jobhound.infrastructure.meta_io import read_meta
@@ -328,16 +347,39 @@ def _complete_contact_name(slug: str) -> Iterable[str]:
     try:
         canonical = resolve_slug(slug, paths.opportunities_dir)
     except Exception:
-        return  # ambiguous/missing slug → no candidates
+        return None  # ambiguous/missing slug
     try:
-        opp = read_meta(canonical / "meta.toml")
+        return read_meta(canonical / "meta.toml")
     except Exception:
-        return  # corrupt meta.toml → no candidates
+        return None  # corrupt meta.toml
+
+
+def _complete_contact_name(slug: str) -> Iterable[str]:
+    """Yield unique contact names from the given opportunity."""
+    opp = _load_opp_for_completion(slug)
+    if opp is None:
+        return
     seen: set[str] = set()
     for c in opp.contacts:
         if c.name not in seen:
             seen.add(c.name)
             yield c.name
+
+
+def _complete_tag_name(slug: str) -> Iterable[str]:
+    """Yield existing tags on the given opportunity."""
+    opp = _load_opp_for_completion(slug)
+    if opp is None:
+        return
+    yield from opp.tags
+
+
+def _complete_link_name(slug: str) -> Iterable[str]:
+    """Yield existing link names on the given opportunity."""
+    opp = _load_opp_for_completion(slug)
+    if opp is None:
+        return
+    yield from opp.links.keys()
 
 
 def run(
@@ -405,6 +447,20 @@ def run(
     if len(in_positionals) == 1 and cmd_path in _CONTACT_NAME_AT_POSITION_1:
         slug = in_positionals[0]
         for name in sorted(_complete_contact_name(slug)):
+            print(name)
+        return
+
+    # Position 1 = tag name (for `jh tag remove SLUG TAG`)
+    if len(in_positionals) == 1 and cmd_path in _TAG_NAME_AT_POSITION_1:
+        slug = in_positionals[0]
+        for name in sorted(_complete_tag_name(slug)):
+            print(name)
+        return
+
+    # Position 1 = link name (for `jh link show SLUG NAME`)
+    if len(in_positionals) == 1 and cmd_path in _LINK_NAME_AT_POSITION_1:
+        slug = in_positionals[0]
+        for name in sorted(_complete_link_name(slug)):
             print(name)
         return
 

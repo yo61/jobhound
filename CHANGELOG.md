@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.13.0](https://github.com/yo61/jobhound/compare/v0.12.0...v0.13.0) (2026-06-09)
+
+
+### Features
+
+* **contact:** add jh contact list/show/edit verbs ([#112](https://github.com/yo61/jobhound/issues/112)) ([c4800a2](https://github.com/yo61/jobhound/commit/c4800a2fd0f3b070b825299d9c49b5ea0b5b75c1))
+* **file-service:** hide structured-stream dirs from jh file API ([#111](https://github.com/yo61/jobhound/issues/111)) ([80558ae](https://github.com/yo61/jobhound/commit/80558ae5ac4030ca3f42ddc259e282278c2d9dfb))
+
+
+### Bug Fixes
+
+* **completion:** include all jh note verbs in slug-completion table ([#109](https://github.com/yo61/jobhound/issues/109)) ([6cfbaac](https://github.com/yo61/jobhound/commit/6cfbaac6c9c8fbf7d6d521a9f1292fb522ed65ea))
+
 ## [0.12.0](https://github.com/yo61/jobhound/compare/v0.11.0...v0.12.0) (2026-06-09)
 
 

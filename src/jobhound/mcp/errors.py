@@ -25,6 +25,11 @@ from jobhound.application.notes_service import (
     NoteNotFoundError,
     TitleSlugError,
 )
+from jobhound.application.relation_service import (
+    AmbiguousContactError,
+    ContactNotFoundError,
+    LinkNotFoundError,
+)
 from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
 from jobhound.domain.transitions import InvalidTransitionError
 from jobhound.infrastructure.meta_io import ValidationError
@@ -83,6 +88,21 @@ def exception_to_response(
         return tool_error_response(
             "title_slug_invalid", str(exc), title=exc.title, reason=exc.reason
         )
+
+    if isinstance(exc, ContactNotFoundError):
+        return tool_error_response("contact_not_found", str(exc), slug=exc.slug, name=exc.name)
+
+    if isinstance(exc, AmbiguousContactError):
+        return tool_error_response(
+            "ambiguous_contact",
+            str(exc),
+            slug=exc.slug,
+            name=exc.name,
+            matches=[c.to_dict() for c in exc.matches],
+        )
+
+    if isinstance(exc, LinkNotFoundError):
+        return tool_error_response("link_not_found", str(exc), slug=exc.slug, name=exc.name)
 
     if isinstance(exc, MetaTomlProtectedError):
         return tool_error_response(

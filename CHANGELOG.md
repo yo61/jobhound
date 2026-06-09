@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.0](https://github.com/yo61/jobhound/compare/v0.13.0...v0.14.0) (2026-06-09)
+
+
+### Features
+
+* **completion:** enum-flag value completion for status/priority/shell ([#116](https://github.com/yo61/jobhound/issues/116)) ([d0749e5](https://github.com/yo61/jobhound/commit/d0749e55de345769cce10fb2de5ec44d754faa54))
+* **completion:** slug-aware flag-value completion ([#117](https://github.com/yo61/jobhound/issues/117)) ([576cd3c](https://github.com/yo61/jobhound/commit/576cd3ce4c3b67a884002a623efa2a1fcbd302c0))
+* **completion:** tab-complete contact names for jh contact show/edit ([#113](https://github.com/yo61/jobhound/issues/113)) ([146a68e](https://github.com/yo61/jobhound/commit/146a68e0ad73774ce5e3daa1079536e8708df97d))
+* jh tag list, link list, link show + completion ([#115](https://github.com/yo61/jobhound/issues/115)) ([1a7e727](https://github.com/yo61/jobhound/commit/1a7e7279cd43f55a12a58aa9c33461a671f2d048))
+* **list,stats:** --priority and --slug-substring filter parity with MCP ([#119](https://github.com/yo61/jobhound/issues/119)) ([8113977](https://github.com/yo61/jobhound/commit/81139775bc65411151a3cca42b82c9f6bb37cba5))
+* **mcp:** list/show/edit contact + list tags/links + show_link ([#118](https://github.com/yo61/jobhound/issues/118)) ([7b7e1c6](https://github.com/yo61/jobhound/commit/7b7e1c6cb8510084503f6fe5ea037c169a10cc5f))
+
 ## [0.13.0](https://github.com/yo61/jobhound/compare/v0.12.0...v0.13.0) (2026-06-09)
 
 

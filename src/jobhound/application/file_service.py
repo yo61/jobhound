@@ -28,6 +28,17 @@ from jobhound.infrastructure.storage.protocols import (
     RevisionReadable,
 )
 
+# Directories whose contents are owned by structured stream commands
+# (jh note / jh log). They are hidden from `jh file list` and writes
+# under them are rejected with a pointer to the right tool. Reads are
+# allowed for parity with meta.toml — the protection is about preventing
+# accidental clobber via the file API, not about secrecy.
+_PROTECTED_DIRS: dict[str, tuple[str, ...]] = {
+    "notes": ("jh note add", "jh note edit", "jh note remove"),
+    "correspondence": ("jh log",),
+}
+
+
 # Tools that the AI should call instead of write_file on meta.toml.
 _META_USE_INSTEAD: tuple[str, ...] = (
     "set_status",
@@ -81,15 +92,38 @@ class MetaTomlProtectedError(FileServiceError):
         self.use_instead: tuple[str, ...] = _META_USE_INSTEAD
 
 
+class ProtectedPathError(FileServiceError):
+    """Write attempted on a path under a protected directory (notes/, correspondence/)."""
+
+    def __init__(self, filename: str, directory: str, use_instead: tuple[str, ...]) -> None:
+        super().__init__(
+            f"{directory}/ is managed by structured commands; "
+            f"use {use_instead[0]} (or a related verb) instead of jh file"
+        )
+        self.filename = filename
+        self.directory = directory
+        self.use_instead = use_instead
+
+
 # ---- Validation ---------------------------------------------------------
 
 
-def _validate_filename(filename: str, *, for_write: bool = True) -> None:
-    """Reject meta.toml (for writes), hidden parts, empty names, and traversal.
+def _validate_filename(
+    filename: str,
+    *,
+    for_write: bool = True,
+    allow_protected: bool = False,
+) -> None:
+    """Reject meta.toml + protected dirs (for writes), hidden parts, empty names, and traversal.
 
     Path-traversal *resolution* happens at the adapter (GitLocalFileStore)
     via Path.resolve + is_relative_to. This function rejects the obvious
     bad shapes earlier.
+
+    `allow_protected=True` is for internal services that own a protected
+    directory (notes_service writing under `notes/`, the log command
+    writing under `correspondence/`). The default `False` is the safe
+    setting for user-facing APIs (CLI `jh file`, MCP `write_file`).
     """
     if not filename:
         raise InvalidFilenameError(filename, "empty filename")
@@ -101,6 +135,8 @@ def _validate_filename(filename: str, *, for_write: bool = True) -> None:
         raise InvalidFilenameError(filename, "no path components")
     if for_write and (filename == "meta.toml" or filename.endswith("/meta.toml")):
         raise MetaTomlProtectedError(filename)
+    if for_write and not allow_protected and parts[0] in _PROTECTED_DIRS:
+        raise ProtectedPathError(filename, parts[0], _PROTECTED_DIRS[parts[0]])
     for part in parts:
         if part == "..":
             raise InvalidFilenameError(filename, "parent traversal")
@@ -138,8 +174,15 @@ def read(
 
 
 def list_(store: FileStore, slug: str) -> FileEntryList:
-    """List non-hidden, non-meta.toml files under the opp dir."""
-    return store.list(slug)
+    """List non-hidden, non-meta.toml files under the opp dir.
+
+    Entries under protected directories (`notes/`, `correspondence/`) are
+    hidden — those streams have their own structured commands (`jh note`,
+    `jh log`). The files still exist and can be read by name; they just
+    don't surface here to avoid confusion with free-form user files.
+    """
+    entries = store.list(slug)
+    return [e for e in entries if e.name.partition("/")[0] not in _PROTECTED_DIRS]
 
 
 # ---- Write exceptions ---------------------------------------------------
@@ -309,12 +352,15 @@ def write(
     *,
     base_revision: Revision | None = None,
     overwrite: bool = False,
+    allow_protected: bool = False,
 ) -> WriteResult:
     """Write a file with optimistic-concurrency conflict detection.
 
-    Implements the six-case decision matrix from the spec.
+    Implements the six-case decision matrix from the spec. Set
+    `allow_protected=True` from internal services (notes_service,
+    `jh log`) that own a protected directory's contents.
     """
-    _validate_filename(filename, for_write=True)
+    _validate_filename(filename, for_write=True, allow_protected=allow_protected)
     commit_msg = f"file: write {slug}/{filename}"
 
     file_exists = store.exists(slug, filename)
@@ -397,11 +443,13 @@ def append(
     slug: str,
     filename: str,
     content: bytes,
+    *,
+    allow_protected: bool = False,
 ) -> Revision:
     """Append bytes to a file (create if missing). No conflict detection
     — concatenation is associative. Returns the new revision.
     """
-    _validate_filename(filename, for_write=True)
+    _validate_filename(filename, for_write=True, allow_protected=allow_protected)
     store.append(
         slug,
         filename,
@@ -445,6 +493,7 @@ def import_(
     *,
     base_revision: Revision | None = None,
     overwrite: bool = False,
+    allow_protected: bool = False,
 ) -> WriteResult:
     """Write a file with content read from `src_path`.
 
@@ -465,6 +514,7 @@ def import_(
         content,
         base_revision=base_revision,
         overwrite=overwrite,
+        allow_protected=allow_protected,
     )
 
 
@@ -474,6 +524,7 @@ def delete(
     filename: str,
     *,
     base_revision: Revision | None = None,
+    allow_protected: bool = False,
 ) -> Revision:
     """Delete a file. Returns the revision it was at before deletion.
 
@@ -482,7 +533,7 @@ def delete(
     Raises FileNotFoundError if the file does not exist.
     Raises DeleteStaleBaseError if `base_revision` is provided but stale.
     """
-    _validate_filename(filename, for_write=True)
+    _validate_filename(filename, for_write=True, allow_protected=allow_protected)
     if not store.exists(slug, filename):
         raise FileNotFoundError(f"{slug}/{filename}")
     current = store.compute_revision(slug, filename)

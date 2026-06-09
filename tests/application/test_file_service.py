@@ -25,10 +25,22 @@ def test_read_missing_raises(in_memory_store: InMemoryFileStore) -> None:
 
 def test_list_returns_entries(in_memory_store: InMemoryFileStore) -> None:
     in_memory_store.write("acme", "cv.md", b"a", commit_message="s")
-    in_memory_store.write("acme", "notes.md", b"b", commit_message="s")
+    in_memory_store.write("acme", "research.md", b"b", commit_message="s")
     entries = file_service.list_(in_memory_store, "acme")
     names = [e.name for e in entries]
-    assert names == ["cv.md", "notes.md"]
+    assert names == ["cv.md", "research.md"]
+
+
+def test_list_filters_protected_dirs(in_memory_store: InMemoryFileStore) -> None:
+    in_memory_store.write("acme", "cv.md", b"a", commit_message="s")
+    in_memory_store.write("acme", "notes/1.md", b"n1", commit_message="s")
+    in_memory_store.write("acme", "notes/2-greeting.md", b"n2", commit_message="s")
+    in_memory_store.write(
+        "acme", "correspondence/2026-05-01-email-to-x.md", b"c", commit_message="s"
+    )
+    entries = file_service.list_(in_memory_store, "acme")
+    names = [e.name for e in entries]
+    assert names == ["cv.md"]
 
 
 def test_validate_rejects_meta_toml() -> None:
@@ -39,6 +51,31 @@ def test_validate_rejects_meta_toml() -> None:
     assert exc.value.use_instead  # non-empty
 
 
+@pytest.mark.parametrize(
+    "filename,directory",
+    [
+        ("notes/1.md", "notes"),
+        ("notes/5-charlotte-prep.md", "notes"),
+        ("notes", "notes"),  # bare directory name treated as protected
+        ("correspondence/2026-05-01-email-to-x.md", "correspondence"),
+        ("correspondence", "correspondence"),
+    ],
+)
+def test_validate_rejects_writes_under_protected_dirs(filename: str, directory: str) -> None:
+    from jobhound.application.file_service import ProtectedPathError
+
+    with pytest.raises(ProtectedPathError) as exc:
+        file_service._validate_filename(filename, for_write=True)
+    assert exc.value.directory == directory
+    assert exc.value.use_instead  # non-empty
+
+
+@pytest.mark.parametrize("filename", ["notes/1.md", "correspondence/anything.md"])
+def test_validate_allows_reads_of_protected_dirs(filename: str) -> None:
+    # for_write=False — reads are unrestricted, same as meta.toml.
+    file_service._validate_filename(filename, for_write=False)
+
+
 def test_validate_rejects_hidden() -> None:
     with pytest.raises(InvalidFilenameError):
         file_service._validate_filename(".DS_Store")
@@ -46,7 +83,7 @@ def test_validate_rejects_hidden() -> None:
 
 def test_validate_rejects_subdir_hidden() -> None:
     with pytest.raises(InvalidFilenameError):
-        file_service._validate_filename("correspondence/.hidden")
+        file_service._validate_filename("research/.hidden")
 
 
 def test_validate_rejects_empty() -> None:
@@ -71,7 +108,7 @@ def test_validate_rejects_nested_parent_traversal() -> None:
 
 def test_validate_allows_normal_and_subdir() -> None:
     file_service._validate_filename("cv.md")
-    file_service._validate_filename("correspondence/2026-05-01-intro.md")
+    file_service._validate_filename("research/company.md")
 
 
 def test_read_allows_meta_toml(in_memory_store: InMemoryFileStore) -> None:

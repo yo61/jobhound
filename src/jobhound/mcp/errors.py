@@ -16,6 +16,7 @@ from jobhound.application.file_service import (
     FileExistsConflictError,
     InvalidFilenameError,
     MetaTomlProtectedError,
+    ProtectedPathError,
     TextConflictError,
 )
 from jobhound.application.notes_service import (
@@ -88,6 +89,15 @@ def exception_to_response(
             "meta_toml_protected",
             str(exc),
             filename=exc.filename,
+            use_instead=list(exc.use_instead),
+        )
+
+    if isinstance(exc, ProtectedPathError):
+        return tool_error_response(
+            "protected_path",
+            str(exc),
+            filename=exc.filename,
+            directory=exc.directory,
             use_instead=list(exc.use_instead),
         )
 

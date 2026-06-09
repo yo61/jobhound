@@ -147,7 +147,13 @@ def add_note(
         frontmatter=Frontmatter(created=now, title=title),
         body=body,
     )
-    file_service.write(store, canonical, f"notes/{filename}", frontmatter.serialize(doc))
+    file_service.write(
+        store,
+        canonical,
+        f"notes/{filename}",
+        frontmatter.serialize(doc),
+        allow_protected=True,
+    )
     after = before.bump(now=now).with_notes_next_seq(seq + 1)
     repo.save(after, opp_dir, message=f"note: {after.slug} #{seq}")
     return AddNoteResult(
@@ -276,6 +282,7 @@ def edit_note(
         f"notes/{note.filename}",
         frontmatter.serialize(new_doc),
         base_revision=base_revision or note.revision,
+        allow_protected=True,
     )
     after = before.bump(now=now)
     repo.save(after, opp_dir, message=f"note: edit {after.slug} #{seq}")
@@ -297,7 +304,7 @@ def remove_note(
     before, opp_dir = repo.find(slug)
     canonical = opp_dir.name
     note = read_note(repo, store, slug, seq)
-    file_service.delete(store, canonical, f"notes/{note.filename}")
+    file_service.delete(store, canonical, f"notes/{note.filename}", allow_protected=True)
     after = before.bump(now=now)
     repo.save(after, opp_dir, message=f"note: remove {after.slug} #{seq}")
     return before, after, seq

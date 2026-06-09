@@ -37,6 +37,44 @@ def test_file_list_shows_files(tmp_jh, invoke) -> None:
     assert "cv.md" in result.output
 
 
+def test_file_list_hides_notes_and_correspondence(tmp_jh, invoke) -> None:
+    """Files under structured-stream dirs (notes/, correspondence/) don't
+    surface in `jh file list` — those streams have their own commands."""
+    _seed_opp(tmp_jh.db_path)
+    opp_dir = tmp_jh.db_path / "opportunities" / "2026-05-acme-em"
+    (opp_dir / "notes").mkdir(exist_ok=True)
+    (opp_dir / "notes" / "1.md").write_text(
+        "+++\ncreated = 2026-05-01T12:00:00Z\n+++\n\nfirst note\n"
+    )
+    (opp_dir / "correspondence" / "2026-05-01-email-to-x.md").write_text("hi")
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "seed-streams", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    result = invoke(["file", "list", "acme"])
+    assert result.exit_code == 0
+    assert "cv.md" in result.output  # sanity: free-form files still shown
+    assert "1.md" not in result.output
+    assert "notes/" not in result.output
+    assert "correspondence/" not in result.output
+
+
+def test_file_write_rejects_notes_path(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    result = invoke(["file", "write", "acme", "notes/9.md", "--content", "hi"])
+    assert result.exit_code == 1
+    assert "notes" in result.output
+
+
+def test_file_write_rejects_correspondence_path(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    result = invoke(["file", "write", "acme", "correspondence/foo.md", "--content", "hi"])
+    assert result.exit_code == 1
+    assert "correspondence" in result.output
+
+
 def test_file_read_prints_content(tmp_jh, invoke) -> None:
     _seed_opp(tmp_jh.db_path)
     result = invoke(["file", "read", "acme", "cv.md"])

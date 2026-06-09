@@ -241,3 +241,31 @@ identity lives in the data.
   rather than parsing filenames — robust to future field
   additions and to backend swaps.
 - Open design question 1 in #101 is dissolved.
+
+## Revision (2026-06-08)
+
+Filename shape changed from Unix-timestamp (`<unix_ts>.md`) to
+**per-opportunity monotonic sequence** (`<seq>.md` or
+`<seq>-<title>.md`). The sequence counter lives in `meta.toml` as
+`notes_next_seq` and never decrements — deleting the highest-numbered
+note leaves a permanent gap, so note IDs are stable for the life of
+the opportunity.
+
+Reasoning:
+
+- The decision's intent — "identity must look like a primary key, not
+  a path" — is satisfied more directly by a monotonic integer than by
+  a Unix timestamp.
+- Backend portability is preserved (sequence integer maps cleanly to
+  SQL primary keys, JSON IDs, KV row keys).
+- User-facing IDs are stable across deletes; `note 3` always refers
+  to the same note that was created third.
+- Migration assigns seq 1..N to existing notes in chronological order
+  by `created`.
+
+Supersedes the "Concrete shape per item" path in the original
+decision (`<opp>/<stream>/<unix_ts>.md`). Frontmatter shape unchanged.
+
+Open: correspondence (#105) will reuse the same monotonic-sequence
+rule when that migration lands. The shared frontmatter helper
+(`application/frontmatter.py`) is built generic enough to support it.

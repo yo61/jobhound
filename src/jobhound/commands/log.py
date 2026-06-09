@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from jobhound.application import file_service, lifecycle_service
+from jobhound.domain.slug import slugify
 from jobhound.domain.timekeeping import now_utc, to_local_date, to_utc
 from jobhound.domain.transitions import InvalidTransitionError
 from jobhound.infrastructure.config import load_config
@@ -18,15 +18,10 @@ from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-_NAME_SLUG = re.compile(r"[^a-z0-9]+")
-
-
-def _name_slug(who: str) -> str:
-    return _NAME_SLUG.sub("-", who.lower()).strip("-") or "unknown"
-
 
 def _correspondence_filename(when: datetime, channel: str, direction: str, who: str) -> str:
-    return f"{to_local_date(when).isoformat()}-{channel}-{direction}-{_name_slug(who)}.md"
+    name = slugify(who) or "unknown"
+    return f"{to_local_date(when).isoformat()}-{channel}-{direction}-{name}.md"
 
 
 def run(

@@ -55,7 +55,7 @@ class OpportunityRepository:
         if opp_dir.exists():
             raise FileExistsError(f"opportunity already exists: {opp_dir}")
         opp_dir.mkdir(parents=True)
-        (opp_dir / "notes.md").write_text("")
+        (opp_dir / "notes").mkdir()
         (opp_dir / "research.md").write_text(
             "# Research\n\n## Company\n\n## Role\n\n## Why apply\n\n## Why not\n"
         )

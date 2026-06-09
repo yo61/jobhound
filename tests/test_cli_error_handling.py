@@ -30,6 +30,9 @@ def test_main_handles_known_exception_cleanly(monkeypatch, capsys, exc):
         raise exc
 
     monkeypatch.setattr(cli, "app", boom)
+    monkeypatch.setattr(
+        "jobhound.application.notes_migration.auto_migrate", lambda *_: None
+    )  # Skip auto-migration in tests.
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main()
@@ -47,6 +50,9 @@ def test_main_does_not_swallow_unexpected_exceptions(monkeypatch):
         raise RuntimeError("internal logic bug")
 
     monkeypatch.setattr(cli, "app", boom)
+    monkeypatch.setattr(
+        "jobhound.application.notes_migration.auto_migrate", lambda *_: None
+    )  # Skip auto-migration in tests.
 
     with pytest.raises(RuntimeError, match="internal logic bug"):
         cli.main()
@@ -59,6 +65,9 @@ def test_main_does_not_swallow_keyboard_interrupt(monkeypatch):
         raise KeyboardInterrupt()
 
     monkeypatch.setattr(cli, "app", boom)
+    monkeypatch.setattr(
+        "jobhound.application.notes_migration.auto_migrate", lambda *_: None
+    )  # Skip auto-migration in tests.
 
     with pytest.raises(KeyboardInterrupt):
         cli.main()
@@ -74,6 +83,9 @@ def test_main_handles_filesserviceerror_subclasses(monkeypatch, capsys):
         raise NewFileServiceError("future error mode")
 
     monkeypatch.setattr(cli, "app", boom)
+    monkeypatch.setattr(
+        "jobhound.application.notes_migration.auto_migrate", lambda *_: None
+    )  # Skip auto-migration in tests.
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main()

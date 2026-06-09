@@ -73,10 +73,17 @@ Use `jh contact <command> <slug> [args]` to manage contacts on an opportunity.
 ## Note Sub-Commands
 
 Use `jh note <command> <slug> [args]` to manage notes on an opportunity.
+Each note is a file under `<opp>/notes/<seq>[-<title-slug>].md` with TOML
+frontmatter. The sequence number is the stable identifier and never
+decrements — deleting a note leaves a permanent gap.
 
 | Command | Description |
 | --- | --- |
-| `jh note add` | Add a timestamped note to an opportunity. |
+| `jh note add` | Write a new note. `BODY` is positional; alternatively `--from PATH\|-`. Optional `--title` slugifies into the filename. Returns the assigned seq. |
+| `jh note list` | List notes for an opportunity (metadata only). `--reverse` shows newest-first. |
+| `jh note show` | Print one note's body. `--with-frontmatter` prints the full file. |
+| `jh note edit` | Rewrite a note's body. Uses `--from PATH\|-` or opens `$EDITOR`. `created` and `title` are preserved. |
+| `jh note remove` | Delete a note. Permanent — the seq number stays gone. |
 
 ## Tag Sub-Commands
 
@@ -138,6 +145,37 @@ Use `jh completion <command>` to print or install shell completion scripts.
 | `jh completion fish` | Print the fish completion script to stdout. |
 | `jh completion install` | Install the jh completion script for the current shell. |
 | `jh completion zsh` | Print the zsh completion script to stdout. |
+
+## Notes Storage Migration (v0.12 upgrade)
+
+Opportunities created before v0.12 had a single `<opp>/notes.md` file.
+Starting in v0.12, notes live as per-note files under `<opp>/notes/`
+with TOML frontmatter. The first time you run any `jh` command after
+upgrading, the CLI auto-migrates any remaining legacy `notes.md` files
+(one commit per opportunity in the data repo).
+
+Manual migration (e.g. for dry-run inspection):
+
+```
+uv run scripts/migrate_notes_to_directory.py            # dry-run
+uv run scripts/migrate_notes_to_directory.py --apply
+```
+
+If an opportunity is in an ambiguous half-migrated state (legacy
+`notes.md` exists alongside a populated `notes/` directory), the
+auto-migration prints a warning and skips that opportunity. Resolve
+manually by either restoring the legacy file or merging its content
+into the new directory shape.
+
+To restore a legacy `notes.md` after migration:
+
+```
+uv run scripts/restore_legacy_notes_md.py SLUG
+```
+
+This finds the per-opp `migrate:` commit, looks up its parent, and
+writes the pre-migration `notes.md` back. The new `notes/` directory
+and `notes_next_seq` counter are NOT undone.
 
 ## Global Flags
 

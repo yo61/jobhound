@@ -2,7 +2,19 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
+
+_SLUGIFY_PATTERN = re.compile(r"[^a-z0-9]+")
+
+
+def slugify(text: str) -> str:
+    """Lowercase, replace runs of non-alphanumeric with `-`, strip ends.
+
+    Returns "" if no alphanumeric content survives. Used for note title
+    suffixes and the legacy correspondence filename builder.
+    """
+    return _SLUGIFY_PATTERN.sub("-", text.lower()).strip("-")
 
 
 class SlugNotFoundError(Exception):

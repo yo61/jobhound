@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import subprocess
-from datetime import UTC, datetime
 from pathlib import Path
 
 from jobhound.application import ops_service
@@ -13,9 +12,6 @@ from jobhound.domain.status import Status
 from jobhound.infrastructure.config import Config
 from jobhound.infrastructure.paths import Paths
 from jobhound.infrastructure.repository import OpportunityRepository
-from jobhound.infrastructure.storage.git_local import GitLocalFileStore
-
-NOW = datetime(2026, 5, 14, 12, 0, tzinfo=UTC)
 
 
 def _git_init(db_root: Path) -> None:
@@ -24,7 +20,7 @@ def _git_init(db_root: Path) -> None:
     subprocess.run(["git", "-C", str(db_root), "config", "user.email", "t@t"], check=True)
 
 
-def _seeded(tmp_path: Path) -> tuple[OpportunityRepository, Paths, GitLocalFileStore]:
+def _seeded(tmp_path: Path) -> tuple[OpportunityRepository, Paths]:
     db_root = tmp_path / "db"
     for d in ("opportunities", "archive", "_shared"):
         (db_root / d).mkdir(parents=True)
@@ -56,32 +52,18 @@ def _seeded(tmp_path: Path) -> tuple[OpportunityRepository, Paths, GitLocalFileS
         ),
         message="seed",
     )
-    store = GitLocalFileStore(paths)
-    return repo, paths, store
-
-
-def test_add_note_appends_dated_entry(tmp_path: Path) -> None:
-    repo, paths, store = _seeded(tmp_path)
-    ops_service.add_note(repo, store, "acme", msg="recruiter mentioned hybrid", now=NOW)
-    notes = (paths.opportunities_dir / "2026-05-acme" / "notes.md").read_text()
-    assert "- 2026-05-14T12:00:00Z recruiter mentioned hybrid" in notes
-
-
-def test_add_note_bumps_last_activity(tmp_path: Path) -> None:
-    repo, _, store = _seeded(tmp_path)
-    _, after, _ = ops_service.add_note(repo, store, "acme", msg="x", now=NOW)
-    assert after.last_activity == NOW
+    return repo, paths
 
 
 def test_archive_moves_to_archive_dir(tmp_path: Path) -> None:
-    repo, paths, _ = _seeded(tmp_path)
+    repo, paths = _seeded(tmp_path)
     ops_service.archive_opportunity(repo, "acme")
     assert not (paths.opportunities_dir / "2026-05-acme").exists()
     assert (paths.archive_dir / "2026-05-acme").exists()
 
 
 def test_delete_requires_confirm(tmp_path: Path) -> None:
-    repo, paths, _ = _seeded(tmp_path)
+    repo, paths = _seeded(tmp_path)
     preview = ops_service.delete_opportunity(repo, "acme", confirm=False)
     assert preview.deleted is False
     assert preview.opp_dir == paths.opportunities_dir / "2026-05-acme"
@@ -89,14 +71,14 @@ def test_delete_requires_confirm(tmp_path: Path) -> None:
 
 
 def test_delete_with_confirm_removes_dir(tmp_path: Path) -> None:
-    repo, paths, _ = _seeded(tmp_path)
+    repo, paths = _seeded(tmp_path)
     result = ops_service.delete_opportunity(repo, "acme", confirm=True)
     assert result.deleted is True
     assert not (paths.opportunities_dir / "2026-05-acme").exists()
 
 
 def test_unarchive_moves_back_to_opportunities(tmp_path: Path) -> None:
-    repo, paths, _ = _seeded(tmp_path)
+    repo, paths = _seeded(tmp_path)
     ops_service.archive_opportunity(repo, "acme")
     assert (paths.archive_dir / "2026-05-acme").exists()
 

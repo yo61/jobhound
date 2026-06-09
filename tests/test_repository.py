@@ -50,7 +50,7 @@ def test_create_writes_meta_and_scaffolds_artefacts(tmp_path: Path) -> None:
 
     assert opp_dir.name == opp.slug
     assert (opp_dir / "meta.toml").is_file()
-    assert (opp_dir / "notes.md").is_file()
+    assert (opp_dir / "notes").is_dir()
     assert (opp_dir / "research.md").is_file()
     assert (opp_dir / "correspondence").is_dir()
 

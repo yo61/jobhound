@@ -37,6 +37,7 @@ class Opportunity:
     tags: tuple[str, ...] = field(default_factory=tuple)
     contacts: tuple[Contact, ...] = field(default_factory=tuple)
     links: dict[str, Any] = field(default_factory=dict)
+    notes_next_seq: int = 1
 
     @property
     def is_active(self) -> bool:
@@ -164,6 +165,12 @@ class Opportunity:
         links = {k: v for k, v in self.links.items() if k != name}
         return replace(self, links=links)
 
+    def with_notes_next_seq(self, n: int) -> Opportunity:
+        """Return a copy with `notes_next_seq` set to `n`."""
+        if n < 1:
+            raise ValueError(f"notes_next_seq must be >= 1, got {n}")
+        return replace(self, notes_next_seq=n)
+
 
 def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opportunity:
     """Build an Opportunity from a parsed meta.toml dict."""
@@ -172,6 +179,9 @@ def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opp
         status = Status(raw_status)
     except ValueError as exc:
         raise ValueError(f"Unknown status {raw_status!r} in {path}") from exc
+    notes_next_seq = data.get("notes_next_seq", 1)
+    if not isinstance(notes_next_seq, int) or notes_next_seq < 1:
+        raise ValueError(f"notes_next_seq must be a positive int, got {notes_next_seq!r}")
     return Opportunity(
         slug=data.get("slug") or (path.parent.name if path else ""),
         company=data["company"],
@@ -189,4 +199,5 @@ def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opp
         tags=tuple(data.get("tags") or ()),
         contacts=tuple(Contact.from_dict(c) for c in (data.get("contacts") or ())),
         links={k: v for k, v in (data.get("links") or {}).items() if v is not None},
+        notes_next_seq=notes_next_seq,
     )

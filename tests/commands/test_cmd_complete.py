@@ -5,6 +5,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 def _seed_slug(db_path: Path, slug: str) -> Path:
     opp_dir = db_path / "opportunities" / slug
@@ -96,6 +98,14 @@ def test_complete_file_open_returns_slugs(tmp_jh, invoke) -> None:
     """`jh __complete zsh jh file open ""` lists slugs (slug at depth 2)."""
     _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
     result = invoke(["__complete", "zsh", "jh", "file", "open", ""])
+    assert "2026-05-acme-em" in result.output
+
+
+@pytest.mark.parametrize("verb", ["add", "list", "show", "edit", "remove"])
+def test_complete_note_verbs_return_slugs(tmp_jh, invoke, verb) -> None:
+    """All five `jh note <verb>` shapes take a slug as first positional."""
+    _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    result = invoke(["__complete", "zsh", "jh", "note", verb, ""])
     assert "2026-05-acme-em" in result.output
 
 

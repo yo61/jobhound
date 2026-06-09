@@ -353,3 +353,45 @@ def test_restore_refuses_when_notes_md_already_exists(tmp_path: Path) -> None:
     mod = _load_restore_script()
     # Should refuse with non-zero exit
     assert mod.restore_notes_md(db, opps, "2026-05-acme") != 0
+
+
+def test_auto_migrate_continues_on_skipped(tmp_path: Path) -> None:
+    """auto_migrate should print and continue when an opp is in the 'notes/
+    exists alongside notes.md' state, not abort the whole CLI invocation."""
+    from jobhound.application.notes_migration import auto_migrate
+
+    db = tmp_path / "db"
+    opps = db / "opportunities"
+    opps.mkdir(parents=True)
+    (db / "archive").mkdir()
+    # Opp A: clean legacy state — will migrate
+    opp_a = opps / "2026-05-aaa"
+    opp_a.mkdir()
+    (opp_a / "meta.toml").write_text(
+        'company = "A"\nrole = "EM"\nslug = "2026-05-aaa"\n'
+        'status = "applied"\npriority = "medium"\n'
+    )
+    (opp_a / "notes.md").write_text("- 2026-05-02T14:11:08Z first\n")
+    # Opp B: ambiguous (notes/ has content alongside notes.md) — will skip
+    opp_b = opps / "2026-05-bbb"
+    opp_b.mkdir()
+    (opp_b / "meta.toml").write_text(
+        'company = "B"\nrole = "EM"\nslug = "2026-05-bbb"\n'
+        'status = "applied"\npriority = "medium"\n'
+    )
+    (opp_b / "notes.md").write_text("- 2026-05-02T14:11:08Z something\n")
+    (opp_b / "notes").mkdir()
+    (opp_b / "notes" / "1.md").write_text("+++\ncreated = 2026-01-01T00:00:00Z\n+++\n\nalready\n")
+
+    subprocess.run(["git", "init", "--quiet", str(db)], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.name", "t"], check=True)
+    subprocess.run(["git", "-C", str(db), "config", "user.email", "t@t"], check=True)
+    subprocess.run(["git", "-C", str(db), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(db), "commit", "-q", "-m", "seed"], check=True)
+
+    count = auto_migrate(opps, db / "archive", db)
+    assert count == 1  # only opp_a migrated; opp_b skipped, not raised
+    assert (opp_a / "notes" / "1.md").exists()
+    assert not (opp_a / "notes.md").exists()
+    # opp_b should still have its legacy notes.md untouched
+    assert (opp_b / "notes.md").exists()

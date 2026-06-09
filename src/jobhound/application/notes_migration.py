@@ -168,8 +168,17 @@ def auto_migrate(opportunities_dir: Path, archive_dir: Path, db_root: Path) -> i
     migrated = 0
     for opp_dir in legacy:
         result = migrate_one(opp_dir, apply=True)
-        if result.status != "migrated":
-            raise RuntimeError(f"auto-migration: {opp_dir.name}: {result.status} ({result.detail})")
+        if result.status == "error":
+            raise RuntimeError(f"auto-migration: {opp_dir.name}: {result.detail}")
+        if result.status == "skipped":
+            # Ambiguous state (e.g. notes/ already populated alongside notes.md).
+            # Surface it but don't abort — the user can resolve manually.
+            print(
+                f"jh:   {opp_dir.name}: skipped ({result.detail})",
+                file=sys.stderr,
+            )
+            continue
+        # status == "migrated"
         subprocess.run(["git", "-C", str(db_root), "add", "."], check=True)
         subprocess.run(
             [

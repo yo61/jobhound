@@ -212,6 +212,11 @@ _FLAG_ENUMS: dict[tuple[tuple[str, ...], str], str] = {
     # `jh export --priority` filter.
     (("export",), "--priority"): "jobhound.domain.priority:Priority",
     (("export",), "-p"): "jobhound.domain.priority:Priority",
+    # `--priority` filter on list / stats (parity with --status above).
+    (("list",), "--priority"): "jobhound.domain.priority:Priority",
+    (("list",), "-p"): "jobhound.domain.priority:Priority",
+    (("stats",), "--priority"): "jobhound.domain.priority:Priority",
+    (("stats",), "-p"): "jobhound.domain.priority:Priority",
     # `jh log --next-status` — accepts any Status value (`stay` is the
     # no-change default; users wanting that literal can type it directly).
     (("log",), "--next-status"): "jobhound.domain.status:Status",

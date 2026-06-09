@@ -109,3 +109,28 @@ def test_stats_short_flag_A_equals_archived(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert payload["funnel"]["prospect"] == 1
+
+
+def test_stats_priority_filter(tmp_jh, invoke) -> None:
+    invoke(["new", "--company", "Foo", "--role", "EM", "--now", "2026-05-01T12:00:00Z"])
+    invoke(["new", "--company", "Bar", "--role", "IC", "--now", "2026-05-02T12:00:00Z"])
+    invoke(["set", "priority", "foo", "--to", "high"])
+    invoke(["set", "priority", "bar", "--to", "low"])
+    result = invoke(["stats", "--priority", "high", "--json"])
+    assert result.exit_code == 0, result.output
+    import json
+
+    data = json.loads(result.output.strip())
+    total = sum(data["funnel"].values())
+    assert total == 1
+
+
+def test_stats_slug_substring_filter(tmp_jh, invoke) -> None:
+    invoke(["new", "--company", "Foo", "--role", "EM", "--now", "2026-05-01T12:00:00Z"])
+    invoke(["new", "--company", "Bar", "--role", "IC", "--now", "2026-05-02T12:00:00Z"])
+    result = invoke(["stats", "-q", "foo", "--json"])
+    assert result.exit_code == 0, result.output
+    import json
+
+    data = json.loads(result.output.strip())
+    assert sum(data["funnel"].values()) == 1

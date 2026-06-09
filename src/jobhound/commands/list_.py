@@ -8,6 +8,7 @@ from typing import Annotated
 from cyclopts import Parameter
 
 from jobhound.application.query import Filters, OpportunityQuery
+from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
 from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.config import load_config
@@ -19,6 +20,8 @@ def run(
     all_: Annotated[bool, Parameter(name=["--all", "-a"])] = False,
     archived: Annotated[bool, Parameter(name=["--archived", "-A"])] = False,
     status: Annotated[list[str] | None, Parameter(name=["--status", "-s"])] = None,
+    priority: Annotated[list[str] | None, Parameter(name=["--priority", "-p"])] = None,
+    slug_substring: Annotated[str | None, Parameter(name=["--slug-substring", "-q"])] = None,
 ) -> None:
     """List opportunities."""
     if all_ and archived:
@@ -26,11 +29,17 @@ def run(
         raise SystemExit(2)
 
     statuses = _parse_statuses(status)
+    priorities = _parse_priorities(priority)
 
     cfg = load_config()
     paths = paths_from_config(cfg)
     query = OpportunityQuery(paths)
-    filters = Filters(statuses=statuses, include_archived=(all_ or archived))
+    filters = Filters(
+        statuses=statuses,
+        priorities=priorities,
+        slug_substring=slug_substring,
+        include_archived=(all_ or archived),
+    )
     snaps = query.list(filters, now=now_utc())
     if archived:
         snaps = [s for s in snaps if s.archived]
@@ -50,4 +59,16 @@ def _parse_statuses(raw: list[str] | None) -> frozenset[Status]:
         return frozenset(Status(t) for t in tokens)
     except ValueError as exc:
         print(f"jh: unknown status: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None
+
+
+def _parse_priorities(raw: list[str] | None) -> frozenset[Priority]:
+    """Accept repeated `--priority` and comma-separated values."""
+    if not raw:
+        return frozenset()
+    tokens = [t.strip() for chunk in raw for t in chunk.split(",") if t.strip()]
+    try:
+        return frozenset(Priority(t) for t in tokens)
+    except ValueError as exc:
+        print(f"jh: unknown priority: {exc}", file=sys.stderr)
         raise SystemExit(2) from None

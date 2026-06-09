@@ -137,3 +137,55 @@ def test_list_short_flag_s_equals_status(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
     assert "2026-05-foo-em" in result.output
     assert "2026-05-bar-ic" not in result.output
+
+
+def test_list_priority_filter_single(tmp_jh, invoke) -> None:
+    _seed_active(invoke)
+    invoke(["set", "priority", "foo", "--to", "high"])
+    result = invoke(["list", "--priority", "high"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-foo-em" in result.output
+    assert "2026-05-bar-ic" not in result.output
+
+
+def test_list_priority_filter_short_alias(tmp_jh, invoke) -> None:
+    _seed_active(invoke)
+    invoke(["set", "priority", "foo", "--to", "high"])
+    result = invoke(["list", "-p", "high"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-foo-em" in result.output
+    assert "2026-05-bar-ic" not in result.output
+
+
+def test_list_priority_filter_unknown_value_exits_2(tmp_jh, invoke) -> None:
+    _seed_active(invoke)
+    result = invoke(["list", "--priority", "nonsense"])
+    assert result.exit_code == 2
+
+
+def test_list_slug_substring_filter(tmp_jh, invoke) -> None:
+    _seed_active(invoke)
+    result = invoke(["list", "--slug-substring", "foo"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-foo-em" in result.output
+    assert "2026-05-bar-ic" not in result.output
+
+
+def test_list_slug_substring_filter_short_alias(tmp_jh, invoke) -> None:
+    _seed_active(invoke)
+    result = invoke(["list", "-q", "foo"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-foo-em" in result.output
+    assert "2026-05-bar-ic" not in result.output
+
+
+def test_list_combined_status_priority_slug_substring(tmp_jh, invoke) -> None:
+    _seed_active(invoke)
+    invoke(["set", "status", "foo", "applied"])
+    invoke(["set", "priority", "foo", "--to", "high"])
+    invoke(["set", "status", "bar", "applied"])
+    invoke(["set", "priority", "bar", "--to", "low"])
+    result = invoke(["list", "--status", "applied", "--priority", "high", "-q", "foo"])
+    assert result.exit_code == 0, result.output
+    assert "2026-05-foo-em" in result.output
+    assert "2026-05-bar-ic" not in result.output

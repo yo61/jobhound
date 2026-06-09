@@ -468,15 +468,26 @@ def test_complete_status_flag_returns_status_values(invoke, cmd, flag) -> None:
         assert status.value in out, f"missing {status.value} in {sorted(out)}"
 
 
-@pytest.mark.parametrize("flag", ["--priority", "-p"])
-def test_complete_export_priority_flag_returns_priority_values(invoke, flag) -> None:
+@pytest.mark.parametrize(
+    "cmd,flag",
+    [
+        (["export"], "--priority"),
+        (["export"], "-p"),
+        (["list"], "--priority"),
+        (["list"], "-p"),
+        (["stats"], "--priority"),
+        (["stats"], "-p"),
+    ],
+)
+def test_complete_priority_flag_returns_priority_values(invoke, cmd, flag) -> None:
+    """--priority / -p completes to Priority enum values on list/stats/export."""
     from jobhound.domain.priority import Priority
 
-    result = invoke(["__complete", "zsh", "jh", "export", flag, ""])
+    result = invoke(["__complete", "zsh", "jh", *cmd, flag, ""])
     assert result.exit_code == 0
     out = set(result.output.split())
     for p in Priority:
-        assert p.value in out
+        assert p.value in out, f"missing {p.value} in {sorted(out)}"
 
 
 def test_complete_completion_install_shell_flag(invoke) -> None:

@@ -35,7 +35,7 @@ The rationale and trade-offs are recorded in
 | `jh file` | Manage files inside an opportunity. |
 | `jh ghost` | Mark an opportunity as ghosted. |
 | `jh link` | Manage named links on an opportunity. |
-| `jh list` | List opportunities. |
+| `jh list` | List opportunities. Filter with `--status`/`-s`, `--priority`/`-p`, `--slug-substring`/`-q`; include archived with `--all`/`-a` or only archived with `--archived`/`-A`. |
 | `jh log` | Log an interaction with an opportunity. |
 | `jh mcp` | Run the MCP server over stdio. |
 | `jh migrate` | Run one-shot data migrations. |
@@ -43,7 +43,7 @@ The rationale and trade-offs are recorded in
 | `jh note` | Manage notes on an opportunity. |
 | `jh set` | Set a single field on an opportunity. |
 | `jh show` | Show an opportunity. |
-| `jh stats` | Show pipeline stats. |
+| `jh stats` | Show pipeline stats. Same filter flags as `jh list`. Pass `--json`/`-j` for machine-readable output. |
 | `jh tag` | Manage tags on an opportunity. |
 | `jh withdraw` | Withdraw from an opportunity. |
 

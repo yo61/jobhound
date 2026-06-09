@@ -68,6 +68,9 @@ Use `jh contact <command> <slug> [args]` to manage contacts on an opportunity.
 | Command | Description |
 | --- | --- |
 | `jh contact add` | Add a contact to an opportunity. |
+| `jh contact list` | List contacts on an opportunity. `--json` emits machine-readable output. |
+| `jh contact show` | Show one contact's details. Address by name; disambiguate with `--match-role` / `--match-channel`. |
+| `jh contact edit` | Update fields on a contact. Renames via `--new-name` — the contact must be addressed by its new name afterward. |
 | `jh contact remove` | Remove a contact from an opportunity. |
 
 ## Note Sub-Commands

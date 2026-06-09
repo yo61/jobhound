@@ -152,6 +152,37 @@ class Opportunity:
             )
         return replace(self, contacts=remaining)
 
+    def find_contacts(
+        self,
+        name: str,
+        *,
+        match_role: str | None = None,
+        match_channel: str | None = None,
+    ) -> tuple[Contact, ...]:
+        """Return contacts matching `name` (and optionally role/channel).
+
+        `match_role`/`match_channel` are filters: `None` matches anything,
+        a value matches that value exactly. Returns all matches; callers
+        decide what to do with zero, one, or many.
+        """
+        return tuple(
+            c
+            for c in self.contacts
+            if c.name == name
+            and (match_role is None or c.role == match_role)
+            and (match_channel is None or c.channel == match_channel)
+        )
+
+    def replace_contact(self, old: Contact, new: Contact) -> Opportunity:
+        """Swap a Contact instance in-place (preserving tuple position)."""
+        try:
+            idx = self.contacts.index(old)
+        except ValueError as exc:
+            raise ValueError(f"contact not in opportunity: {old}") from exc
+        contacts = list(self.contacts)
+        contacts[idx] = new
+        return replace(self, contacts=tuple(contacts))
+
     def with_link(self, *, name: str, url: str) -> Opportunity:
         """Set or replace a link entry."""
         links = dict(self.links)

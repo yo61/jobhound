@@ -64,6 +64,9 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
         # Child-object sub-Apps (slug after sub-verb)
         ("contact", "add"),
         ("contact", "remove"),
+        ("contact", "list"),
+        ("contact", "show"),
+        ("contact", "edit"),
         ("note", "add"),
         ("note", "list"),
         ("note", "show"),
@@ -108,7 +111,7 @@ _SUB_APP_NAMES: dict[str, frozenset[str]] = {
             "source",
         }
     ),
-    "contact": frozenset({"add", "remove"}),
+    "contact": frozenset({"add", "remove", "list", "show", "edit"}),
     "note": frozenset({"add", "list", "show", "edit", "remove"}),
     "tag": frozenset({"add", "remove"}),
     "link": frozenset({"set", "remove"}),

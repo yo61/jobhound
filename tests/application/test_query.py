@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -118,32 +117,6 @@ def test_list_returns_sorted_by_slug(query_paths: Paths) -> None:
     snaps = q.list(now=NOW)
     slugs = [s.opportunity.slug for s in snaps]
     assert slugs == sorted(slugs)
-
-
-def test_files_lists_top_level_and_correspondence(query_paths: Paths) -> None:
-    q = OpportunityQuery(query_paths)
-    entries = q.files("acme")
-    names = sorted(e.name for e in entries)
-    assert names == ["correspondence/intro.md", "cv.md", "meta.toml", "notes.md"]
-    for e in entries:
-        assert e.size > 0
-        assert e.mtime.tzinfo is not None
-        # tz-aware UTC: offset matches UTC's
-        assert e.mtime.utcoffset() == datetime.now(UTC).utcoffset()
-
-
-def test_files_only_meta_when_dir_minimal(query_paths: Paths) -> None:
-    q = OpportunityQuery(query_paths)
-    entries = q.files("beta")
-    names = sorted(e.name for e in entries)
-    assert names == ["meta.toml"]
-
-
-def test_files_excludes_hidden_files(query_paths: Paths) -> None:
-    (query_paths.opportunities_dir / "2026-05-acme-em" / ".DS_Store").write_text("noise")
-    q = OpportunityQuery(query_paths)
-    names = {e.name for e in q.files("acme")}
-    assert ".DS_Store" not in names
 
 
 def test_read_file_returns_bytes(query_paths: Paths) -> None:

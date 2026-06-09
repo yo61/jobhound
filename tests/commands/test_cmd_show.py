@@ -18,7 +18,11 @@ def _seed_opp(db_path: Path, slug: str = "2026-05-acme-em") -> Path:
         "applied_on = 2026-05-01T12:00:00+00:00\nlast_activity = 2026-05-11T12:00:00+00:00\n"
         'tags = ["remote"]\n',
     )
-    (opp_dir / "notes.md").write_text("notes\n")
+    (opp_dir / "resume.pdf").write_bytes(b"%PDF-1.4 fake\n")
+    notes_dir = opp_dir / "notes"
+    notes_dir.mkdir()
+    (notes_dir / "0001.md").write_text("+++\nseq = 1\n+++\nfirst note\n")
+    (opp_dir / "correspondence" / "0001-email.eml").write_text("From: x\n")
     subprocess.run(["git", "-C", str(db_path), "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "-C", str(db_path), "commit", "-m", "seed", "--quiet"],
@@ -41,8 +45,16 @@ def test_show_human_output_contains_company_status_path(tmp_jh, invoke) -> None:
 def test_show_human_lists_files(tmp_jh, invoke) -> None:
     _seed_opp(tmp_jh.db_path)
     result = invoke(["show", "acme"])
-    assert "notes.md" in result.output
-    assert "meta.toml" in result.output
+    assert "resume.pdf" in result.output
+
+
+def test_show_human_hides_meta_and_protected_streams(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    result = invoke(["show", "acme"])
+    assert "meta.toml" not in result.output
+    assert "notes/" not in result.output
+    assert "0001.md" not in result.output
+    assert "correspondence/" not in result.output
 
 
 def test_show_json_output_is_envelope(tmp_jh, invoke) -> None:

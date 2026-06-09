@@ -9,6 +9,7 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
+from jobhound.application import file_service
 from jobhound.application.query import OpportunityQuery
 from jobhound.application.serialization import show_envelope
 from jobhound.application.snapshots import FileEntry, OpportunitySnapshot
@@ -16,6 +17,7 @@ from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
 from jobhound.domain.timekeeping import display_local, now_utc
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
+from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
 
 def run(
@@ -44,7 +46,8 @@ def run(
         )
         print(json.dumps(envelope, indent=2))
     else:
-        _print_human(snap, query.files(snap.opportunity.slug))
+        store = GitLocalFileStore(paths)
+        _print_human(snap, file_service.list_(store, snap.opportunity.slug))
 
 
 def _print_human(snap: OpportunitySnapshot, files: list[FileEntry]) -> None:

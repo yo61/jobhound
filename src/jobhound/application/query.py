@@ -8,11 +8,11 @@ endpoints will inject the same class.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import TypeAlias
 
-from jobhound.application.snapshots import ComputedFlags, FileEntry, OpportunitySnapshot, Stats
+from jobhound.application.snapshots import ComputedFlags, OpportunitySnapshot, Stats
 from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.priority import Priority
 from jobhound.domain.slug import SlugNotFoundError, resolve_slug
@@ -21,10 +21,9 @@ from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.meta_io import read_meta
 from jobhound.infrastructure.paths import Paths
 
-# Module-level aliases: the public method `list` would shadow the `list` builtin
+# Module-level alias: the public method `list` would shadow the `list` builtin
 # inside the class body, breaking static type resolution of `list[X]` annotations.
 SnapshotList: TypeAlias = list[OpportunitySnapshot]
-FileEntryList: TypeAlias = list[FileEntry]
 
 
 @dataclass(frozen=True)
@@ -122,21 +121,6 @@ class OpportunityQuery:
         snaps = [s for s in snaps if self._matches(s, filters)]
         snaps.sort(key=lambda s: s.opportunity.slug)
         return snaps
-
-    def files(self, slug: str) -> FileEntryList:
-        """List every non-hidden file inside the opp dir, recursive. Names are relative."""
-        opp_dir, _ = self._resolve_opp_dir(slug)
-        entries: FileEntryList = []
-        for path in sorted(opp_dir.rglob("*")):
-            if not path.is_file():
-                continue
-            rel = path.relative_to(opp_dir)
-            if any(part.startswith(".") for part in rel.parts):
-                continue
-            stat = path.stat()
-            mtime = datetime.fromtimestamp(stat.st_mtime, tz=UTC)
-            entries.append(FileEntry(name=rel.as_posix(), size=stat.st_size, mtime=mtime))
-        return entries
 
     def read_file(self, slug: str, filename: str) -> bytes:
         """Read the bytes of `filename` inside the opp dir. Rejects path traversal."""

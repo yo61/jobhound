@@ -388,3 +388,55 @@ def test_complete_contact_show_unresolvable_slug_empty(tmp_jh, invoke) -> None:
     result = invoke(["__complete", "zsh", "jh", "contact", "show", "not-a-real-slug", ""])
     assert result.exit_code == 0
     assert result.output.strip() == ""
+
+
+def test_complete_tag_remove_returns_existing_tags(tmp_jh, invoke) -> None:
+    """`jh tag remove <slug> <TAB>` lists tags already on the opp."""
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    meta = opp_dir / "meta.toml"
+    # _seed_slug seeds tags = []; replace to avoid duplicate-key TOML error.
+    meta.write_text(meta.read_text().replace("tags = []", 'tags = ["remote", "priority"]'))
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "tags", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    result = invoke(["__complete", "zsh", "jh", "tag", "remove", "2026-05-acme-em", ""])
+    lines = set(result.output.splitlines())
+    assert "remote" in lines
+    assert "priority" in lines
+
+
+def test_complete_tag_add_does_not_emit_existing_tags(tmp_jh, invoke) -> None:
+    """`jh tag add` takes a NEW tag — no completion of existing tags."""
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    meta = opp_dir / "meta.toml"
+    meta.write_text(meta.read_text().replace("tags = []", 'tags = ["remote"]'))
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "t", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    result = invoke(["__complete", "zsh", "jh", "tag", "add", "2026-05-acme-em", ""])
+    assert "remote" not in result.output.splitlines()
+
+
+def test_complete_link_show_returns_existing_link_names(tmp_jh, invoke) -> None:
+    """`jh link show <slug> <TAB>` lists existing link names."""
+    opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
+    meta = opp_dir / "meta.toml"
+    meta.write_text(
+        meta.read_text() + '[links]\nposting = "https://e.com/1"\ncompany = "https://e.com/"\n'
+    )
+    subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "links", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+    result = invoke(["__complete", "zsh", "jh", "link", "show", "2026-05-acme-em", ""])
+    lines = set(result.output.splitlines())
+    assert "posting" in lines
+    assert "company" in lines

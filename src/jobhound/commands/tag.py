@@ -47,3 +47,16 @@ def remove(
         remove={tag_name},
     )
     print(f"tags {after.slug}: {after.tags}")
+
+
+@app.command(name="list")
+def list_(slug_query: str, /) -> None:
+    """List tags on an opportunity."""
+    import sys
+
+    _, tags = relation_service.list_tags(_repo(), slug_query)
+    if not tags:
+        print("(no tags)", file=sys.stderr)
+        return
+    for t in tags:
+        print(t)

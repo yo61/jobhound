@@ -40,3 +40,20 @@ def test_tag_remove_nonexistent_tag_is_noop(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
     opp = read_meta(tmp_jh.db_path / "opportunities" / "2026-05-foo-em" / "meta.toml")
     assert opp.tags == ("remote",)
+
+
+def test_tag_list_empty(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    result = invoke(["tag", "list", "foo"])
+    assert result.exit_code == 0
+
+
+def test_tag_list_returns_tags(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    invoke(["tag", "add", "foo", "remote"])
+    invoke(["tag", "add", "foo", "priority"])
+    result = invoke(["tag", "list", "foo"])
+    assert result.exit_code == 0
+    lines = set(result.output.splitlines())
+    assert "remote" in lines
+    assert "priority" in lines

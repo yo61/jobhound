@@ -44,3 +44,34 @@ def test_link_remove_not_found_raises(tmp_jh, invoke) -> None:
     invoke(["link", "set", "foo", "--name", "posting", "--url", "https://e.com/1"])
     result = invoke(["link", "remove", "foo", "--name", "nonexistent"])
     assert result.exit_code != 0
+
+
+def test_link_list_empty(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    result = invoke(["link", "list", "foo"])
+    assert result.exit_code == 0
+
+
+def test_link_list_returns_links(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    invoke(["link", "set", "foo", "--name", "posting", "--url", "https://e.com/1"])
+    invoke(["link", "set", "foo", "--name", "company", "--url", "https://e.com/"])
+    result = invoke(["link", "list", "foo"])
+    assert result.exit_code == 0
+    assert "posting" in result.output
+    assert "https://e.com/1" in result.output
+    assert "company" in result.output
+
+
+def test_link_show_prints_url(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    invoke(["link", "set", "foo", "--name", "posting", "--url", "https://e.com/1"])
+    result = invoke(["link", "show", "foo", "posting"])
+    assert result.exit_code == 0
+    assert result.output.strip() == "https://e.com/1"
+
+
+def test_link_show_missing_exits_nonzero(tmp_jh, invoke) -> None:
+    _seed(invoke)
+    result = invoke(["link", "show", "foo", "nonexistent"])
+    assert result.exit_code != 0

@@ -7,7 +7,7 @@ quoting (the shell scripts handle quoting).
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import Annotated
 
 import cyclopts
@@ -402,6 +402,47 @@ def _complete_link_name(slug: str) -> Iterable[str]:
     yield from opp.links.keys()
 
 
+def _complete_contact_role(slug: str) -> Iterable[str]:
+    """Yield unique non-empty `role` values across this opp's contacts."""
+    opp = _load_opp_for_completion(slug)
+    if opp is None:
+        return
+    seen: set[str] = set()
+    for c in opp.contacts:
+        if c.role and c.role not in seen:
+            seen.add(c.role)
+            yield c.role
+
+
+def _complete_contact_channel(slug: str) -> Iterable[str]:
+    """Yield unique non-empty `channel` values across this opp's contacts."""
+    opp = _load_opp_for_completion(slug)
+    if opp is None:
+        return
+    seen: set[str] = set()
+    for c in opp.contacts:
+        if c.channel and c.channel not in seen:
+            seen.add(c.channel)
+            yield c.channel
+
+
+# Flag-value completers that need the slug from the prior positional.
+# Keyed by (cmd_path, flag) → callable(slug) → candidate strings.
+# Built lazily (after the helpers are defined) so the dict entries can
+# reference them by name.
+_SLUG_AWARE_FLAGS: dict[
+    tuple[tuple[str, ...], str],
+    Callable[[str], Iterable[str]],
+] = {
+    (("contact", "remove"), "--name"): _complete_contact_name,
+    (("contact", "show"), "--match-role"): _complete_contact_role,
+    (("contact", "edit"), "--match-role"): _complete_contact_role,
+    (("contact", "show"), "--match-channel"): _complete_contact_channel,
+    (("contact", "edit"), "--match-channel"): _complete_contact_channel,
+    (("link", "remove"), "--name"): _complete_link_name,
+}
+
+
 def run(
     shell: str, /, *words: Annotated[str, cyclopts.Parameter(allow_leading_hyphen=True)]
 ) -> None:
@@ -445,6 +486,18 @@ def run(
             if fixed is not None:
                 for v in fixed:
                     print(v)
+                return
+            # Slug-aware flag values: pull the slug from the first
+            # non-flag positional. Without a slug, no candidates.
+            slug_aware = _SLUG_AWARE_FLAGS.get((cmd_path, prev))
+            if slug_aware is not None:
+                slug = next(
+                    (p for p in in_positionals[:-1] if not p.startswith("-")),
+                    None,
+                )
+                if slug is not None:
+                    for v in sorted(slug_aware(slug)):
+                        print(v)
                 return
 
     # Position 0 of in_positionals: emit slugs if this command takes one.

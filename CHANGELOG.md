@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.2](https://github.com/yo61/jobhound/compare/v0.14.1...v0.14.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* **deps:** regenerate uv.lock to clear 16 Dependabot alerts ([#125](https://github.com/yo61/jobhound/issues/125)) ([09874ab](https://github.com/yo61/jobhound/commit/09874ab63e57e4a425b1441a270f7c2004da00cf)), closes [#124](https://github.com/yo61/jobhound/issues/124)
+
 ## [0.14.1](https://github.com/yo61/jobhound/compare/v0.14.0...v0.14.1) (2026-06-09)
 
 

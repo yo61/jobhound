@@ -13,7 +13,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-import yaml
+import yaml  # ty: ignore[unresolved-import]  # runtime-only dep (uv run --with pyyaml)
 
 from jobhound.domain.opportunities import Opportunity
 from jobhound.infrastructure.config import load_config

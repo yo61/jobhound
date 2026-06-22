@@ -15,8 +15,8 @@ from jobhound.application.frontmatter import (
 
 
 def _fm(**kwargs):
-    base = {"created": datetime(2026, 6, 8, 14, 23, 5, tzinfo=UTC)}
-    return Frontmatter(**(base | kwargs))
+    kwargs.setdefault("created", datetime(2026, 6, 8, 14, 23, 5, tzinfo=UTC))
+    return Frontmatter(**kwargs)
 
 
 def test_serialize_minimal():

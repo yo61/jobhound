@@ -47,3 +47,8 @@ tasks:
     desc: Run all prek hooks against every file
     cmds:
       - prek run --all-files
+
+  dev:hooks-install:
+    desc: Install git hooks (pre-commit, commit-msg, pre-push)
+    cmds:
+      - prek install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push

@@ -22,10 +22,16 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      # pytest runs the full suite (each test spins up a real git repo),
+      # so it's a pre-push gate rather than per-commit. types:[python]
+      # means a docs-only push skips it too. CI (task dev:check) is the
+      # authoritative gate.
       - id: pytest
         name: pytest
         entry: uv run --no-sync pytest -q
         language: system
+        stages: [pre-push]
+        types: [python]
         pass_filenames: false
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: v9.25.0

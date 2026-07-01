@@ -30,3 +30,11 @@ def extractor_for(url: str) -> Extractor:
     if _matches(host, "linkedin.com"):
         return linkedin.extract
     return jsonld.extract
+
+
+def site_name_for(url: str) -> str:
+    """Return a human display name for `url`'s site (used as the `source`)."""
+    host = _host(url)
+    if _matches(host, "linkedin.com"):
+        return "LinkedIn"
+    return host

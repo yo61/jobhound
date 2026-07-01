@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from jobhound.domain.contact import Contact
 from jobhound.domain.priority import Priority
+from jobhound.domain.slug_value import Slug
 from jobhound.domain.status import Status
 from jobhound.domain.timekeeping import calendar_days_between
 from jobhound.domain.transitions import require_transition
 
 STALE_DAYS: int = 14
 GHOSTED_DAYS: int = 21
+DEFAULT_NEXT_ACTION = "Initial review of role and company"
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,44 @@ class Opportunity:
     contacts: tuple[Contact, ...] = field(default_factory=tuple)
     links: dict[str, Any] = field(default_factory=dict)
     notes_next_seq: int = 1
+
+    @classmethod
+    def new_prospect(
+        cls,
+        now: datetime,
+        company: str,
+        role: str,
+        *,
+        source: str | None,
+        location: str | None = None,
+        comp_range: str | None = None,
+        links: dict[str, Any] | None = None,
+        next_action: str = DEFAULT_NEXT_ACTION,
+        next_action_due: datetime | None = None,
+    ) -> Opportunity:
+        """Create a new opportunity at status `prospect` with default invariants.
+
+        Centralises "what a freshly-created prospect looks like" (status,
+        priority, activity timestamps, default next action + 7-day due) so
+        every entry point — `jh new`, URL scraping — agrees.
+        """
+        due = next_action_due if next_action_due is not None else now + timedelta(days=7)
+        return cls(
+            slug=Slug.build(now, company, role).value,
+            company=company,
+            role=role,
+            status=Status.PROSPECT,
+            priority=Priority.MEDIUM,
+            source=source,
+            location=location,
+            comp_range=comp_range,
+            first_contact=now,
+            applied_on=None,
+            last_activity=now,
+            next_action=next_action,
+            next_action_due=due,
+            links=links or {},
+        )
 
     @property
     def is_active(self) -> bool:

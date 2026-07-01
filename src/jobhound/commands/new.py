@@ -3,16 +3,13 @@
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Annotated
 
 from cyclopts import Parameter
 
 from jobhound.application import lifecycle_service
-from jobhound.domain.opportunities import Opportunity
-from jobhound.domain.priority import Priority
-from jobhound.domain.slug_value import Slug
-from jobhound.domain.status import Status
+from jobhound.domain.opportunities import DEFAULT_NEXT_ACTION, Opportunity
 from jobhound.domain.timekeeping import now_utc, to_utc
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import Paths, paths_from_config
@@ -24,7 +21,7 @@ def run(
     company: str,
     role: str,
     source: str = "(unspecified)",
-    next_action: str = "Initial review of role and company",
+    next_action: str = DEFAULT_NEXT_ACTION,
     next_action_due: datetime | None = None,
     now: Annotated[datetime | None, Parameter(show=False)] = None,
 ) -> None:
@@ -35,21 +32,13 @@ def run(
     repo = OpportunityRepository(paths, cfg)
 
     now_obj = to_utc(now) if now else now_utc()
-    due = to_utc(next_action_due) if next_action_due else now_obj + timedelta(days=7)
-    slug = Slug.build(now_obj, company, role)
+    due = to_utc(next_action_due) if next_action_due else None
 
-    opp = Opportunity(
-        slug=slug.value,
-        company=company,
-        role=role,
-        status=Status.PROSPECT,
-        priority=Priority.MEDIUM,
+    opp = Opportunity.new_prospect(
+        now_obj,
+        company,
+        role,
         source=source,
-        location=None,
-        comp_range=None,
-        first_contact=now_obj,
-        applied_on=None,
-        last_activity=now_obj,
         next_action=next_action,
         next_action_due=due,
     )

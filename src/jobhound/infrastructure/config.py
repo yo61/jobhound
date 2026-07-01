@@ -16,6 +16,9 @@ class Config:
     db_path: Path
     auto_commit: bool
     editor: str
+    allow_browser_cookie_access: bool = False
+    cookie_browser: str = "auto"
+    cookie_browser_profile: str | None = None
 
 
 def default_db_path() -> Path:
@@ -45,4 +48,27 @@ def load_config() -> Config:
     if not isinstance(editor, str):
         raise ValueError(f"config.toml: editor must be a string, got {editor!r}")
 
-    return Config(db_path=db_path, auto_commit=auto_commit, editor=editor)
+    allow_cookies = data.get("allow_browser_cookie_access", False)
+    if not isinstance(allow_cookies, bool):
+        raise ValueError(
+            f"config.toml: allow_browser_cookie_access must be a boolean, got {allow_cookies!r}"
+        )
+
+    cookie_browser = data.get("cookie_browser", "auto")
+    if not isinstance(cookie_browser, str):
+        raise ValueError(f"config.toml: cookie_browser must be a string, got {cookie_browser!r}")
+
+    cookie_profile = data.get("cookie_browser_profile")
+    if cookie_profile is not None and not isinstance(cookie_profile, str):
+        raise ValueError(
+            f"config.toml: cookie_browser_profile must be a string, got {cookie_profile!r}"
+        )
+
+    return Config(
+        db_path=db_path,
+        auto_commit=auto_commit,
+        editor=editor,
+        allow_browser_cookie_access=allow_cookies,
+        cookie_browser=cookie_browser,
+        cookie_browser_profile=cookie_profile,
+    )

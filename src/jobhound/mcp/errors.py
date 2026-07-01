@@ -30,8 +30,10 @@ from jobhound.application.relation_service import (
     ContactNotFoundError,
     LinkNotFoundError,
 )
+from jobhound.application.scrape_service import DuplicatePostingError, IncompleteScrapeError
 from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
 from jobhound.domain.transitions import InvalidTransitionError
+from jobhound.infrastructure.fetch.base import AuthWallError, FetchError, SessionRequiredError
 from jobhound.infrastructure.meta_io import ValidationError
 
 
@@ -203,6 +205,29 @@ def exception_to_response(
         if "must be inside" in str(exc):
             return tool_error_response("path_outside_opp_dir", str(exc))
         return tool_error_response("invalid_value", str(exc))
+
+    if isinstance(exc, IncompleteScrapeError):
+        return tool_error_response(
+            "incomplete_scrape", str(exc), url=exc.url, missing=list(exc.missing)
+        )
+
+    if isinstance(exc, DuplicatePostingError):
+        return tool_error_response(
+            "duplicate_posting",
+            str(exc),
+            canonical_url=exc.canonical_url,
+            existing_slug=exc.existing_slug,
+        )
+
+    # SessionRequiredError and AuthWallError subclass FetchError — check first.
+    if isinstance(exc, SessionRequiredError):
+        return tool_error_response("session_required", str(exc), site=exc.site)
+
+    if isinstance(exc, AuthWallError):
+        return tool_error_response("auth_wall", str(exc), url=exc.url)
+
+    if isinstance(exc, FetchError):
+        return tool_error_response("fetch_failed", str(exc))
 
     # Fallback: unknown exception. Don't leak details.
     return tool_error_response(

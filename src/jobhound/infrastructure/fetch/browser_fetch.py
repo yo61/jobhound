@@ -22,7 +22,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from jobhound.infrastructure.config import load_config
-from jobhound.infrastructure.fetch.base import FetchError, FetchResult
+from jobhound.infrastructure.fetch.base import FetchError, FetchResult, SessionRequiredError
 from jobhound.infrastructure.paths import paths_from_config
 
 _EXTRA_MISSING = (
@@ -105,7 +105,8 @@ def fetch(url: str, *, profile_dir: Path | None = None) -> FetchResult:
     """Fetch `url` headless against the persistent browser profile."""
     sync_playwright = _sync_playwright()
     user_data_dir = profile_dir or default_profile_dir(url)
-    user_data_dir.mkdir(parents=True, exist_ok=True)
+    if not (user_data_dir.is_dir() and any(user_data_dir.iterdir())):
+        raise SessionRequiredError(_registrable_domain(urlparse(url).hostname or "this site"))
 
     with sync_playwright() as playwright:
         context = playwright.chromium.launch_persistent_context(str(user_data_dir), headless=True)

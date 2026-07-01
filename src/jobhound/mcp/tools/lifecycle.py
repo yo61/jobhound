@@ -6,12 +6,13 @@ import json
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
-from jobhound.application import lifecycle_service
+from jobhound.application import lifecycle_service, scrape_service
 from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
 from jobhound.domain.timekeeping import now_utc
 from jobhound.infrastructure.repository import OpportunityRepository
+from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 from jobhound.mcp.converters import mutation_response
 from jobhound.mcp.errors import exception_to_response
 
@@ -89,6 +90,38 @@ def create_opportunity(
         "create_opportunity",
         lambda: lifecycle_service.create(repo, opp),
         now,
+    )
+
+
+def create_from_url(repo: OpportunityRepository, *, url: str) -> str:
+    """Create an opportunity by scraping a job-posting URL."""
+    now = now_utc()
+    store = GitLocalFileStore(repo.paths)
+    try:
+        result = scrape_service.create_from_url(repo, store, url)
+    except Exception as exc:
+        return json.dumps(exception_to_response(exc, tool="create_from_url"))
+    opp_dir = repo.paths.opportunities_dir / result.slug
+    response = mutation_response(None, result.opp, opp_dir, now=now)
+    response["missing"] = list(result.missing)
+    return json.dumps(response)
+
+
+def browser_status(*, site: str = "linkedin") -> str:
+    """Report whether a logged-in browser session exists for a site (read-only)."""
+    from jobhound.infrastructure.fetch import browser_fetch
+
+    try:
+        status = browser_fetch.session_status(site)
+    except Exception as exc:
+        return json.dumps(exception_to_response(exc, tool="browser_status"))
+    return json.dumps(
+        {
+            "site": status.site,
+            "profile_dir": str(status.profile_dir),
+            "session_present": status.exists,
+            "last_used": status.last_used.isoformat() if status.last_used else None,
+        }
     )
 
 
@@ -238,6 +271,20 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
             next_action=next_action,
             next_action_due=next_action_due,
         )
+
+    @app.tool(
+        name="create_from_url",
+        description="Create an opportunity by scraping a job-posting URL (e.g. a LinkedIn job).",
+    )
+    def _create_from_url(url: str) -> str:
+        return create_from_url(repo, url=url)
+
+    @app.tool(
+        name="browser_status",
+        description="Check whether a logged-in browser session exists for a site (read-only).",
+    )
+    def _browser_status(site: str = "linkedin") -> str:
+        return browser_status(site=site)
 
     @app.tool(
         name="apply_to_opportunity",

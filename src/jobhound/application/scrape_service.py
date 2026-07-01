@@ -62,10 +62,11 @@ def create_from_url(
     store: FileStore,
     url: str,
     *,
-    fetch: Fetch = coordinator.fetch,
+    fetch: Fetch | None = None,
     now: datetime | None = None,
 ) -> CreateFromUrlResult:
     """Scrape `url` and scaffold a `prospect` opportunity from it."""
+    fetch = fetch or coordinator.fetch
     now_obj = to_utc(now) if now else now_utc()
     extractor = registry.extractor_for(url)
     site = registry.site_name_for(url)

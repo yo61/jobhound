@@ -472,7 +472,7 @@ wheels = [
 
 [[package]]
 name = "jobhound"
-version = "0.14.2"
+version = "0.15.0"
 source = { editable = "." }
 dependencies = [
     { name = "cyclopts" },

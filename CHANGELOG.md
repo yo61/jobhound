@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/yo61/jobhound/compare/v0.14.2...v0.15.0) (2026-07-01)
+
+
+### Features
+
+* create opportunities from a job-posting URL ([#129](https://github.com/yo61/jobhound/issues/129)) ([9794269](https://github.com/yo61/jobhound/commit/9794269334b5b87469b7cbb07a21a83d877ee8ed))
+
 ## [0.14.2](https://github.com/yo61/jobhound/compare/v0.14.1...v0.14.2) (2026-06-22)
 
 

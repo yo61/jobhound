@@ -224,4 +224,3 @@ No real subprocess calls in tests. No real GUI app launches.
   `docs/` after writing the spec).
 - Help text on the `open` command is the only required doc surface.
   README mention is optional.
-

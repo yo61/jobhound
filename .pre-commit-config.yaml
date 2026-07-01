@@ -1,4 +1,24 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # Whitespace / line endings
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      # File integrity
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      # Executables / shebangs
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      # Parseable config
+      - id: check-yaml
+      - id: check-json
+
   # ruff, ty, and pytest all run via `uv run` so their versions are
   # single-sourced from uv.lock. Same binary CI uses via `task dev:check`.
   # No second `rev:` to keep aligned.
@@ -22,10 +42,16 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      # pytest runs the full suite (each test spins up a real git repo),
+      # so it's a pre-push gate rather than per-commit. types:[python]
+      # means a docs-only push skips it too. CI (task dev:check) is the
+      # authoritative gate.
       - id: pytest
         name: pytest
         entry: uv run --no-sync pytest -q
         language: system
+        stages: [pre-push]
+        types: [python]
         pass_filenames: false
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: v9.25.0

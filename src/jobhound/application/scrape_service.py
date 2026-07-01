@@ -16,6 +16,7 @@ from jobhound.application import file_service, lifecycle_service
 from jobhound.application.extract import registry
 from jobhound.domain.opportunities import Opportunity
 from jobhound.domain.timekeeping import now_utc, to_utc
+from jobhound.infrastructure.fetch import coordinator
 from jobhound.infrastructure.fetch.base import FetchResult
 from jobhound.infrastructure.repository import OpportunityRepository
 from jobhound.infrastructure.storage.protocols import FileStore
@@ -61,7 +62,7 @@ def create_from_url(
     store: FileStore,
     url: str,
     *,
-    fetch: Fetch,
+    fetch: Fetch = coordinator.fetch,
     now: datetime | None = None,
 ) -> CreateFromUrlResult:
     """Scrape `url` and scaffold a `prospect` opportunity from it."""

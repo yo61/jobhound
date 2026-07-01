@@ -8,6 +8,7 @@ license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "cyclopts==4.11.2",
+    "httpx>=0.28",
     "questionary>=2.0",
     "tomli-w>=1.0",
     "rich>=13",
@@ -17,6 +18,7 @@ dependencies = [
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.0"]
+browser = ["playwright>=1.55"]
 
 [project.scripts]
 jh = "jobhound.cli:main"

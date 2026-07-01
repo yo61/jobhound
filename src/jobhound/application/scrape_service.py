@@ -77,6 +77,8 @@ def create_from_url(
         raise IncompleteScrapeError(url, required)
 
     canonical = job.canonical_url or result.final_url
+    # Dedup against active opportunities only; a previously-archived posting
+    # re-scraped is treated as a fresh opportunity by design.
     for existing in repo.all():
         if existing.links.get("posting") == canonical:
             raise DuplicatePostingError(canonical, existing.slug)

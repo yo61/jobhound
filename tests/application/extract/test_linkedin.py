@@ -9,7 +9,11 @@ postings on 2026-07-01 exposed (see the URL-scraping design spec):
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from jobhound.application.extract.linkedin import extract
+
+_FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def _linkedin_html(*, title: str, canonical: str, jd_body: str) -> str:
@@ -50,6 +54,22 @@ def test_extracts_company_role_location_and_canonical() -> None:
     assert "About LiveFlow" in job.jd_body
 
 
+def test_extracts_from_real_captured_page() -> None:
+    # Real LinkedIn markup (trimmed from a live probe): actual attribute
+    # ordering and body HTML, so this guards against markup drift and the
+    # extractor's real failure modes — not just shapes it already handles.
+    html = (_FIXTURES / "linkedin_liveflow.html").read_text()
+
+    job = extract(html)
+
+    assert job.company == "LiveFlow"
+    assert job.role == "Graduate Platform Engineer - Growth"
+    assert job.location == "London, England, United Kingdom"
+    assert job.canonical_url is not None and job.canonical_url.endswith("-4383908452")
+    assert len(job.jd_body) > 1000
+    assert "needInterview" not in job.jd_body  # block boundaries kept separate
+
+
 def test_full_page_reports_only_comp_range_missing() -> None:
     html = _linkedin_html(
         title="Camunda hiring Engineering Manager - Infrastructure in United Kingdom | LinkedIn",
@@ -82,6 +102,39 @@ def test_block_tags_become_whitespace_not_concatenation() -> None:
     assert "Second line." in lines
     assert "Alpha" in lines
     assert "Beta" in lines
+
+
+def test_nested_divs_in_body_are_not_truncated() -> None:
+    # Regex can't balance nested tags; the body must survive a nested <div>.
+    html = _linkedin_html(
+        title="Acme hiring Engineer in Remote | LinkedIn",
+        canonical="https://uk.linkedin.com/jobs/view/engineer-at-acme-1",
+        jd_body="Intro paragraph.<div>Responsibilities section</div>Closing paragraph.",
+    )
+
+    job = extract(html)
+
+    assert "Intro paragraph." in job.jd_body
+    assert "Responsibilities section" in job.jd_body
+    assert "Closing paragraph." in job.jd_body
+
+
+def test_extraction_is_insensitive_to_attribute_order() -> None:
+    # A markup reshuffle (content before property, href before rel) must still work.
+    html = (
+        "<html><head>"
+        '<meta content="Acme hiring SRE in Remote | LinkedIn" property="og:title">'
+        '<link href="https://uk.linkedin.com/jobs/view/sre-at-acme-9" rel="canonical">'
+        "</head><body>"
+        '<div class="show-more-less-html__markup">Body text.</div>'
+        "</body></html>"
+    )
+
+    job = extract(html)
+
+    assert job.company == "Acme"
+    assert job.role == "SRE"
+    assert job.canonical_url == "https://uk.linkedin.com/jobs/view/sre-at-acme-9"
 
 
 def test_unparseable_page_reports_all_missing_fields() -> None:

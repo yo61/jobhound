@@ -2,17 +2,11 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-      # Whitespace / line endings. Exclude .github/workflows/ — the
-      # claude-code-action guard requires those files to be byte-identical
-      # to the version on the default branch, so auto-fixing them on a PR
-      # branch fails the review workflow's token exchange.
+      # Whitespace / line endings
       - id: trailing-whitespace
-        exclude: ^\.github/workflows/
       - id: end-of-file-fixer
-        exclude: ^\.github/workflows/
       - id: mixed-line-ending
         args: [--fix=lf]
-        exclude: ^\.github/workflows/
       # File integrity
       - id: check-added-large-files
       - id: check-merge-conflict

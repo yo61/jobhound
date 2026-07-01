@@ -48,4 +48,3 @@ jobs:
           allowed_bots: 'semantic-release-pusher'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-

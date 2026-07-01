@@ -88,6 +88,7 @@ _SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
 _SUB_APP_NAMES: dict[str, frozenset[str]] = {
     "file": frozenset({"open", "read", "write", "append", "delete", "list", "import"}),
     "completion": frozenset({"bash", "fish", "zsh", "install"}),
+    "config": frozenset({"get", "set"}),
     "set": frozenset(
         {
             "applied-on",
@@ -133,6 +134,7 @@ _TOP_LEVEL_COMMANDS: frozenset[str] = frozenset(
         "bump",
         "clear",
         "completion",
+        "config",
         "contact",
         "decline",
         "delete",

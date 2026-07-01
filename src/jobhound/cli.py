@@ -39,6 +39,7 @@ def _build_cyclopts_app() -> Any:
     from jobhound.commands import unarchive as cmd_unarchive
     from jobhound.commands import withdraw as cmd_withdraw
     from jobhound.commands.completion import app as completion_app
+    from jobhound.commands.config import app as config_app
     from jobhound.commands.file import app as file_app
 
     _cyclopts_app = App(
@@ -87,6 +88,8 @@ def _build_cyclopts_app() -> Any:
     _cyclopts_app.command(cmd_migrate.app)
     completion_app.group = utility_group
     _cyclopts_app.command(completion_app)
+    config_app.group = utility_group
+    _cyclopts_app.command(config_app)
 
     _cyclopts_app.command(cmd_complete.run, name="__complete", show=False)
 

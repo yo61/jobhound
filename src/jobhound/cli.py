@@ -18,6 +18,7 @@ def _build_cyclopts_app() -> Any:
     from jobhound.commands import accept as cmd_accept
     from jobhound.commands import apply as cmd_apply
     from jobhound.commands import archive as cmd_archive
+    from jobhound.commands import browser as cmd_browser
     from jobhound.commands import bump as cmd_bump
     from jobhound.commands import clear as cmd_clear
     from jobhound.commands import contact as cmd_contact
@@ -70,7 +71,14 @@ def _build_cyclopts_app() -> Any:
         sub.group = opp_group
         _cyclopts_app.command(sub)
 
-    for sub in (file_app, cmd_contact.app, cmd_note.app, cmd_tag.app, cmd_link.app):
+    for sub in (
+        file_app,
+        cmd_contact.app,
+        cmd_note.app,
+        cmd_tag.app,
+        cmd_link.app,
+        cmd_browser.app,
+    ):
         sub.group = object_group
         _cyclopts_app.command(sub)
 

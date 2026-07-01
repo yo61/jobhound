@@ -42,6 +42,36 @@ full set: `new`, `apply`, `log`, `withdraw`, `ghost`, `accept`, `decline`,
 `jh export` filters: `--status` and `--priority` (comma-separated or
 repeatable), `--slug` (substring), `--active-only`, `--include-archived`.
 
+### Adding a job from a URL
+
+Create an opportunity by scraping a job posting instead of typing the
+details:
+
+```bash
+jh new --url https://www.linkedin.com/jobs/view/4383908452
+```
+
+jobhound extracts the company, role, location, and description, stores the
+posting as a `posting` link, and saves the full text as
+`job-description.md`. Extraction runs locally with no LLM: LinkedIn is read
+from its page metadata, and other job sites are read from the schema.org
+`JobPosting` data most publish for Google Jobs. Tracking parameters in the
+URL are ignored — deduplication keys on the posting's canonical URL, so the
+same job added twice is rejected.
+
+Most postings are fetched without logging in. If a site rate-limits or
+gates a posting behind a login, install the browser extra and log in once:
+
+```bash
+uv tool install 'jobhound[browser]'   # or: uv sync --extra browser
+playwright install chromium
+jh browser login                      # opens a browser; log in, then close it
+jh browser status                     # check the saved session
+```
+
+The login runs in a real browser you control; jobhound stores only the
+browser session (never your password) and reuses it for later fetches.
+
 ### Managing opportunity files
 
 `jh file` provides uniform access to files inside an opportunity (CVs,
@@ -69,13 +99,14 @@ state change — your history is auditable and you can push it anywhere.
 
 `jh` ships a Model Context Protocol server so AI clients (Claude
 Desktop, Claude Code, Continue, Zed, …) can read and modify your job
-hunt directly. 37 MCP tools cover read operations (list, show, stats,
-files, file content), state transitions (apply, log, withdraw, ghost,
-accept, decline), field setters, relation operations (tags, contacts,
-links), opportunity ops (notes, archive, delete), and a uniform file
-API (read, write, import, export, append, delete) with
-optimistic-concurrency conflict detection and 3-way merge for text
-files.
+hunt directly. The MCP tools cover read operations (list, show, stats,
+files, file content), creating an opportunity from a job-posting URL
+(`create_from_url`, plus `browser_status` for authenticated scraping),
+state transitions (apply, log, withdraw, ghost, accept, decline), field
+setters, relation operations (tags, contacts, links), opportunity ops
+(notes, archive, delete), and a uniform file API (read, write, import,
+export, append, delete) with optimistic-concurrency conflict detection
+and 3-way merge for text files.
 
 Install the optional extra:
 

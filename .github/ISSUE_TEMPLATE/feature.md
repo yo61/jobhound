@@ -15,12 +15,12 @@ labels: [enhancement]
 
 ## Design considerations
 
-- 
-- 
+-
+-
 
 ## Out of scope
 
-- 
+-
 
 ## Cost estimate
 

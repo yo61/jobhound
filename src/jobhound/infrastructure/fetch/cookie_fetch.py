@@ -39,7 +39,14 @@ _TIMEOUT = 20.0
 
 
 def _registrable_domain(host: str) -> str:
-    """Return a coarse registrable-domain hint used only as a read filter for browser_cookie3."""
+    """Return a coarse registrable-domain hint used only as a read filter for browser_cookie3.
+
+    The last-2-labels heuristic over-reads for multi-level TLDs (e.g. ``jobs.co.uk``
+    yields ``co.uk`` instead of ``jobs.co.uk``), which may cause browser_cookie3 to
+    return more cookies than strictly necessary.  This is intentional: the RFC 6265
+    ``_matches_domain`` filter applied immediately afterwards is the real security
+    boundary, so an over-read here never causes a cross-domain cookie to be sent.
+    """
     labels = host.lower().split(".")
     return ".".join(labels[-2:]) if len(labels) >= 2 else host
 

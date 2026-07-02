@@ -98,3 +98,5 @@ def test_create_from_url_no_session_returns_error(
 
     payload = json.loads(create_from_url(repo, url="https://www.linkedin.com/jobs/view/1"))
     assert payload["error"]["code"] == "no_browser_session"
+    assert payload["error"]["details"]["browser"] == "chrome"
+    assert payload["error"]["details"]["profile"] is None

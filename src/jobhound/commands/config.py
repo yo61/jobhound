@@ -38,4 +38,4 @@ def set_(key: str, value: str, /) -> None:
     except (UnknownConfigKeyError, InvalidConfigValueError) as exc:
         print(f"config: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
-    print(f"{key} = {value}")
+    print(f"{key} = {config_values()[key]!r}")

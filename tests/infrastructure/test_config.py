@@ -78,3 +78,17 @@ def test_set_invalid_bool_raises(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     with pytest.raises(InvalidConfigValueError):
         set_config_value("allow-browser-cookie-access", "maybe")
+
+
+def test_cookie_browser_must_be_str(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    _write(tmp_path / "config", "cookie_browser = 42\n")
+    with pytest.raises(ValueError):
+        load_config()
+
+
+def test_cookie_browser_profile_must_be_str_if_set(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    _write(tmp_path / "config", "cookie_browser_profile = true\n")
+    with pytest.raises(ValueError):
+        load_config()

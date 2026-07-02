@@ -87,7 +87,7 @@ SETTABLE_KEYS: dict[str, str] = {
     "auto-commit": "auto_commit",
     "editor": "editor",
 }
-_BOOL_KEYS = {"allow-browser-cookie-access", "auto-commit"}
+_BOOL_KEYS: frozenset[str] = frozenset({"allow-browser-cookie-access", "auto-commit"})
 
 
 class UnknownConfigKeyError(ValueError):

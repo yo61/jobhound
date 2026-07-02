@@ -61,3 +61,20 @@ def test_auth_wall_without_permission_raises_access_denied() -> None:
     with pytest.raises(BrowserCookieAccessDeniedError):
         coordinator.fetch("https://x/1", tier1=tier1, tier2=tier2, config=_config(allow=False))
     assert called == []
+
+
+def test_non_auth_wall_error_does_not_escalate() -> None:
+    from jobhound.infrastructure.fetch.base import FetchError
+
+    called: list[str] = []
+
+    def tier1(url):
+        raise FetchError("boom")
+
+    def tier2(url):
+        called.append("t2")
+        return FetchResult(final_url=url, html="auth")
+
+    with pytest.raises(FetchError):
+        coordinator.fetch("https://x/1", tier1=tier1, tier2=tier2, config=_config(allow=True))
+    assert called == []

@@ -33,7 +33,12 @@ from jobhound.application.relation_service import (
 from jobhound.application.scrape_service import DuplicatePostingError, IncompleteScrapeError
 from jobhound.domain.slug import AmbiguousSlugError, SlugNotFoundError
 from jobhound.domain.transitions import InvalidTransitionError
-from jobhound.infrastructure.fetch.base import AuthWallError, FetchError, SessionRequiredError
+from jobhound.infrastructure.fetch.base import (
+    AuthWallError,
+    BrowserCookieAccessDeniedError,
+    FetchError,
+    NoBrowserSessionError,
+)
 from jobhound.infrastructure.meta_io import ValidationError
 
 
@@ -219,9 +224,14 @@ def exception_to_response(
             existing_slug=exc.existing_slug,
         )
 
-    # SessionRequiredError and AuthWallError subclass FetchError — check first.
-    if isinstance(exc, SessionRequiredError):
-        return tool_error_response("session_required", str(exc), site=exc.site)
+    # BrowserCookieAccessDeniedError and NoBrowserSessionError subclass FetchError — check first.
+    if isinstance(exc, BrowserCookieAccessDeniedError):
+        return tool_error_response("browser_cookie_access_denied", str(exc))
+
+    if isinstance(exc, NoBrowserSessionError):
+        return tool_error_response(
+            "no_browser_session", str(exc), browser=exc.browser, profile=exc.profile
+        )
 
     if isinstance(exc, AuthWallError):
         return tool_error_response("auth_wall", str(exc), url=exc.url)

@@ -1,4 +1,4 @@
-"""Tests for the URL-scraping MCP tools (create_from_url, browser_status).
+"""Tests for the URL-scraping MCP tools (create_from_url).
 
 The fetch tiers are monkeypatched so these run with no network or browser.
 """
@@ -10,9 +10,9 @@ from collections.abc import Callable
 
 import pytest
 
-from jobhound.infrastructure.fetch.base import AuthWallError, FetchResult, SessionRequiredError
+from jobhound.infrastructure.fetch.base import FetchResult
 from jobhound.infrastructure.repository import OpportunityRepository
-from jobhound.mcp.tools.lifecycle import browser_status, create_from_url
+from jobhound.mcp.tools.lifecycle import create_from_url
 
 _CANONICAL = "https://uk.linkedin.com/jobs/view/staff-eng-at-liveflow-77"
 _HTML = (
@@ -53,35 +53,50 @@ def test_create_from_url_duplicate_returns_actionable_error(
     assert payload["error"]["code"] == "duplicate_posting"
 
 
-def test_create_from_url_session_required_returns_actionable_error(
+def test_create_from_url_access_denied_returns_error(
     repo: OpportunityRepository, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def _authwall(url: str) -> FetchResult:
+    from jobhound.infrastructure.config import Config
+    from jobhound.infrastructure.fetch.base import AuthWallError
+
+    def _authwall(url: str):
         raise AuthWallError(url, 403)
 
-    def _needs_login(url: str) -> FetchResult:
-        raise SessionRequiredError("linkedin.com")
-
     _patch_tier1(monkeypatch, _authwall)
-    monkeypatch.setattr("jobhound.infrastructure.fetch.browser_fetch.fetch", _needs_login)
+    monkeypatch.setattr(
+        "jobhound.infrastructure.fetch.coordinator.load_config",
+        lambda: Config(db_path=repo.paths.db_root, auto_commit=True, editor=""),
+    )
 
     payload = json.loads(create_from_url(repo, url="https://www.linkedin.com/jobs/view/1"))
+    assert payload["error"]["code"] == "browser_cookie_access_denied"
 
-    assert payload["error"]["code"] == "session_required"
 
-
-def test_browser_status_reports_no_session(
-    repo: OpportunityRepository, tmp_path, monkeypatch: pytest.MonkeyPatch
+def test_create_from_url_no_session_returns_error(
+    repo: OpportunityRepository, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
+    from jobhound.infrastructure.config import Config
+    from jobhound.infrastructure.fetch.base import AuthWallError, NoBrowserSessionError
 
-    payload = json.loads(browser_status(site="linkedin"))
+    def _authwall(url: str):
+        raise AuthWallError(url, 403)
 
-    assert payload["site"] == "linkedin"
-    assert payload["session_present"] is False
+    def _no_session(url: str, **_kwargs: object) -> None:
+        raise NoBrowserSessionError("chrome")
 
+    _patch_tier1(monkeypatch, _authwall)
+    monkeypatch.setattr(
+        "jobhound.infrastructure.fetch.coordinator.load_config",
+        lambda: Config(
+            db_path=repo.paths.db_root,
+            auto_commit=True,
+            editor="",
+            allow_browser_cookie_access=True,
+        ),
+    )
+    monkeypatch.setattr("jobhound.infrastructure.fetch.cookie_fetch.fetch", _no_session)
 
-def test_browser_status_unknown_site_returns_error(repo: OpportunityRepository) -> None:
-    payload = json.loads(browser_status(site="monster"))
-
-    assert "error" in payload
+    payload = json.loads(create_from_url(repo, url="https://www.linkedin.com/jobs/view/1"))
+    assert payload["error"]["code"] == "no_browser_session"
+    assert payload["error"]["details"]["browser"] == "chrome"
+    assert payload["error"]["details"]["profile"] is None

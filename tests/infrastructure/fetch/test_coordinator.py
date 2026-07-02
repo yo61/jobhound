@@ -1,57 +1,80 @@
-"""Tests for the two-tier fetch coordinator.
-
-The tier functions are injected so the escalation logic is tested without
-any real HTTP or browser — HTTP first, browser tier only on an auth wall.
-"""
+"""Tests for the two-tier fetch coordinator (cookie tier-2, config-gated)."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
+from jobhound.infrastructure.config import Config
 from jobhound.infrastructure.fetch import coordinator
-from jobhound.infrastructure.fetch.base import AuthWallError, FetchError, FetchResult
+from jobhound.infrastructure.fetch.base import (
+    AuthWallError,
+    BrowserCookieAccessDeniedError,
+    FetchResult,
+)
 
 
-def test_returns_tier1_result_when_tier1_succeeds() -> None:
-    calls: list[str] = []
+def _config(*, allow: bool) -> Config:
+    return Config(
+        db_path=Path("/tmp/x"), auto_commit=True, editor="", allow_browser_cookie_access=allow
+    )
 
-    def tier1(url: str) -> FetchResult:
+
+def test_tier1_success_skips_escalation() -> None:
+    calls = []
+
+    def tier1(url):
         calls.append("t1")
-        return FetchResult(final_url=url, html="tier1 html")
+        return FetchResult(final_url=url, html="guest")
 
-    def tier2(url: str) -> FetchResult:
+    def tier2(url):
         calls.append("t2")
-        return FetchResult(final_url=url, html="tier2 html")
+        return FetchResult(final_url=url, html="auth")
 
-    result = coordinator.fetch("https://example.com/1", tier1=tier1, tier2=tier2)
+    result = coordinator.fetch("https://x/1", tier1=tier1, tier2=tier2, config=_config(allow=True))
+    assert result.html == "guest"
+    assert calls == ["t1"]
 
-    assert result.html == "tier1 html"
-    assert calls == ["t1"]  # tier2 must not be called
 
-
-def test_escalates_to_tier2_on_auth_wall() -> None:
-    def tier1(url: str) -> FetchResult:
+def test_auth_wall_with_permission_escalates_to_cookie_tier() -> None:
+    def tier1(url):
         raise AuthWallError(url, 403)
 
-    def tier2(url: str) -> FetchResult:
-        return FetchResult(final_url=url, html="tier2 html")
+    def tier2(url):
+        return FetchResult(final_url=url, html="auth")
 
-    result = coordinator.fetch("https://example.com/1", tier1=tier1, tier2=tier2)
+    result = coordinator.fetch("https://x/1", tier1=tier1, tier2=tier2, config=_config(allow=True))
+    assert result.html == "auth"
 
-    assert result.html == "tier2 html"
+
+def test_auth_wall_without_permission_raises_access_denied() -> None:
+    called = []
+
+    def tier1(url):
+        raise AuthWallError(url, 403)
+
+    def tier2(url):
+        called.append("t2")
+        return FetchResult(final_url=url, html="auth")
+
+    with pytest.raises(BrowserCookieAccessDeniedError):
+        coordinator.fetch("https://x/1", tier1=tier1, tier2=tier2, config=_config(allow=False))
+    assert called == []
 
 
-def test_non_auth_wall_error_propagates_without_escalating() -> None:
+def test_non_auth_wall_error_does_not_escalate() -> None:
+    from jobhound.infrastructure.fetch.base import FetchError
+
     called: list[str] = []
 
-    def tier1(url: str) -> FetchResult:
-        raise FetchError("server error")
+    def tier1(url):
+        raise FetchError("boom")
 
-    def tier2(url: str) -> FetchResult:
+    def tier2(url):
         called.append("t2")
-        return FetchResult(final_url=url, html="tier2 html")
+        return FetchResult(final_url=url, html="auth")
 
     with pytest.raises(FetchError):
-        coordinator.fetch("https://example.com/1", tier1=tier1, tier2=tier2)
-
-    assert called == []  # a non-auth-wall failure is terminal
+        coordinator.fetch("https://x/1", tier1=tier1, tier2=tier2, config=_config(allow=True))
+    assert called == []

@@ -50,7 +50,6 @@ async def test_initialize_and_list_tools(server_env: dict[str, str]) -> None:
             "list_opportunities",  # reads
             "apply_to_opportunity",  # lifecycle
             "create_from_url",  # lifecycle (URL scraping)
-            "browser_status",  # lifecycle (URL scraping)
             "set_priority",  # fields
             "add_tag",  # relations
             "archive_opportunity",  # ops

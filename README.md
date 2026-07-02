@@ -59,18 +59,17 @@ from its page metadata, and other job sites are read from the schema.org
 URL are ignored — deduplication keys on the posting's canonical URL, so the
 same job added twice is rejected.
 
-Most postings are fetched without logging in. If a site rate-limits or
-gates a posting behind a login, install the browser extra and log in once:
+Most postings are fetched without logging in. For a posting behind a login,
+let jobhound reuse the session from your browser — grant permission once:
 
 ```bash
-uv tool install 'jobhound[browser]'   # or: uv sync --extra browser
-playwright install chromium
-jh browser login                      # opens a browser; log in, then close it
-jh browser status                     # check the saved session
+jh config set allow-browser-cookie-access true
 ```
 
-The login runs in a real browser you control; jobhound stores only the
-browser session (never your password) and reuses it for later fetches.
+jobhound then reads the cookies for that site from your default browser
+(configurable with `jh config set cookie-browser <name>` and
+`cookie-browser-profile`) and replays them to fetch the posting. Cookies are
+read only for the target site, used for that fetch, and never stored.
 
 ### Managing opportunity files
 
@@ -101,7 +100,7 @@ state change — your history is auditable and you can push it anywhere.
 Desktop, Claude Code, Continue, Zed, …) can read and modify your job
 hunt directly. The MCP tools cover read operations (list, show, stats,
 files, file content), creating an opportunity from a job-posting URL
-(`create_from_url`, plus `browser_status` for authenticated scraping),
+(`create_from_url`),
 state transitions (apply, log, withdraw, ghost, accept, decline), field
 setters, relation operations (tags, contacts, links), opportunity ops
 (notes, archive, delete), and a uniform file API (read, write, import,

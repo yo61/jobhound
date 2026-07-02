@@ -50,6 +50,21 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: wagoid/commitlint-github-action@f133a0d95090ef2609192b4a21f54e20af819ea9  # v6
+      - uses: wagoid/commitlint-github-action@b948419dd99f3fd78a6548d48f94e3df7f6bf3ed  # v6.2.1
         with:
           configFile: commitlint.config.mjs
+
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa  # v0.5.7
+        with:
+          advanced-security: false
+          persona: regular
+          version: v1.26.1

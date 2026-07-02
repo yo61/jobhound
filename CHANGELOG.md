@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/yo61/jobhound/compare/v0.15.0...v0.16.0) (2026-07-02)
+
+
+### Features
+
+* reuse browser cookies for authenticated fetch (replace Playwright) ([#133](https://github.com/yo61/jobhound/issues/133)) ([625c8ee](https://github.com/yo61/jobhound/commit/625c8ee7c69bb928f0579f81d16b0a57c32f0022))
+
 ## [0.15.0](https://github.com/yo61/jobhound/compare/v0.14.2...v0.15.0) (2026-07-01)
 
 

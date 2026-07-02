@@ -100,7 +100,7 @@ state change — your history is auditable and you can push it anywhere.
 Desktop, Claude Code, Continue, Zed, …) can read and modify your job
 hunt directly. The MCP tools cover read operations (list, show, stats,
 files, file content), creating an opportunity from a job-posting URL
-(`create_from_url`, plus `browser_status` for authenticated scraping),
+(`create_from_url`),
 state transitions (apply, log, withdraw, ghost, accept, decline), field
 setters, relation operations (tags, contacts, links), opportunity ops
 (notes, archive, delete), and a uniform file API (read, write, import,

@@ -107,24 +107,6 @@ def create_from_url(repo: OpportunityRepository, *, url: str) -> str:
     return json.dumps(response)
 
 
-def browser_status(*, site: str = "linkedin") -> str:
-    """Report whether a logged-in browser session exists for a site (read-only)."""
-    from jobhound.infrastructure.fetch import browser_fetch
-
-    try:
-        status = browser_fetch.session_status(site)
-    except Exception as exc:
-        return json.dumps(exception_to_response(exc, tool="browser_status"))
-    return json.dumps(
-        {
-            "site": status.site,
-            "profile_dir": str(status.profile_dir),
-            "session_present": status.exists,
-            "last_used": status.last_used.isoformat() if status.last_used else None,
-        }
-    )
-
-
 def apply_to_opportunity(
     repo: OpportunityRepository,
     *,
@@ -278,13 +260,6 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
     )
     def _create_from_url(url: str) -> str:
         return create_from_url(repo, url=url)
-
-    @app.tool(
-        name="browser_status",
-        description="Check whether a logged-in browser session exists for a site (read-only).",
-    )
-    def _browser_status(site: str = "linkedin") -> str:
-        return browser_status(site=site)
 
     @app.tool(
         name="apply_to_opportunity",

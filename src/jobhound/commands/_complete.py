@@ -119,7 +119,6 @@ _SUB_APP_NAMES: dict[str, frozenset[str]] = {
     "note": frozenset({"add", "list", "show", "edit", "remove"}),
     "tag": frozenset({"add", "remove", "list"}),
     "link": frozenset({"set", "remove", "list", "show"}),
-    "browser": frozenset({"login", "status"}),
     "migrate": frozenset({"utc-timestamps"}),
 }
 
@@ -130,7 +129,6 @@ _TOP_LEVEL_COMMANDS: frozenset[str] = frozenset(
         "accept",
         "apply",
         "archive",
-        "browser",
         "bump",
         "clear",
         "completion",

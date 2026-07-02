@@ -1,4 +1,4 @@
-"""Tests for the URL-scraping MCP tools (create_from_url, browser_status).
+"""Tests for the URL-scraping MCP tools (create_from_url).
 
 The fetch tiers are monkeypatched so these run with no network or browser.
 """
@@ -12,7 +12,7 @@ import pytest
 
 from jobhound.infrastructure.fetch.base import FetchResult
 from jobhound.infrastructure.repository import OpportunityRepository
-from jobhound.mcp.tools.lifecycle import browser_status, create_from_url
+from jobhound.mcp.tools.lifecycle import create_from_url
 
 _CANONICAL = "https://uk.linkedin.com/jobs/view/staff-eng-at-liveflow-77"
 _HTML = (
@@ -98,20 +98,3 @@ def test_create_from_url_no_session_returns_error(
 
     payload = json.loads(create_from_url(repo, url="https://www.linkedin.com/jobs/view/1"))
     assert payload["error"]["code"] == "no_browser_session"
-
-
-def test_browser_status_reports_no_session(
-    repo: OpportunityRepository, tmp_path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-
-    payload = json.loads(browser_status(site="linkedin"))
-
-    assert payload["site"] == "linkedin"
-    assert payload["session_present"] is False
-
-
-def test_browser_status_unknown_site_returns_error(repo: OpportunityRepository) -> None:
-    payload = json.loads(browser_status(site="monster"))
-
-    assert "error" in payload

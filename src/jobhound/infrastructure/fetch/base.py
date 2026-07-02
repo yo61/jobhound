@@ -47,11 +47,3 @@ class NoBrowserSessionError(FetchError):
         )
         self.browser = browser
         self.profile = profile
-
-
-class SessionRequiredError(FetchError):
-    """Tier-2 fetch needs a logged-in browser profile that isn't present."""
-
-    def __init__(self, site: str) -> None:
-        super().__init__(f"no valid {site} session; run `jh browser login`")
-        self.site = site

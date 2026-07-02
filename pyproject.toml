@@ -19,7 +19,6 @@ dependencies = [
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.0"]
-browser = ["playwright>=1.55"]
 
 [project.scripts]
 jh = "jobhound.cli:main"

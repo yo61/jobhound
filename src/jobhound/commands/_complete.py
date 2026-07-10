@@ -222,6 +222,8 @@ _FLAG_ENUMS: dict[tuple[tuple[str, ...], str], str] = {
     # `jh log --next-status` — accepts any Status value (`stay` is the
     # no-change default; users wanting that literal can type it directly).
     (("log",), "--next-status"): "jobhound.domain.status:Status",
+    # `jh file list --sort` — name / size / date.
+    (("file", "list"), "--sort"): "jobhound.commands.file:FileSortKey",
 }
 
 

@@ -56,7 +56,7 @@ Use `jh file <command> <slug> [args]` to manage opportunity files.
 | `jh file append` | Append content to a file. |
 | `jh file delete` | Delete a file. |
 | `jh file import` | Import a file from the local filesystem. |
-| `jh file list` | List files in an opportunity. |
+| `jh file list` | List files in an opportunity. Sorts by name (case-insensitive) by default; `--sort name\|size\|date`, `--reverse`, `--case-sensitive`. |
 | `jh file open` | Open a file in your default app. |
 | `jh file read` | Print file content to stdout. |
 | `jh file write` | Write or replace a file. |
@@ -205,6 +205,8 @@ jh show acme
 
 ```bash
 jh file list acme
+jh file list acme --sort size          # largest first
+jh file list acme --sort date --reverse  # oldest first
 jh file write acme research.md --from /path/to/notes.md
 jh file open acme research.md
 jh file delete acme research.md --yes

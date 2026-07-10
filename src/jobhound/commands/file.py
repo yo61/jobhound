@@ -10,6 +10,7 @@ the CLI mediates.
 from __future__ import annotations
 
 import sys
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
@@ -29,12 +30,48 @@ from jobhound.application.file_service import (
     TextConflictError,
 )
 from jobhound.application.revisions import Revision
+from jobhound.application.snapshots import FileEntry
 from jobhound.domain.slug import resolve_slug
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
 app = App(name="file", help="Manage files inside an opportunity.")
+
+
+class FileSortKey(StrEnum):
+    """Sort key for `jh file list`."""
+
+    NAME = "name"
+    SIZE = "size"
+    DATE = "date"
+
+
+# Default sort direction per key, borrowed from `ls`: names ascending,
+# size and date descending (largest/newest first). `--reverse` flips it.
+_DEFAULT_DESCENDING: dict[FileSortKey, bool] = {
+    FileSortKey.NAME: False,
+    FileSortKey.SIZE: True,
+    FileSortKey.DATE: True,
+}
+
+
+def _sort_entries(
+    entries: list[FileEntry],
+    sort: FileSortKey,
+    *,
+    reverse: bool,
+    case_sensitive: bool = False,
+) -> list[FileEntry]:
+    """Return `entries` ordered by `sort`. `case_sensitive` only affects name."""
+    descending = _DEFAULT_DESCENDING[sort] ^ reverse
+    if sort is FileSortKey.SIZE:
+        return sorted(entries, key=lambda e: e.size, reverse=descending)
+    if sort is FileSortKey.DATE:
+        return sorted(entries, key=lambda e: e.mtime, reverse=descending)
+    if case_sensitive:
+        return sorted(entries, key=lambda e: e.name, reverse=descending)
+    return sorted(entries, key=lambda e: e.name.casefold(), reverse=descending)
 
 
 def _store_and_slug(slug_query: str) -> tuple[GitLocalFileStore, str]:
@@ -92,15 +129,27 @@ def _handle_error(exc: Exception) -> None:
 
 
 @app.command(name="list")
-def list_(slug: str, /) -> None:
-    """List files in an opportunity."""
+def list_(
+    slug: str,
+    /,
+    *,
+    sort: Annotated[FileSortKey, Parameter(name=["--sort"])] = FileSortKey.NAME,
+    reverse: Annotated[bool, Parameter(name=["--reverse", "-r"], negative=())] = False,
+    case_sensitive: Annotated[bool, Parameter(name=["--case-sensitive"], negative=())] = False,
+) -> None:
+    """List files in an opportunity.
+
+    Sorts by name (case-insensitive) by default; `--sort size|date` orders
+    by size or modification time (largest/newest first), `--reverse` flips
+    the direction, and `--case-sensitive` uses byte order for names.
+    """
     try:
         store, canonical = _store_and_slug(slug)
         entries = file_service.list_(store, canonical)
     except Exception as exc:
         _handle_error(exc)
         return
-    for e in entries:
+    for e in _sort_entries(entries, sort, reverse=reverse, case_sensitive=case_sensitive):
         print(f"  {e.name:50s}  {e.size:>8d}  {e.mtime.isoformat()}")
 
 

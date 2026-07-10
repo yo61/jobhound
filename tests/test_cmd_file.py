@@ -61,6 +61,60 @@ def test_file_list_hides_notes_and_correspondence(tmp_jh, invoke) -> None:
     assert "correspondence/" not in result.output
 
 
+def _add_files(db_path: Path, *names: str) -> None:
+    """Add free-form files to the seeded opp and commit."""
+    opp_dir = db_path / "opportunities" / "2026-05-acme-em"
+    for name in names:
+        (opp_dir / name).write_text(f"{name} body\n")
+    subprocess.run(["git", "-C", str(db_path), "add", "."], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(db_path), "commit", "-m", "add-files", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
+
+
+def _order_of(output: str, *names: str) -> list[str]:
+    """Return `names` in the order they appear in `output`."""
+    return sorted(names, key=output.index)
+
+
+def test_file_list_sorts_by_name_case_insensitively_by_default(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    _add_files(tmp_jh.db_path, "Alpha.md", "bravo.md", "Charlie.md")
+    result = invoke(["file", "list", "acme"])
+    assert result.exit_code == 0, result.output
+    assert _order_of(result.output, "Alpha.md", "bravo.md", "Charlie.md") == [
+        "Alpha.md",
+        "bravo.md",
+        "Charlie.md",
+    ]
+
+
+def test_file_list_reverse_flips_name_order(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    _add_files(tmp_jh.db_path, "Alpha.md", "bravo.md", "Charlie.md")
+    result = invoke(["file", "list", "acme", "--reverse"])
+    assert result.exit_code == 0, result.output
+    assert _order_of(result.output, "Alpha.md", "bravo.md", "Charlie.md") == [
+        "Charlie.md",
+        "bravo.md",
+        "Alpha.md",
+    ]
+
+
+def test_file_list_case_sensitive_uses_byte_order(tmp_jh, invoke) -> None:
+    _seed_opp(tmp_jh.db_path)
+    _add_files(tmp_jh.db_path, "Alpha.md", "bravo.md", "Charlie.md")
+    result = invoke(["file", "list", "acme", "--case-sensitive"])
+    assert result.exit_code == 0, result.output
+    assert _order_of(result.output, "Alpha.md", "bravo.md", "Charlie.md") == [
+        "Alpha.md",
+        "Charlie.md",
+        "bravo.md",
+    ]
+
+
 def test_file_write_rejects_notes_path(tmp_jh, invoke) -> None:
     _seed_opp(tmp_jh.db_path)
     result = invoke(["file", "write", "acme", "notes/9.md", "--content", "hi"])

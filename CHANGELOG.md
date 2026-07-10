@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/yo61/jobhound/compare/v0.16.0...v0.17.0) (2026-07-10)
+
+
+### Features
+
+* **file:** add sort options to jh file list ([#139](https://github.com/yo61/jobhound/issues/139)) ([0290393](https://github.com/yo61/jobhound/commit/02903932a0ba0a6579c7cacf2658a8b6dd70f330))
+
 ## [0.16.0](https://github.com/yo61/jobhound/compare/v0.15.0...v0.16.0) (2026-07-02)
 
 

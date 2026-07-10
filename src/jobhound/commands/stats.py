@@ -116,5 +116,5 @@ def _print_human(data: dict) -> None:
     if sources:
         print()
         print("Sources:")
-        for source, count in sorted(sources.items()):
+        for source, count in sorted(sources.items(), key=lambda kv: kv[0].casefold()):
             print(f"  {source:<20s} {count}")

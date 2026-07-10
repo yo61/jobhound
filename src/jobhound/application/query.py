@@ -114,12 +114,12 @@ class OpportunityQuery:
         *,
         now: datetime,
     ) -> SnapshotList:
-        """Return all snapshots matching `filters`, sorted by slug."""
+        """Return all snapshots matching `filters`, sorted by slug (case-insensitive)."""
         snaps = self._walk_root(self._paths.opportunities_dir, archived=False, now=now)
         if filters.include_archived:
             snaps += self._walk_root(self._paths.archive_dir, archived=True, now=now)
         snaps = [s for s in snaps if self._matches(s, filters)]
-        snaps.sort(key=lambda s: s.opportunity.slug)
+        snaps.sort(key=lambda s: s.opportunity.slug.casefold())
         return snaps
 
     def read_file(self, slug: str, filename: str) -> bytes:

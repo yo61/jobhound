@@ -29,6 +29,40 @@ def test_stats_empty_db_succeeds(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
 
 
+def test_stats_sources_sorted_case_insensitively(tmp_jh, invoke) -> None:
+    """Sources render in case-insensitive order; byte order would put the
+    capitalised 'Zebra' ahead of lowercase 'apple'."""
+    invoke(
+        [
+            "new",
+            "--company",
+            "A",
+            "--role",
+            "EM",
+            "--source",
+            "Zebra",
+            "--now",
+            "2026-05-01T12:00:00Z",
+        ]
+    )
+    invoke(
+        [
+            "new",
+            "--company",
+            "B",
+            "--role",
+            "EM",
+            "--source",
+            "apple",
+            "--now",
+            "2026-05-02T12:00:00Z",
+        ]
+    )
+    result = invoke(["stats"])
+    assert result.exit_code == 0, result.output
+    assert result.output.index("apple") < result.output.index("Zebra"), result.output
+
+
 def _seed_active_plus_archived(invoke) -> None:
     invoke(["new", "--company", "Foo", "--role", "EM", "--now", "2026-05-01T12:00:00Z"])
     invoke(["new", "--company", "Gone", "--role", "Staff", "--now", "2026-05-02T12:00:00Z"])

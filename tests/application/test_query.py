@@ -119,6 +119,39 @@ def test_list_returns_sorted_by_slug(query_paths: Paths) -> None:
     assert slugs == sorted(slugs)
 
 
+def _seed_slug(opps_dir: Path, slug: str) -> None:
+    """Write a minimal valid opportunity directory carrying `slug`."""
+    opp_dir = opps_dir / slug
+    opp_dir.mkdir(parents=True)
+    (opp_dir / "meta.toml").write_text(
+        f'company = "Acme"\nrole = "EM"\nslug = "{slug}"\n'
+        'status = "applied"\npriority = "medium"\n',
+    )
+
+
+def test_list_sorts_slugs_case_insensitively(tmp_path: Path) -> None:
+    """Slugs may carry uppercase (Slug.create permits it); ordering ignores case.
+
+    Byte order would place "2026-05-Zebra-em" before "2026-05-apple-em"
+    (uppercase 'Z' < lowercase 'a'); case-insensitive order flips them.
+    """
+    opps_dir = tmp_path / "opportunities"
+    for slug in ("2026-05-Zebra-em", "2026-05-apple-em"):
+        _seed_slug(opps_dir, slug)
+    paths = Paths(
+        db_root=tmp_path,
+        opportunities_dir=opps_dir,
+        archive_dir=tmp_path / "archive",
+        shared_dir=tmp_path / "_shared",
+        cache_dir=tmp_path / "cache",
+        state_dir=tmp_path / "state",
+    )
+
+    snaps = OpportunityQuery(paths).list(now=NOW)
+
+    assert [s.opportunity.slug for s in snaps] == ["2026-05-apple-em", "2026-05-Zebra-em"]
+
+
 def test_read_file_returns_bytes(query_paths: Paths) -> None:
     q = OpportunityQuery(query_paths)
     data = q.read_file("acme", "notes.md")

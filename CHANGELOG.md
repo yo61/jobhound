@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.18.0](https://github.com/yo61/jobhound/compare/v0.17.0...v0.18.0) (2026-08-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **mcp:** the [mcp] extra now requires mcp>=2.0; mcp 1.x is no longer supported.
+
+### Features
+
+* **mcp:** migrate to MCP Python SDK v2 ([#153](https://github.com/yo61/jobhound/issues/153)) ([313f4dc](https://github.com/yo61/jobhound/commit/313f4dc8401fb59e75d4c34d8503cd8c18fe90bc))
+
+### Dependencies
+
+* bump astral-sh/setup-uv from 8.1.0 to 9.0.0 ([#150](https://github.com/yo61/jobhound/issues/150)) ([80a6b75](https://github.com/yo61/jobhound/commit/80a6b755cce4eee5110f5b8b214409c872b3b496))
+* bump actions/checkout from 6.0.2 to 7.0.1 ([#149](https://github.com/yo61/jobhound/issues/149)) ([93fe7b3](https://github.com/yo61/jobhound/commit/93fe7b3e96edd6341266231874c436cbb84c7ac5))
+* bump the actions-minor-patch group with 4 updates ([#148](https://github.com/yo61/jobhound/issues/148)) ([5beef7f](https://github.com/yo61/jobhound/commit/5beef7feb37e2076a0b4567ae663f461cda1c22e))
+* bump the uv-minor-patch group across 1 directory with 5 updates ([#151](https://github.com/yo61/jobhound/issues/151)) ([e0ab0da](https://github.com/yo61/jobhound/commit/e0ab0da0a2e5d549b63001ae92970d66d045d078))
+* bump cryptography from 49.0.0 to 50.0.0 ([#145](https://github.com/yo61/jobhound/issues/145)) ([5c38a72](https://github.com/yo61/jobhound/commit/5c38a7228e777fa7cc59f89d874e3ac0df2be671))
+* bump https://github.com/woodruffw/zizmor-pre-commit from v1.27.0 to 1.29.0 in the hooks group ([#147](https://github.com/yo61/jobhound/issues/147)) ([30a003c](https://github.com/yo61/jobhound/commit/30a003c63bbce926c26d0cba09d71cfa8555d92e))
+* bump https://github.com/woodruffw/zizmor-pre-commit from v1.26.1 to 1.27.0 in the hooks group ([#142](https://github.com/yo61/jobhound/issues/142)) ([d597427](https://github.com/yo61/jobhound/commit/d597427138effb97173206dc97581edcc0cc30b6))
+
 ## [0.17.0](https://github.com/yo61/jobhound/compare/v0.16.0...v0.17.0) (2026-07-10)
 
 

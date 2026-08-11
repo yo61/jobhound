@@ -23,7 +23,7 @@
       "section": "Performance Improvements"
     },
     {
-      "type": "build",
+      "type": "deps",
       "section": "Dependencies"
     },
     {
@@ -53,6 +53,11 @@
     {
       "type": "test",
       "section": "Tests",
+      "hidden": true
+    },
+    {
+      "type": "build",
+      "section": "Build System",
       "hidden": true
     },
     {

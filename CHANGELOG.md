@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.18.0](https://github.com/yo61/jobhound/compare/v0.17.0...v0.18.0) (2026-08-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **mcp:** the [mcp] extra now requires mcp>=2.0; mcp 1.x is no longer supported.
+
+### Features
+
+* **mcp:** migrate to MCP Python SDK v2 ([#153](https://github.com/yo61/jobhound/issues/153)) ([313f4dc](https://github.com/yo61/jobhound/commit/313f4dc8401fb59e75d4c34d8503cd8c18fe90bc))
+
 ## [0.17.0](https://github.com/yo61/jobhound/compare/v0.16.0...v0.17.0) (2026-07-10)
 
 

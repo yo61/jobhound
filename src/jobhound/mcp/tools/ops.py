@@ -15,7 +15,7 @@ from jobhound.mcp.converters import mutation_response
 from jobhound.mcp.errors import exception_to_response
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server import MCPServer
 
 
 def _note_dict(note_or_summary: Any) -> dict[str, Any]:
@@ -230,7 +230,7 @@ def delete_opportunity(
     return json.dumps(payload)
 
 
-def register(app: FastMCP, repo: OpportunityRepository) -> None:
+def register(app: MCPServer, repo: OpportunityRepository) -> None:
     @app.tool(
         name="add_note",
         description="Write a new note on an opportunity. Returns the assigned seq.",

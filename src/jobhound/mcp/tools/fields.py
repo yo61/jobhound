@@ -16,7 +16,7 @@ from jobhound.mcp.converters import mutation_response
 from jobhound.mcp.errors import exception_to_response
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server import MCPServer
 
 
 def _wrap(tool_name: str, fn: Callable[[], Any], now: datetime) -> str:
@@ -229,10 +229,10 @@ def bump(
     )
 
 
-def register(app: FastMCP, repo: OpportunityRepository) -> None:
-    """Register all field tools on the given FastMCP app.
+def register(app: MCPServer, repo: OpportunityRepository) -> None:
+    """Register all field tools on the given MCP server.
 
-    Each handler uses explicit-typed params (not **kw) so FastMCP can
+    Each handler uses explicit-typed params (not **kw) so MCPServer can
     build the right JSON schema — matches the pattern from reads.py and
     lifecycle.py.
     """

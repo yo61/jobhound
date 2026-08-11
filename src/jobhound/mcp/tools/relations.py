@@ -13,7 +13,7 @@ from jobhound.mcp.converters import mutation_response
 from jobhound.mcp.errors import exception_to_response
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server import MCPServer
 
 
 def _wrap(tool_name: str, fn: Callable[[], Any]) -> str:
@@ -188,7 +188,7 @@ def show_link(repo: OpportunityRepository, *, slug: str, name: str) -> str:
     return json.dumps({"slug": slug, "name": name, "url": url})
 
 
-def register(app: FastMCP, repo: OpportunityRepository) -> None:
+def register(app: MCPServer, repo: OpportunityRepository) -> None:
     @app.tool(name="add_tag", description="Add a tag to an opportunity.")
     def _at(slug: str, tag: str) -> str:
         return add_tag(repo, slug=slug, tag=tag)

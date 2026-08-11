@@ -22,7 +22,7 @@ from jobhound.infrastructure.storage.protocols import FileStore
 from jobhound.mcp.errors import exception_to_response
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server import MCPServer
 
 
 def _store(repo: OpportunityRepository) -> FileStore:
@@ -188,7 +188,7 @@ def open_file(repo: OpportunityRepository, slug: str, name: str) -> str:
     return json.dumps({"opened": True, "filename": name, "temp_path": str(tmp_path)})
 
 
-def register(app: FastMCP, repo: OpportunityRepository) -> None:
+def register(app: MCPServer, repo: OpportunityRepository) -> None:
     @app.tool(
         name="list_files",
         description="List files in an opportunity.",

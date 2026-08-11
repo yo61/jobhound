@@ -1,4 +1,4 @@
-"""Integration tests over actual stdio — verify FastMCP wiring end-to-end."""
+"""Integration tests over actual stdio — verify MCPServer wiring end-to-end."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""FastMCP app construction and entry point."""
+"""MCPServer app construction and entry point."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server import MCPServer
 
 
 def _require_mcp_sdk() -> None:
@@ -26,19 +26,19 @@ def _require_mcp_sdk() -> None:
         raise SystemExit(1) from exc
 
 
-def build_server() -> FastMCP:
-    """Build a FastMCP app with all tools registered.
+def build_server() -> MCPServer:
+    """Build an MCPServer app with all tools registered.
 
     Lazy-imports the SDK so the package is usable without the [mcp] extra.
     """
     _require_mcp_sdk()
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server import MCPServer
 
     cfg = load_config()
     paths = paths_from_config(cfg)
     repo = OpportunityRepository(paths, cfg)
 
-    app = FastMCP(name="jobhound")
+    app = MCPServer(name="jobhound")
 
     from jobhound.mcp.tools import reads
 

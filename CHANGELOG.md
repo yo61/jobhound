@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.1](https://github.com/yo61/jobhound/compare/v0.18.0...v0.18.1) (2026-08-12)
+
+
+### Dependencies
+
+* bump the uv-minor-patch group across 1 directory with 2 updates ([#157](https://github.com/yo61/jobhound/issues/157)) ([324f9d5](https://github.com/yo61/jobhound/commit/324f9d5e5147198b502cf01b794b44cb0f73f2b7))
+
 ## [0.18.0](https://github.com/yo61/jobhound/compare/v0.17.0...v0.18.0) (2026-08-11)
 
 

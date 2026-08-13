@@ -1,53 +1,65 @@
 version: 2
+
+# Commit type decides whether an update ships. release-please treats every
+# visible changelog section as releasable, so `deps` both lists an update in
+# the changelog and cuts a patch release, while `chore` does neither. The line
+# is drawn at what reaches users: only updates that change the published
+# package use `deps`. See decisions/2026-08-13-dependency-updates-and-releases.md.
 updates:
+  # pre-commit hooks are developer tooling and never reach the published
+  # package.
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
       interval: "weekly"
     cooldown:
       default-days: 7
-    # Route dependency bumps to the Dependencies changelog section.
-    # release-please picks a section by commit *type*, and the default
-    # `chore(deps)` is type `chore`, which the preset hides. No
-    # `include: scope` -- it would produce `deps(deps):`.
     commit-message:
-      prefix: "deps"
+      prefix: "chore(deps)"
     groups:
       hooks:
         patterns: ["*"]
 
   # Python dependencies. The `uv` ecosystem updates uv.lock as well as the
   # pyproject.toml constraints; `pip` would leave the lock stale.
+  #
+  # Runtime deps ship, so they keep `deps`: they belong in the changelog, and
+  # the release is what regenerates the tap formula's resource stanzas. The dev
+  # group (pytest, ruff, ty, hypothesis) ships nothing, so `prefix-development`
+  # routes it to `chore(deps)`.
+  #
+  # Production and development are separate groups so that routing is
+  # unambiguous — a grouped PR mixing both has no documented prefix, and a
+  # single minor/patch group produced exactly that mix (#157: cyclopts, a
+  # runtime dep, grouped with hypothesis, a dev one).
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
     cooldown:
       default-days: 7
-    # Route dependency bumps to the Dependencies changelog section.
-    # release-please picks a section by commit *type*, and the default
-    # `chore(deps)` is type `chore`, which the preset hides. No
-    # `include: scope` -- it would produce `deps(deps):`.
     commit-message:
       prefix: "deps"
+      prefix-development: "chore(deps)"
     groups:
-      uv-minor-patch:
+      uv-production:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      uv-development:
+        dependency-type: "development"
         update-types: ["minor", "patch"]
 
   # GitHub Actions. Pins are SHAs with version comments; Dependabot rewrites
   # both. Majors stay outside the group so they arrive as individual PRs.
+  # CI-only: an actions bump cannot change what users install.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     cooldown:
       default-days: 7
-    # Route dependency bumps to the Dependencies changelog section.
-    # release-please picks a section by commit *type*, and the default
-    # `chore(deps)` is type `chore`, which the preset hides. No
-    # `include: scope` -- it would produce `deps(deps):`.
     commit-message:
-      prefix: "deps"
+      prefix: "chore(deps)"
     groups:
       actions-minor-patch:
         update-types: ["minor", "patch"]

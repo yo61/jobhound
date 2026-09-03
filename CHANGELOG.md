@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.3](https://github.com/yo61/jobhound/compare/v0.18.2...v0.18.3) (2026-09-03)
+
+
+### Dependencies
+
+* bump cyclopts from 4.22.5 to 4.23.0 in the uv-production group ([#169](https://github.com/yo61/jobhound/issues/169)) ([44d1cff](https://github.com/yo61/jobhound/commit/44d1cff395e0c2ed3a858c1532a13803e7d17d58))
+* bump cyclopts from 4.23.0 to 4.23.3 in the uv-production group ([#173](https://github.com/yo61/jobhound/issues/173)) ([de380a8](https://github.com/yo61/jobhound/commit/de380a84e3a91114a1f73162ee57aa6b96107dd9))
+
 ## [0.18.2](https://github.com/yo61/jobhound/compare/v0.18.1...v0.18.2) (2026-08-20)
 
 

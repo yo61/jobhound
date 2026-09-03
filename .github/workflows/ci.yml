@@ -55,7 +55,7 @@ jobs:
       # containing a URL added in v20. Dependabot bodies are markdown link lists
       # well over 100 chars, so ^19 fails them on body-max-line-length while the
       # pre-commit hook (v21) passes them.
-      - uses: yo61/commitlint-github-action@31e5e0454fc0709625e6dcfb502ea18978f45f15  # v6.3.0
+      - uses: yo61/commitlint-github-action@501ff7bb31eb7133c871318c877d0e43cd1ff500  # v6.3.1
         with:
           configFile: commitlint.config.mjs
 

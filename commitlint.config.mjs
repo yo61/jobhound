@@ -1,9 +1,5 @@
 export default {
   extends: ['@commitlint/config-conventional'],
-  // Dependabot auto-generates commit bodies with long markdown URLs that exceed
-  // body-max-line-length. It won't wrap them, so skip linting its commits while
-  // keeping the full ruleset enforced for human authors.
-  ignores: [(message) => message.includes('Signed-off-by: dependabot[bot]')],
   rules: {
     // `deps` is not a config-conventional type. Dependabot is configured
     // to use it so release-please can route those commits to a

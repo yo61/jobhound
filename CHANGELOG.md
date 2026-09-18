@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.4](https://github.com/yo61/jobhound/compare/v0.18.3...v0.18.4) (2026-09-18)
+
+
+### Dependencies
+
+* bump anyio from 4.14.0 to 4.14.2 ([#185](https://github.com/yo61/jobhound/issues/185)) ([6e945ed](https://github.com/yo61/jobhound/commit/6e945edc8488ce0aba65c939dff1bde7eafe3d05))
+* bump cyclopts from 4.23.3 to 4.25.2 in the uv-production group ([#182](https://github.com/yo61/jobhound/issues/182)) ([9943876](https://github.com/yo61/jobhound/commit/99438762fee7ce242b00b5898d2e4923efb17d68))
+
 ## [0.18.3](https://github.com/yo61/jobhound/compare/v0.18.2...v0.18.3) (2026-09-08)
 
 

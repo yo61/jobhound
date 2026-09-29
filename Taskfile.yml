@@ -21,8 +21,10 @@ tasks:
   dev:fmt:
     desc: Apply ruff format
     summary: >-
-      ruff format over src and tests, rewriting files in place. dev:fmt-check is the same thing
-      without the rewrite, and that is the one the gate and the hooks run.
+      ruff format over src and tests, rewriting files in place. dev:fmt-check is the same rules
+      without the rewrite, and that is what dev:check runs — but NOT what the pre-commit hook
+      runs: the hook is plain `ruff format`, so it rewrites too and then fails because files
+      changed.
     cmds:
       - uv run ruff format src tests
 

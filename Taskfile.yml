@@ -8,7 +8,7 @@ tasks:
   default:
     desc: List available tasks
     cmds:
-      - task --list
+      - task --list-all
 
   dev:lint:
     desc: Run ruff check

@@ -12,31 +12,54 @@ tasks:
 
   dev:lint:
     desc: Run ruff check
+    summary: >-
+      ruff check over src and tests, with E, F, I, UP, B, SIM and RUF selected. It reports and
+      does not fix; there is no --fix here, so a lint failure is yours to resolve.
     cmds:
       - uv run ruff check src tests
 
   dev:fmt:
     desc: Apply ruff format
+    summary: >-
+      ruff format over src and tests, rewriting files in place. dev:fmt-check is the same rules
+      without the rewrite, and that is what dev:check runs — but NOT what the pre-commit hook
+      runs: the hook is plain `ruff format`, so it rewrites too and then fails because files
+      changed.
     cmds:
       - uv run ruff format src tests
 
   dev:fmt-check:
     desc: Check formatting without rewriting
+    summary: >-
+      Fails if anything is unformatted, without touching a file — the form dev:check runs. Note
+      the pre-commit hook does NOT use this form: it runs `ruff format` with no --check, so it
+      rewrites the file and then reports the hook as failed. So a commit can reformat under you;
+      this task is the one that only reports.
     cmds:
       - uv run ruff format --check src tests
 
   dev:typecheck:
     desc: Run ty type checker
+    summary: >-
+      ty over src only. Note the asymmetry with dev:lint, which also covers tests: a type error in
+      a test is not caught here, or anywhere else in the gate.
     cmds:
       - uv run ty check src
 
   dev:test:
     desc: Run the pytest suite
+    summary: >-
+      pytest with no arguments, so pyproject decides: testpaths is tests, --strict-markers is on,
+      and asyncio_mode is auto so async tests need no per-test marker.
     cmds:
       - uv run pytest
 
   dev:check:
     desc: Full quality gate — lint, format-check, typecheck, tests
+    summary: >-
+      The whole gate in order: lint, format-check, typecheck, tests. It stops at the first
+      failure, so a later stage can still be broken once an earlier one passes. It uses fmt-check
+      rather than fmt, so it never rewrites a file.
     cmds:
       - task: dev:lint
       - task: dev:fmt-check
@@ -45,10 +68,18 @@ tasks:
 
   dev:hooks:
     desc: Run all prek hooks against every file
+    summary: >-
+      Runs the prek hooks that apply at the default stage, against every file rather than just
+      the staged ones. Not quite every hook: pytest is tagged stages: [pre-push], so it is
+      skipped here — this checks formatting, linting and types across the tree, not the test
+      suite. dev:test is that.
     cmds:
       - prek run --all-files
 
   dev:hooks-install:
     desc: Install git hooks (pre-commit, commit-msg, pre-push)
+    summary: >-
+      Installs the pre-commit, commit-msg and pre-push hooks. Run once per clone; nothing else
+      here does it for you.
     cmds:
       - prek install --hook-type pre-commit --hook-type commit-msg --hook-type pre-push

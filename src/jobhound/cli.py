@@ -120,6 +120,11 @@ def app(*args: Any, **kwargs: Any) -> Any:
     can import it directly. Using a function (not the App object) means the
     lazy-build stays transparent to callers.
     """
+    if args and isinstance(args[0], list) and args[0][:1] == ["__complete"]:
+        from jobhound.commands._complete import run as _complete_run
+
+        _complete_run(*args[0][1:])
+        return None
     return get_app()(*args, **kwargs)
 
 

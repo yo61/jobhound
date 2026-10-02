@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.18.5](https://github.com/yo61/jobhound/compare/v0.18.4...v0.18.5) (2026-10-02)
+
+
+### Dependencies
+
+* bump cyclopts from 4.25.2 to 5.0.0 ([#195](https://github.com/yo61/jobhound/issues/195)) ([0975f85](https://github.com/yo61/jobhound/commit/0975f85f5e8b702c6fc7470014677d50793387a2))
+* bump pyjwt from 2.13.0 to 2.15.0 ([#189](https://github.com/yo61/jobhound/issues/189)) ([d5d4355](https://github.com/yo61/jobhound/commit/d5d435599bab277a1d5685fe3d4669238f64ea13))
+* bump xdg-base-dirs from 6.0.2 to 6.0.3 in the uv-production group ([#193](https://github.com/yo61/jobhound/issues/193)) ([afbb9f7](https://github.com/yo61/jobhound/commit/afbb9f7863ebba4b2dde7ef6583b7922701c7a69))
+
 ## [0.18.4](https://github.com/yo61/jobhound/compare/v0.18.3...v0.18.4) (2026-09-18)
 
 

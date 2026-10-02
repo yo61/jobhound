@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 
@@ -14,7 +15,6 @@ def _build_cyclopts_app() -> Any:
     from cyclopts import App, Group
 
     from jobhound import __version__
-    from jobhound.commands import _complete as cmd_complete
     from jobhound.commands import accept as cmd_accept
     from jobhound.commands import apply as cmd_apply
     from jobhound.commands import archive as cmd_archive
@@ -89,8 +89,6 @@ def _build_cyclopts_app() -> Any:
     config_app.group = utility_group
     _cyclopts_app.command(config_app)
 
-    _cyclopts_app.command(cmd_complete.run, name="__complete", show=False)
-
     def _run_mcp() -> None:
         """Run the MCP server over stdio."""
         from jobhound.mcp.server import main as mcp_main
@@ -103,6 +101,20 @@ def _build_cyclopts_app() -> Any:
 
 
 _cyclopts_app_cache: Any = None
+
+
+def _dispatch_complete(tokens: Sequence[str]) -> bool:
+    """Run jh's completion handler if ``tokens`` request it; return whether it ran.
+
+    cyclopts 5 reserves ``__complete`` for its own completion engine and claims it
+    before command lookup, so jh's protocol is dispatched here, ahead of cyclopts.
+    """
+    if list(tokens[:1]) != ["__complete"]:
+        return False
+    from jobhound.commands._complete import run as _complete_run
+
+    _complete_run(*tokens[1:])
+    return True
 
 
 def get_app() -> Any:
@@ -120,10 +132,7 @@ def app(*args: Any, **kwargs: Any) -> Any:
     can import it directly. Using a function (not the App object) means the
     lazy-build stays transparent to callers.
     """
-    if args and isinstance(args[0], list) and args[0][:1] == ["__complete"]:
-        from jobhound.commands._complete import run as _complete_run
-
-        _complete_run(*args[0][1:])
+    if args and isinstance(args[0], (list, tuple)) and _dispatch_complete(args[0]):
         return None
     return get_app()(*args, **kwargs)
 
@@ -144,12 +153,7 @@ def main() -> None:
     """
     import sys
 
-    if len(sys.argv) >= 2 and sys.argv[1] == "__complete":
-        # Fast path: skip building the full cyclopts App + all command modules.
-        # Dispatch directly to the completion handler.
-        from jobhound.commands._complete import run as _complete_run
-
-        _complete_run(*sys.argv[2:])
+    if _dispatch_complete(sys.argv[1:]):
         return
 
     # Heal any drift between an installed completion stub and the bundled

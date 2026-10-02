@@ -72,3 +72,19 @@ def test_main_skips_completion_refresh_for_complete_fastpath(
     main()
 
     assert calls == []
+
+
+def test_main_exits_2_on_parse_error(tmp_jh, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A CLI usage error exits 2, distinct from a command failure's exit 1."""
+    monkeypatch.setattr(
+        "jobhound.commands.completion.maybe_refresh_installed_stubs",
+        lambda: None,
+    )
+    monkeypatch.setattr("sys.argv", ["jh", "show", "--no-such-flag"])
+
+    from jobhound.cli import main
+
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+
+    assert excinfo.value.code == 2

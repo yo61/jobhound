@@ -255,10 +255,13 @@ class InMemoryFileStore:
         for (slug, name), content in self._files.items():
             if slug != opp_slug:
                 continue
-            out.append(FileEntry(
-                name=name, size=len(content),
-                mtime=self._mtimes[(slug, name)],
-            ))
+            out.append(
+                FileEntry(
+                    name=name,
+                    size=len(content),
+                    mtime=self._mtimes[(slug, name)],
+                )
+            )
         out.sort(key=lambda e: e.name)
         return out
 
@@ -272,16 +275,24 @@ class InMemoryFileStore:
             raise FileNotFoundError(f"{opp_slug}/{filename}") from None
 
     def write(
-        self, opp_slug: str, filename: str, content: bytes,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        content: bytes,
+        *,
+        commit_message: str,
     ) -> None:
         self._files[(opp_slug, filename)] = content
         self._mtimes[(opp_slug, filename)] = datetime.now(UTC)
         self.commit_log.append(commit_message)
 
     def append(
-        self, opp_slug: str, filename: str, content: bytes,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        content: bytes,
+        *,
+        commit_message: str,
     ) -> None:
         existing = self._files.get((opp_slug, filename), b"")
         self._files[(opp_slug, filename)] = existing + content
@@ -289,8 +300,11 @@ class InMemoryFileStore:
         self.commit_log.append(commit_message)
 
     def delete(
-        self, opp_slug: str, filename: str,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        *,
+        commit_message: str,
     ) -> None:
         if (opp_slug, filename) not in self._files:
             raise FileNotFoundError(f"{opp_slug}/{filename}")
@@ -448,7 +462,8 @@ def _seeded(tmp_path: Path) -> tuple[GitLocalFileStore, Paths]:
     subprocess.run(["git", "-C", str(db_root), "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "-C", str(db_root), "commit", "-m", "seed", "--quiet"],
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
     paths = Paths(
         db_root=db_root,
@@ -464,7 +479,9 @@ def _seeded(tmp_path: Path) -> tuple[GitLocalFileStore, Paths]:
 def _head_sha(db_root: Path) -> str:
     return subprocess.run(
         ["git", "-C", str(db_root), "rev-parse", "HEAD"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
 
 
@@ -477,7 +494,9 @@ def test_write_creates_file_and_commits(tmp_path: Path) -> None:
     assert (paths.opportunities_dir / "2026-05-acme" / "cv.md").read_bytes() == b"hello\n"
     msg = subprocess.run(
         ["git", "-C", str(paths.db_root), "log", "-1", "--format=%s"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     assert msg == "file: write acme/cv.md"
 
@@ -508,7 +527,9 @@ def test_revision_matches_git_hash_object(tmp_path: Path) -> None:
     revision = store.compute_revision("2026-05-acme", "cv.md")
     expected = subprocess.run(
         ["git", "hash-object", str(paths.opportunities_dir / "2026-05-acme" / "cv.md")],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     assert revision == expected
 
@@ -516,8 +537,10 @@ def test_revision_matches_git_hash_object(tmp_path: Path) -> None:
 def test_subdirectory_write_creates_parent(tmp_path: Path) -> None:
     store, paths = _seeded(tmp_path)
     store.write(
-        "2026-05-acme", "correspondence/2026-05-01-intro.md",
-        b"hi\n", commit_message="x",
+        "2026-05-acme",
+        "correspondence/2026-05-01-intro.md",
+        b"hi\n",
+        commit_message="x",
     )
     target = paths.opportunities_dir / "2026-05-acme" / "correspondence" / "2026-05-01-intro.md"
     assert target.read_bytes() == b"hi\n"
@@ -600,7 +623,8 @@ class GitLocalFileStore:
     def _git(self, *args: str) -> subprocess.CompletedProcess[bytes]:
         return subprocess.run(
             ["git", "-C", str(self._paths.db_root), *args],
-            check=True, capture_output=True,
+            check=True,
+            capture_output=True,
         )
 
     # ---- FileStore interface --------------------------------------------
@@ -619,11 +643,13 @@ class GitLocalFileStore:
             if rel.name == "meta.toml":  # excluded from file-API listing
                 continue
             stat = path.stat()
-            entries.append(FileEntry(
-                name=rel.as_posix(),
-                size=stat.st_size,
-                mtime=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
-            ))
+            entries.append(
+                FileEntry(
+                    name=rel.as_posix(),
+                    size=stat.st_size,
+                    mtime=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
+                )
+            )
         return entries
 
     def exists(self, opp_slug: str, filename: str) -> bool:
@@ -636,8 +662,12 @@ class GitLocalFileStore:
         return target.read_bytes()
 
     def write(
-        self, opp_slug: str, filename: str, content: bytes,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        content: bytes,
+        *,
+        commit_message: str,
     ) -> None:
         target = self._resolve(opp_slug, filename)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -646,8 +676,12 @@ class GitLocalFileStore:
         self._git("commit", "-m", commit_message)
 
     def append(
-        self, opp_slug: str, filename: str, content: bytes,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        content: bytes,
+        *,
+        commit_message: str,
     ) -> None:
         target = self._resolve(opp_slug, filename)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -657,8 +691,11 @@ class GitLocalFileStore:
         self._git("commit", "-m", commit_message)
 
     def delete(
-        self, opp_slug: str, filename: str,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        *,
+        commit_message: str,
     ) -> None:
         target = self._resolve(opp_slug, filename)
         if not target.is_file():
@@ -673,7 +710,9 @@ class GitLocalFileStore:
             raise FileNotFoundError(f"{opp_slug}/{filename}")
         result = subprocess.run(
             ["git", "hash-object", str(target)],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         return Revision(result.stdout.strip())
 ```
@@ -829,13 +868,27 @@ from jobhound.infrastructure.storage.protocols import FileStore
 
 # Tools that the AI should call instead of write_file on meta.toml.
 _META_USE_INSTEAD: tuple[str, ...] = (
-    "set_status", "set_priority", "set_source", "set_location",
-    "set_comp_range", "set_first_contact", "set_applied_on",
-    "set_last_activity", "set_next_action",
-    "apply_to", "log_interaction", "withdraw_from", "mark_ghosted",
-    "accept_offer", "decline_offer",
-    "add_tag", "remove_tag", "add_contact", "set_link",
-    "archive_opportunity", "delete_opportunity",
+    "set_status",
+    "set_priority",
+    "set_source",
+    "set_location",
+    "set_comp_range",
+    "set_first_contact",
+    "set_applied_on",
+    "set_last_activity",
+    "set_next_action",
+    "apply_to",
+    "log_interaction",
+    "withdraw_from",
+    "mark_ghosted",
+    "accept_offer",
+    "decline_offer",
+    "add_tag",
+    "remove_tag",
+    "add_contact",
+    "set_link",
+    "archive_opportunity",
+    "delete_opportunity",
 )
 
 
@@ -905,7 +958,9 @@ class WriteResult:
 
 
 def read(
-    store: FileStore, slug: str, filename: str,
+    store: FileStore,
+    slug: str,
+    filename: str,
 ) -> tuple[bytes, Revision]:
     """Read a file's bytes and current revision.
 
@@ -1049,16 +1104,24 @@ def test_write_case5_clean_edit(in_memory_store: InMemoryFileStore) -> None:
 def test_write_case6_text_merge_clean(in_memory_store: InMemoryFileStore) -> None:
     """Case 6, text path: 3-way merge resolves cleanly."""
     in_memory_store.write(
-        "acme", "notes.md", b"line1\nline2\n", commit_message="seed",
+        "acme",
+        "notes.md",
+        b"line1\nline2\n",
+        commit_message="seed",
     )
     rev1 = in_memory_store.compute_revision("acme", "notes.md")
     # "Other" change: append line3
     in_memory_store.write(
-        "acme", "notes.md", b"line1\nline2\nline3\n", commit_message="other",
+        "acme",
+        "notes.md",
+        b"line1\nline2\nline3\n",
+        commit_message="other",
     )
     # AI's edit: prepend a heading on the base
     result = write(
-        in_memory_store, "acme", "notes.md",
+        in_memory_store,
+        "acme",
+        "notes.md",
         b"# Notes\nline1\nline2\n",
         base_revision=rev1,
     )
@@ -1071,16 +1134,24 @@ def test_write_case6_text_merge_clean(in_memory_store: InMemoryFileStore) -> Non
 def test_write_case6_text_merge_conflict(in_memory_store: InMemoryFileStore) -> None:
     """Case 6, text path: overlapping edits cause merge conflict."""
     in_memory_store.write(
-        "acme", "notes.md", b"line1\nline2\n", commit_message="seed",
+        "acme",
+        "notes.md",
+        b"line1\nline2\n",
+        commit_message="seed",
     )
     rev1 = in_memory_store.compute_revision("acme", "notes.md")
     # Both edits change line2 differently
     in_memory_store.write(
-        "acme", "notes.md", b"line1\nline2-OTHER\n", commit_message="other",
+        "acme",
+        "notes.md",
+        b"line1\nline2-OTHER\n",
+        commit_message="other",
     )
     with pytest.raises(TextConflictError) as exc:
         write(
-            in_memory_store, "acme", "notes.md",
+            in_memory_store,
+            "acme",
+            "notes.md",
             b"line1\nline2-OURS\n",
             base_revision=rev1,
         )
@@ -1091,15 +1162,23 @@ def test_write_case6_text_merge_conflict(in_memory_store: InMemoryFileStore) -> 
 def test_write_case6_binary_conflict(in_memory_store: InMemoryFileStore) -> None:
     """Case 6, binary path: no merge, return BinaryConflictError."""
     in_memory_store.write(
-        "acme", "cv.pdf", b"\x00\x01\x02v1", commit_message="seed",
+        "acme",
+        "cv.pdf",
+        b"\x00\x01\x02v1",
+        commit_message="seed",
     )
     rev1 = in_memory_store.compute_revision("acme", "cv.pdf")
     in_memory_store.write(
-        "acme", "cv.pdf", b"\x00\x01\x02v2", commit_message="other",
+        "acme",
+        "cv.pdf",
+        b"\x00\x01\x02v2",
+        commit_message="other",
     )
     with pytest.raises(BinaryConflictError) as exc:
         write(
-            in_memory_store, "acme", "cv.pdf",
+            in_memory_store,
+            "acme",
+            "cv.pdf",
             b"\x00\x01\x02ai",
             base_revision=rev1,
         )
@@ -1173,8 +1252,10 @@ class TextConflictError(FileServiceError):
     """Case 6, text path: 3-way merge failed."""
 
     def __init__(
-        self, filename: str,
-        base_revision: Revision, theirs_revision: Revision,
+        self,
+        filename: str,
+        base_revision: Revision,
+        theirs_revision: Revision,
         conflict_markers: str,
     ) -> None:
         super().__init__(f"text merge conflict on {filename}")
@@ -1188,9 +1269,12 @@ class BinaryConflictError(FileServiceError):
     """Case 6, binary path: divergent binary file, no merge possible."""
 
     def __init__(
-        self, filename: str,
-        base_revision: Revision, current_revision: Revision,
-        current_size: int, current_mtime: datetime,
+        self,
+        filename: str,
+        base_revision: Revision,
+        current_revision: Revision,
+        current_size: int,
+        current_mtime: datetime,
         suggested_alt_name: str,
     ) -> None:
         super().__init__(f"binary conflict on {filename}")
@@ -1260,17 +1344,20 @@ def write(
             # Case 1: clean create
             store.write(slug, filename, content, commit_message=commit_msg)
             return WriteResult(
-                revision=store.compute_revision(slug, filename), merged=False,
+                revision=store.compute_revision(slug, filename),
+                merged=False,
             )
         if not overwrite:
             # Case 2: refuse
             raise FileExistsConflictError(
-                filename, store.compute_revision(slug, filename),
+                filename,
+                store.compute_revision(slug, filename),
             )
         # Case 3: blind overwrite
         store.write(slug, filename, content, commit_message=commit_msg)
         return WriteResult(
-            revision=store.compute_revision(slug, filename), merged=False,
+            revision=store.compute_revision(slug, filename),
+            merged=False,
         )
 
     # base_revision provided
@@ -1283,7 +1370,8 @@ def write(
         # Case 5: clean edit
         store.write(slug, filename, content, commit_message=commit_msg)
         return WriteResult(
-            revision=store.compute_revision(slug, filename), merged=False,
+            revision=store.compute_revision(slug, filename),
+            merged=False,
         )
 
     # Case 6: conflict — branch on text vs binary
@@ -1296,13 +1384,17 @@ def write(
             # Should not happen — file exists but list didn't return it.
             # Treat as binary conflict with zero size / current time.
             raise BinaryConflictError(
-                filename, base_revision, current_revision,
+                filename,
+                base_revision,
+                current_revision,
                 current_size=len(current_content),
                 current_mtime=datetime.now(),  # noqa: DTZ005 — fallback
                 suggested_alt_name=_suggest_alt_name(filename),
             )
         raise BinaryConflictError(
-            filename, base_revision, current_revision,
+            filename,
+            base_revision,
+            current_revision,
             current_size=entry.size,
             current_mtime=entry.mtime,
             suggested_alt_name=_suggest_alt_name(filename),
@@ -1319,16 +1411,21 @@ def write(
     if clean:
         store.write(slug, filename, merged, commit_message=commit_msg)
         return WriteResult(
-            revision=store.compute_revision(slug, filename), merged=True,
+            revision=store.compute_revision(slug, filename),
+            merged=True,
         )
     raise TextConflictError(
-        filename, base_revision, current_revision,
+        filename,
+        base_revision,
+        current_revision,
         conflict_markers=merged.decode("utf-8", errors="replace"),
     )
 
 
 def _resolve_base_content(
-    store: FileStore, base_revision: Revision, current_content: bytes,
+    store: FileStore,
+    base_revision: Revision,
+    current_content: bytes,
 ) -> bytes:
     """Reconstruct the bytes at `base_revision`.
 
@@ -1394,7 +1491,8 @@ def read_by_revision(self, revision: Revision) -> bytes:
     that's ever been committed in the repo."""
     result = subprocess.run(
         ["git", "-C", str(self._paths.db_root), "cat-file", "-p", str(revision)],
-        capture_output=True, check=True,
+        capture_output=True,
+        check=True,
     )
     return result.stdout
 ```
@@ -1430,8 +1528,13 @@ Same state machine as `write`, but content comes from a path. Implementation:
 
 ```python
 def import_(
-    store: FileStore, slug: str, filename: str, src_path: Path,
-    *, base_revision: Revision | None = None, overwrite: bool = False,
+    store: FileStore,
+    slug: str,
+    filename: str,
+    src_path: Path,
+    *,
+    base_revision: Revision | None = None,
+    overwrite: bool = False,
 ) -> WriteResult:
     """Write a file from a local path (server reads src_path). Identical
     state machine to write()."""
@@ -1440,8 +1543,12 @@ def import_(
         raise FileNotFoundError(f"src_path does not exist: {src_path}")
     content = src_path.read_bytes()
     return write(
-        store, slug, filename, content,
-        base_revision=base_revision, overwrite=overwrite,
+        store,
+        slug,
+        filename,
+        content,
+        base_revision=base_revision,
+        overwrite=overwrite,
     )
 ```
 
@@ -1454,8 +1561,12 @@ feat(application): file_service.import_ — path-based write
 
 ```python
 def export(
-    store: FileStore, slug: str, filename: str, dst_path: Path,
-    *, overwrite: bool = False,
+    store: FileStore,
+    slug: str,
+    filename: str,
+    dst_path: Path,
+    *,
+    overwrite: bool = False,
 ) -> Revision:
     """Copy file content to dst_path. Returns revision at time of read.
 
@@ -1479,7 +1590,10 @@ feat(application): file_service.export — server copies to AI's path
 
 ```python
 def append(
-    store: FileStore, slug: str, filename: str, content: bytes,
+    store: FileStore,
+    slug: str,
+    filename: str,
+    content: bytes,
 ) -> Revision:
     """Append bytes to a file (create if missing). No conflict detection."""
     _validate_filename(filename, for_write=True)
@@ -1498,8 +1612,10 @@ feat(application): file_service.append — additive write, no conflicts
 ```python
 class DeleteStaleBaseError(FileServiceError):
     def __init__(
-        self, filename: str,
-        base_revision: Revision, current_revision: Revision,
+        self,
+        filename: str,
+        base_revision: Revision,
+        current_revision: Revision,
     ) -> None:
         super().__init__(f"delete with stale base revision: {filename}")
         self.filename = filename
@@ -1508,8 +1624,11 @@ class DeleteStaleBaseError(FileServiceError):
 
 
 def delete(
-    store: FileStore, slug: str, filename: str,
-    *, base_revision: Revision | None = None,
+    store: FileStore,
+    slug: str,
+    filename: str,
+    *,
+    base_revision: Revision | None = None,
 ) -> Revision:
     """Delete a file. Returns the last revision before delete.
 
@@ -1548,36 +1667,49 @@ In `src/jobhound/mcp/errors.py`, in `exception_to_response`, add branches for ea
 ```python
 # Imports
 from jobhound.application.file_service import (
-    BinaryConflictError, DeleteStaleBaseError, FileDisappearedError,
-    FileExistsConflictError, InvalidFilenameError,
-    MetaTomlProtectedError, TextConflictError,
+    BinaryConflictError,
+    DeleteStaleBaseError,
+    FileDisappearedError,
+    FileExistsConflictError,
+    InvalidFilenameError,
+    MetaTomlProtectedError,
+    TextConflictError,
 )
 
 # Inside exception_to_response(), add (before the generic ValueError branch):
 
 if isinstance(exc, MetaTomlProtectedError):
     return tool_error_response(
-        "meta_toml_protected", str(exc),
-        filename=exc.filename, use_instead=list(exc.use_instead),
+        "meta_toml_protected",
+        str(exc),
+        filename=exc.filename,
+        use_instead=list(exc.use_instead),
     )
 if isinstance(exc, InvalidFilenameError):
     return tool_error_response(
-        "invalid_filename", str(exc),
-        filename=exc.filename, reason=exc.reason,
+        "invalid_filename",
+        str(exc),
+        filename=exc.filename,
+        reason=exc.reason,
     )
 if isinstance(exc, FileExistsConflictError):
     return tool_error_response(
-        "file_exists", str(exc),
-        filename=exc.filename, current_revision=exc.current_revision,
+        "file_exists",
+        str(exc),
+        filename=exc.filename,
+        current_revision=exc.current_revision,
     )
 if isinstance(exc, FileDisappearedError):
     return tool_error_response(
-        "file_disappeared", str(exc),
-        filename=exc.filename, base_revision=exc.base_revision,
+        "file_disappeared",
+        str(exc),
+        filename=exc.filename,
+        base_revision=exc.base_revision,
     )
 if isinstance(exc, BinaryConflictError):
     return tool_error_response(
-        "conflict_binary", str(exc),
+        "conflict_binary",
+        str(exc),
         filename=exc.filename,
         base_revision=exc.base_revision,
         current_revision=exc.current_revision,
@@ -1587,7 +1719,8 @@ if isinstance(exc, BinaryConflictError):
     )
 if isinstance(exc, TextConflictError):
     return tool_error_response(
-        "conflict_text", str(exc),
+        "conflict_text",
+        str(exc),
         filename=exc.filename,
         base_revision=exc.base_revision,
         theirs_revision=exc.theirs_revision,
@@ -1595,7 +1728,8 @@ if isinstance(exc, TextConflictError):
     )
 if isinstance(exc, DeleteStaleBaseError):
     return tool_error_response(
-        "delete_stale_base", str(exc),
+        "delete_stale_base",
+        str(exc),
         filename=exc.filename,
         base_revision=exc.base_revision,
         current_revision=exc.current_revision,
@@ -1692,27 +1826,41 @@ def read_file(repo: OpportunityRepository, slug: str, name: str) -> str:
         return json.dumps(exception_to_response(exc, tool="read_file"))
     try:
         text = content.decode("utf-8")
-        return json.dumps({
-            "filename": name, "content": text, "encoding": "utf-8",
-            "revision": str(revision), "size": len(content),
-        })
+        return json.dumps(
+            {
+                "filename": name,
+                "content": text,
+                "encoding": "utf-8",
+                "revision": str(revision),
+                "size": len(content),
+            }
+        )
     except UnicodeDecodeError:
-        return json.dumps({
-            "filename": name,
-            "content": base64.b64encode(content).decode("ascii"),
-            "encoding": "base64",
-            "revision": str(revision), "size": len(content),
-        })
+        return json.dumps(
+            {
+                "filename": name,
+                "content": base64.b64encode(content).decode("ascii"),
+                "encoding": "base64",
+                "revision": str(revision),
+                "size": len(content),
+            }
+        )
 
 
 def write_file(
-    repo: OpportunityRepository, slug: str, name: str,
+    repo: OpportunityRepository,
+    slug: str,
+    name: str,
     content: str,
-    base_revision: str | None = None, overwrite: bool = False,
+    base_revision: str | None = None,
+    overwrite: bool = False,
 ) -> str:
     try:
         result = file_service.write(
-            _store(repo), slug, name, content.encode("utf-8"),
+            _store(repo),
+            slug,
+            name,
+            content.encode("utf-8"),
             base_revision=Revision(base_revision) if base_revision else None,
             overwrite=overwrite,
         )
@@ -1722,13 +1870,19 @@ def write_file(
 
 
 def import_file(
-    repo: OpportunityRepository, slug: str, name: str,
+    repo: OpportunityRepository,
+    slug: str,
+    name: str,
     src_path: str,
-    base_revision: str | None = None, overwrite: bool = False,
+    base_revision: str | None = None,
+    overwrite: bool = False,
 ) -> str:
     try:
         result = file_service.import_(
-            _store(repo), slug, name, Path(src_path),
+            _store(repo),
+            slug,
+            name,
+            Path(src_path),
             base_revision=Revision(base_revision) if base_revision else None,
             overwrite=overwrite,
         )
@@ -1738,12 +1892,19 @@ def import_file(
 
 
 def export_file(
-    repo: OpportunityRepository, slug: str, name: str,
-    dst_path: str, overwrite: bool = False,
+    repo: OpportunityRepository,
+    slug: str,
+    name: str,
+    dst_path: str,
+    overwrite: bool = False,
 ) -> str:
     try:
         revision = file_service.export(
-            _store(repo), slug, name, Path(dst_path), overwrite=overwrite,
+            _store(repo),
+            slug,
+            name,
+            Path(dst_path),
+            overwrite=overwrite,
         )
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="export_file"))
@@ -1751,11 +1912,17 @@ def export_file(
 
 
 def append_file(
-    repo: OpportunityRepository, slug: str, name: str, content: str,
+    repo: OpportunityRepository,
+    slug: str,
+    name: str,
+    content: str,
 ) -> str:
     try:
         revision = file_service.append(
-            _store(repo), slug, name, content.encode("utf-8"),
+            _store(repo),
+            slug,
+            name,
+            content.encode("utf-8"),
         )
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="append_file"))
@@ -1763,12 +1930,16 @@ def append_file(
 
 
 def delete_file(
-    repo: OpportunityRepository, slug: str, name: str,
+    repo: OpportunityRepository,
+    slug: str,
+    name: str,
     base_revision: str | None = None,
 ) -> str:
     try:
         revision = file_service.delete(
-            _store(repo), slug, name,
+            _store(repo),
+            slug,
+            name,
             base_revision=Revision(base_revision) if base_revision else None,
         )
     except Exception as exc:
@@ -1777,7 +1948,10 @@ def delete_file(
 
 
 def register(app: "FastMCP", repo: OpportunityRepository) -> None:
-    @app.tool(name="list_files", description="List every non-hidden, non-meta file in the opp's directory.")
+    @app.tool(
+        name="list_files",
+        description="List every non-hidden, non-meta file in the opp's directory.",
+    )
     def _l(slug: str) -> str:
         return list_files(repo, slug)
 
@@ -1785,30 +1959,50 @@ def register(app: "FastMCP", repo: OpportunityRepository) -> None:
     def _r(slug: str, name: str) -> str:
         return read_file(repo, slug, name)
 
-    @app.tool(name="write_file",
-              description="Write a file (utf-8 string content). Pass base_revision for safe edits; overwrite=True to clobber existing without base_revision.")
-    def _w(slug: str, name: str, content: str,
-           base_revision: str | None = None, overwrite: bool = False) -> str:
+    @app.tool(
+        name="write_file",
+        description="Write a file (utf-8 string content). Pass base_revision for safe edits; overwrite=True to clobber existing without base_revision.",
+    )
+    def _w(
+        slug: str,
+        name: str,
+        content: str,
+        base_revision: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
         return write_file(repo, slug, name, content, base_revision, overwrite)
 
-    @app.tool(name="import_file",
-              description="Write a file by importing from a local path. Same semantics as write_file but binary-safe and avoids streaming bytes through MCP.")
-    def _i(slug: str, name: str, src_path: str,
-           base_revision: str | None = None, overwrite: bool = False) -> str:
+    @app.tool(
+        name="import_file",
+        description="Write a file by importing from a local path. Same semantics as write_file but binary-safe and avoids streaming bytes through MCP.",
+    )
+    def _i(
+        slug: str,
+        name: str,
+        src_path: str,
+        base_revision: str | None = None,
+        overwrite: bool = False,
+    ) -> str:
         return import_file(repo, slug, name, src_path, base_revision, overwrite)
 
-    @app.tool(name="export_file",
-              description="Export a file by copying it to a local path the AI provides. Returns the revision at time of export.")
+    @app.tool(
+        name="export_file",
+        description="Export a file by copying it to a local path the AI provides. Returns the revision at time of export.",
+    )
     def _e(slug: str, name: str, dst_path: str, overwrite: bool = False) -> str:
         return export_file(repo, slug, name, dst_path, overwrite)
 
-    @app.tool(name="append_file",
-              description="Append utf-8 string content to a file. Conflict-free; no base_revision.")
+    @app.tool(
+        name="append_file",
+        description="Append utf-8 string content to a file. Conflict-free; no base_revision.",
+    )
     def _a(slug: str, name: str, content: str) -> str:
         return append_file(repo, slug, name, content)
 
-    @app.tool(name="delete_file",
-              description="Delete a file. Pass base_revision for safety; otherwise deletes unconditionally if the file exists.")
+    @app.tool(
+        name="delete_file",
+        description="Delete a file. Pass base_revision for safety; otherwise deletes unconditionally if the file exists.",
+    )
     def _d(slug: str, name: str, base_revision: str | None = None) -> str:
         return delete_file(repo, slug, name, base_revision)
 ```
@@ -1824,6 +2018,7 @@ In `src/jobhound/mcp/tools/reads.py`:
 In `src/jobhound/mcp/server.py`, after `reads.register(...)`, add:
 ```python
 from jobhound.mcp.tools import files
+
 files.register(app, repo)
 ```
 
@@ -1837,6 +2032,7 @@ def test_write_file_clean_create(mcp_paths, repo):
     payload = json.loads(write_file(repo, "acme", "draft.md", "v1"))
     assert "revision" in payload
     assert payload["merged"] is False
+
 
 def test_write_file_meta_toml_rejected(mcp_paths, repo):
     payload = json.loads(write_file(repo, "acme", "meta.toml", "x"))
@@ -1890,9 +2086,13 @@ from cyclopts import App, Parameter
 
 from jobhound.application import file_service
 from jobhound.application.file_service import (
-    BinaryConflictError, DeleteStaleBaseError, FileDisappearedError,
-    FileExistsConflictError, InvalidFilenameError,
-    MetaTomlProtectedError, TextConflictError,
+    BinaryConflictError,
+    DeleteStaleBaseError,
+    FileDisappearedError,
+    FileExistsConflictError,
+    InvalidFilenameError,
+    MetaTomlProtectedError,
+    TextConflictError,
 )
 from jobhound.application.revisions import Revision
 from jobhound.infrastructure.config import load_config
@@ -1917,11 +2117,17 @@ def _handle(exc: Exception) -> None:
     elif isinstance(exc, InvalidFilenameError):
         print(f"jh: invalid filename: {exc.reason}", file=sys.stderr)
     elif isinstance(exc, FileExistsConflictError):
-        print(f"jh: file already exists: {exc.filename} (revision {exc.current_revision[:8]}); pass --overwrite", file=sys.stderr)
+        print(
+            f"jh: file already exists: {exc.filename} (revision {exc.current_revision[:8]}); pass --overwrite",
+            file=sys.stderr,
+        )
     elif isinstance(exc, FileDisappearedError):
         print(f"jh: file disappeared while editing: {exc.filename}", file=sys.stderr)
     elif isinstance(exc, BinaryConflictError):
-        print(f"jh: binary conflict on {exc.filename}; suggested alt name: {exc.suggested_alt_name}", file=sys.stderr)
+        print(
+            f"jh: binary conflict on {exc.filename}; suggested alt name: {exc.suggested_alt_name}",
+            file=sys.stderr,
+        )
     elif isinstance(exc, TextConflictError):
         print(f"jh: text conflict on {exc.filename}:", file=sys.stderr)
         print(exc.conflict_markers, file=sys.stderr)
@@ -1948,8 +2154,11 @@ def list_(slug: str) -> None:
 
 @app.command(name="show")
 def show(
-    slug: str, name: str, /,
-    *, out: Annotated[Path | None, Parameter(name=["--out"])] = None,
+    slug: str,
+    name: str,
+    /,
+    *,
+    out: Annotated[Path | None, Parameter(name=["--out"])] = None,
 ) -> None:
     """Show a file's content (or export it to a path)."""
     try:
@@ -1965,7 +2174,9 @@ def show(
 
 @app.command(name="write")
 def write(
-    slug: str, name: str, /,
+    slug: str,
+    name: str,
+    /,
     *,
     content: Annotated[str | None, Parameter(name=["--content"])] = None,
     from_: Annotated[Path | None, Parameter(name=["--from"])] = None,
@@ -1980,13 +2191,21 @@ def write(
     try:
         if from_ is not None:
             result = file_service.import_(
-                _store(), slug, name, from_,
-                base_revision=rev, overwrite=overwrite,
+                _store(),
+                slug,
+                name,
+                from_,
+                base_revision=rev,
+                overwrite=overwrite,
             )
         else:
             result = file_service.write(
-                _store(), slug, name, content.encode("utf-8"),
-                base_revision=rev, overwrite=overwrite,
+                _store(),
+                slug,
+                name,
+                content.encode("utf-8"),
+                base_revision=rev,
+                overwrite=overwrite,
             )
     except Exception as exc:
         _handle(exc)
@@ -1996,7 +2215,9 @@ def write(
 
 @app.command(name="append")
 def append(
-    slug: str, name: str, /,
+    slug: str,
+    name: str,
+    /,
     *,
     content: Annotated[str | None, Parameter(name=["--content"])] = None,
     from_: Annotated[Path | None, Parameter(name=["--from"])] = None,
@@ -2016,7 +2237,9 @@ def append(
 
 @app.command(name="delete")
 def delete(
-    slug: str, name: str, /,
+    slug: str,
+    name: str,
+    /,
     *,
     base_revision: Annotated[str | None, Parameter(name=["--base-revision"])] = None,
     yes: Annotated[bool, Parameter(name=["--yes"], negative=())] = False,
@@ -2024,6 +2247,7 @@ def delete(
     """Delete a file. --yes skips the confirmation prompt."""
     if not yes:
         import questionary
+
         if not questionary.confirm(f"Delete {slug}/{name}?", default=False).ask():
             print("aborted")
             raise SystemExit(1)
@@ -2042,6 +2266,7 @@ In `src/jobhound/cli.py`, after the other `app.command(...)` registrations, add:
 
 ```python
 from jobhound.commands.file import app as file_app
+
 app.command(file_app)  # cyclopts nests the sub-app
 ```
 
@@ -2144,8 +2369,12 @@ Replace the inline `corr_path.write_text(body.read_text())` block with:
 store = GitLocalFileStore(paths_from_config(cfg))
 corr_name = f"correspondence/{_correspondence_filename(today_date, channel, direction, who)}"
 file_service.write(
-    store, slug_query, corr_name, body.read_bytes(),
-    base_revision=None, overwrite=False,
+    store,
+    slug_query,
+    corr_name,
+    body.read_bytes(),
+    base_revision=None,
+    overwrite=False,
 )
 ```
 

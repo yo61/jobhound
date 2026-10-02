@@ -272,9 +272,7 @@ def test_unarchive_moves_folder_back(tmp_jh, invoke) -> None:
     assert result.exit_code == 0, result.output
     assert (tmp_jh.db_path / "opportunities" / "2026-05-foo-em").is_dir()
     assert not (tmp_jh.db_path / "archive" / "2026-05-foo-em").exists()
-    log = subprocess.check_output(
-        ["git", "-C", str(tmp_jh.db_path), "log", "--oneline"], text=True
-    )
+    log = subprocess.check_output(["git", "-C", str(tmp_jh.db_path), "log", "--oneline"], text=True)
     assert "unarchive: 2026-05-foo-em" in log
 
 
@@ -403,18 +401,29 @@ In `src/jobhound/commands/_complete.py`:
 a) Add `("unarchive",)` to `_SLUG_AT_POSITION` (insert alphabetically before `("withdraw",)` near line 36):
 
 ```python
+_SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
+    {
+        # ...
         ("show",),
         ("unarchive",),
         ("withdraw",),
+        # ...
+    }
+)
 ```
 
 b) Add `"unarchive"` to `_TOP_LEVEL_COMMANDS` (insert alphabetically between `"stats"` and `"withdraw"` near line 137):
 
 ```python
+_TOP_LEVEL_COMMANDS: frozenset[str] = frozenset(
+    {
+        # ...
         "show",
         "stats",
         "unarchive",
         "withdraw",
+    }
+)
 ```
 
 c) Refactor `_complete_slug` to take an explicit source directory, and add a per-command source map. Replace the existing `_complete_slug` (around lines 242-258) with:

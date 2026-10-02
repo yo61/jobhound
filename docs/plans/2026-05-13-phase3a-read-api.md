@@ -294,7 +294,9 @@ def _opp(**overrides: object) -> Opportunity:
 
 
 def test_computed_flags_is_frozen() -> None:
-    flags = ComputedFlags(is_active=True, is_stale=False, looks_ghosted=False, days_since_activity=2)
+    flags = ComputedFlags(
+        is_active=True, is_stale=False, looks_ghosted=False, days_since_activity=2
+    )
     with pytest.raises((AttributeError, TypeError)):
         flags.is_active = False  # type: ignore[misc]
 
@@ -756,7 +758,9 @@ class OpportunityQuery:
             return resolve_slug(slug, arch_dir), True
         raise SlugNotFoundError(f"no opportunity matches {slug!r}")
 
-    def _snapshot(self, opp: Opportunity, opp_dir: Path, archived: bool, today: date) -> OpportunitySnapshot:
+    def _snapshot(
+        self, opp: Opportunity, opp_dir: Path, archived: bool, today: date
+    ) -> OpportunitySnapshot:
         days = opp.days_since_activity(today)
         flags = ComputedFlags(
             is_active=opp.is_active,
@@ -765,7 +769,10 @@ class OpportunityQuery:
             days_since_activity=days,
         )
         return OpportunitySnapshot(
-            opportunity=opp, archived=archived, path=opp_dir, computed=flags,
+            opportunity=opp,
+            archived=archived,
+            path=opp_dir,
+            computed=flags,
         )
 
     def _walk_root(self, root: Path, *, archived: bool, today: date) -> list[OpportunitySnapshot]:
@@ -953,31 +960,32 @@ from jobhound.application.snapshots import FileEntry
 Add these methods to the `OpportunityQuery` class:
 
 ```python
-    def files(self, slug: str) -> list[FileEntry]:
-        """List every non-hidden file inside the opp dir, recursive. Names are relative."""
-        opp_dir, _ = self._resolve_opp_dir(slug)
-        entries: list[FileEntry] = []
-        for path in sorted(opp_dir.rglob("*")):
-            if not path.is_file():
-                continue
-            rel = path.relative_to(opp_dir)
-            if any(part.startswith(".") for part in rel.parts):
-                continue
-            stat = path.stat()
-            mtime = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
-            entries.append(FileEntry(name=rel.as_posix(), size=stat.st_size, mtime=mtime))
-        return entries
+def files(self, slug: str) -> list[FileEntry]:
+    """List every non-hidden file inside the opp dir, recursive. Names are relative."""
+    opp_dir, _ = self._resolve_opp_dir(slug)
+    entries: list[FileEntry] = []
+    for path in sorted(opp_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(opp_dir)
+        if any(part.startswith(".") for part in rel.parts):
+            continue
+        stat = path.stat()
+        mtime = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+        entries.append(FileEntry(name=rel.as_posix(), size=stat.st_size, mtime=mtime))
+    return entries
 
-    def read_file(self, slug: str, filename: str) -> bytes:
-        """Read the bytes of `filename` inside the opp dir. Rejects path traversal."""
-        opp_dir, _ = self._resolve_opp_dir(slug)
-        opp_root = opp_dir.resolve()
-        target = (opp_dir / filename).resolve()
-        if not target.is_relative_to(opp_root):
-            raise ValueError(
-                f"filename must be inside the opportunity directory: {filename}",
-            )
-        return target.read_bytes()
+
+def read_file(self, slug: str, filename: str) -> bytes:
+    """Read the bytes of `filename` inside the opp dir. Rejects path traversal."""
+    opp_dir, _ = self._resolve_opp_dir(slug)
+    opp_root = opp_dir.resolve()
+    target = (opp_dir / filename).resolve()
+    if not target.is_relative_to(opp_root):
+        raise ValueError(
+            f"filename must be inside the opportunity directory: {filename}",
+        )
+    return target.read_bytes()
 ```
 
 Notes:
@@ -1193,7 +1201,10 @@ def _snapshot(**opp_overrides: object) -> OpportunitySnapshot:
         archived=False,
         path=Path("/Users/test/.local/share/jh/opportunities/2026-05-acme-em"),
         computed=ComputedFlags(
-            is_active=True, is_stale=False, looks_ghosted=False, days_since_activity=2,
+            is_active=True,
+            is_stale=False,
+            looks_ghosted=False,
+            days_since_activity=2,
         ),
     )
 
@@ -1260,7 +1271,10 @@ def test_snapshot_to_dict_computed_days_can_be_null() -> None:
         archived=snap.archived,
         path=snap.path,
         computed=ComputedFlags(
-            is_active=True, is_stale=False, looks_ghosted=False, days_since_activity=None,
+            is_active=True,
+            is_stale=False,
+            looks_ghosted=False,
+            days_since_activity=None,
         ),
     )
     d = snapshot_to_dict(snap)
@@ -1282,10 +1296,18 @@ def test_file_entry_to_dict() -> None:
 
 def test_stats_to_dict_funnel_uses_string_keys() -> None:
     stats = Stats(
-        funnel={Status.APPLIED: 3, Status.SCREEN: 1, Status.REJECTED: 0,
-                Status.PROSPECT: 0, Status.INTERVIEW: 0, Status.OFFER: 0,
-                Status.ACCEPTED: 0, Status.DECLINED: 0,
-                Status.WITHDRAWN: 0, Status.GHOSTED: 0},
+        funnel={
+            Status.APPLIED: 3,
+            Status.SCREEN: 1,
+            Status.REJECTED: 0,
+            Status.PROSPECT: 0,
+            Status.INTERVIEW: 0,
+            Status.OFFER: 0,
+            Status.ACCEPTED: 0,
+            Status.DECLINED: 0,
+            Status.WITHDRAWN: 0,
+            Status.GHOSTED: 0,
+        },
         sources={"LinkedIn": 4, "(unspecified)": 1},
     )
     d = stats_to_dict(stats)
@@ -1376,9 +1398,7 @@ def snapshot_to_dict(snap: OpportunitySnapshot) -> dict[str, Any]:
 
     # empty collections preserved as empty containers
     out["tags"] = list(opp.tags)
-    out["contacts"] = [
-        {"name": c.name, "role": c.role, "channel": c.channel} for c in opp.contacts
-    ]
+    out["contacts"] = [{"name": c.name, "role": c.role, "channel": c.channel} for c in opp.contacts]
     out["links"] = dict(opp.links)
 
     out["archived"] = snap.archived
@@ -1600,16 +1620,19 @@ def _seed_opp(db_path: Path, slug: str = "2026-05-acme-em") -> Path:
     (opp_dir / "meta.toml").write_text(
         f'company = "Acme"\nrole = "EM"\nslug = "{slug}"\n'
         'status = "applied"\npriority = "high"\nsource = "LinkedIn"\n'
-        'applied_on = 2026-05-01\nlast_activity = 2026-05-11\n'
+        "applied_on = 2026-05-01\nlast_activity = 2026-05-11\n"
         'tags = ["remote"]\n',
     )
     (opp_dir / "notes.md").write_text("notes\n")
     subprocess.run(
-        ["git", "-C", str(db_path), "add", "."], check=True, capture_output=True,
+        ["git", "-C", str(db_path), "add", "."],
+        check=True,
+        capture_output=True,
     )
     subprocess.run(
         ["git", "-C", str(db_path), "commit", "-m", "seed", "--quiet"],
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
     return opp_dir
 
@@ -1709,7 +1732,9 @@ def run(
         raise SystemExit(2)
     if json_out:
         envelope = show_envelope(
-            snap, timestamp=datetime.now(timezone.utc), db_root=paths.db_root,
+            snap,
+            timestamp=datetime.now(timezone.utc),
+            db_root=paths.db_root,
         )
         print(json.dumps(envelope, indent=2))
     else:
@@ -1729,10 +1754,7 @@ def _print_human(snap: OpportunitySnapshot, files: list[FileEntry]) -> None:
     if snap.computed.days_since_activity is not None:
         print(f"  Days quiet:    {snap.computed.days_since_activity}")
     if opp.next_action is not None:
-        due = (
-            f" (due {opp.next_action_due.isoformat()})"
-            if opp.next_action_due is not None else ""
-        )
+        due = f" (due {opp.next_action_due.isoformat()})" if opp.next_action_due is not None else ""
         print(f"  Next action:   {opp.next_action}{due}")
     if opp.tags:
         print(f"  Tags:          {', '.join(opp.tags)}")
@@ -1835,7 +1857,7 @@ def _seed(db_path: Path, slug: str, *, status: str, priority: str, source: str) 
     (opp_dir / "meta.toml").write_text(
         f'company = "X"\nrole = "Y"\nslug = "{slug}"\n'
         f'status = "{status}"\npriority = "{priority}"\nsource = "{source}"\n'
-        f'applied_on = 2026-05-01\nlast_activity = 2026-05-11\n',
+        f"applied_on = 2026-05-01\nlast_activity = 2026-05-11\n",
     )
 
 
@@ -1843,20 +1865,20 @@ def _seed_archived(db_path: Path, slug: str) -> None:
     opp_dir = db_path / "archive" / slug
     opp_dir.mkdir(parents=True)
     (opp_dir / "meta.toml").write_text(
-        f'company = "A"\nrole = "Z"\nslug = "{slug}"\n'
-        'status = "rejected"\npriority = "low"\n',
+        f'company = "A"\nrole = "Z"\nslug = "{slug}"\nstatus = "rejected"\npriority = "low"\n',
     )
 
 
 def _seed_all(db_path: Path) -> None:
-    _seed(db_path, "2026-05-acme",    status="applied", priority="high",   source="LinkedIn")
-    _seed(db_path, "2026-04-beta",    status="screen",  priority="medium", source="Referral")
-    _seed(db_path, "2026-05-charlie", status="applied", priority="low",    source="LinkedIn")
+    _seed(db_path, "2026-05-acme", status="applied", priority="high", source="LinkedIn")
+    _seed(db_path, "2026-04-beta", status="screen", priority="medium", source="Referral")
+    _seed(db_path, "2026-05-charlie", status="applied", priority="low", source="LinkedIn")
     _seed_archived(db_path, "2026-03-delta")
     subprocess.run(["git", "-C", str(db_path), "add", "."], check=True, capture_output=True)
     subprocess.run(
         ["git", "-C", str(db_path), "commit", "-m", "seed", "--quiet"],
-        check=True, capture_output=True,
+        check=True,
+        capture_output=True,
     )
 
 
@@ -2012,7 +2034,9 @@ def run(
     query = OpportunityQuery(paths)
     snaps = query.list(filters, today=date.today())
     envelope = list_envelope(
-        snaps, timestamp=datetime.now(timezone.utc), db_root=paths.db_root,
+        snaps,
+        timestamp=datetime.now(timezone.utc),
+        db_root=paths.db_root,
     )
     print(json.dumps(envelope, indent=2))
 

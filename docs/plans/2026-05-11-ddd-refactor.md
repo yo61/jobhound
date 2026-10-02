@@ -1395,7 +1395,9 @@ class Opportunity:
             status=new_status,
             last_activity=today,
             next_action=next_action if next_action is not None else self.next_action,
-            next_action_due=next_action_due if next_action_due is not None else self.next_action_due,
+            next_action_due=next_action_due
+            if next_action_due is not None
+            else self.next_action_due,
         )
 
     def withdraw(self, *, today: date) -> Opportunity:
@@ -1684,8 +1686,6 @@ git commit -m "Push state-transition behaviour onto Opportunity entity"
 Append to `/Users/robin/code/github/yo61/jobhound/tests/test_opportunity_methods.py`:
 
 ```python
-
-
 def test_touch_bumps_last_activity_only() -> None:
     opp = _prospect()
     after = opp.touch(today=date(2026, 5, 9))
@@ -1757,35 +1757,40 @@ _PRIORITIES: frozenset[str] = frozenset({"high", "medium", "low"})
 Add after the `decline` method (still inside the class):
 
 ```python
-    # ---- behaviour: field-shaped operations --------------------------------
+# ---- behaviour: field-shaped operations --------------------------------
 
-    def touch(self, *, today: date) -> Opportunity:
-        """Bump `last_activity` without changing status."""
-        return replace(self, last_activity=today)
 
-    def with_tags(self, *, add: set[str], remove: set[str]) -> Opportunity:
-        """Apply tag add/remove deltas; resulting tag tuple is sorted and deduped."""
-        tags = tuple(sorted((set(self.tags) | add) - remove))
-        return replace(self, tags=tags)
+def touch(self, *, today: date) -> Opportunity:
+    """Bump `last_activity` without changing status."""
+    return replace(self, last_activity=today)
 
-    def with_priority(self, priority: str) -> Opportunity:
-        """Set priority to one of high/medium/low."""
-        if priority not in _PRIORITIES:
-            raise ValueError(f"priority must be one of {sorted(_PRIORITIES)}, got {priority!r}")
-        return replace(self, priority=priority)
 
-    def with_contact(self, contact: dict[str, str]) -> Opportunity:
-        """Append a contact entry. `name` is required and non-empty."""
-        name = contact.get("name")
-        if not name:
-            raise ValueError("contact must have a non-empty 'name'")
-        return replace(self, contacts=(*self.contacts, dict(contact)))
+def with_tags(self, *, add: set[str], remove: set[str]) -> Opportunity:
+    """Apply tag add/remove deltas; resulting tag tuple is sorted and deduped."""
+    tags = tuple(sorted((set(self.tags) | add) - remove))
+    return replace(self, tags=tags)
 
-    def with_link(self, *, name: str, url: str) -> Opportunity:
-        """Set or replace a link entry."""
-        links = dict(self.links)
-        links[name] = url
-        return replace(self, links=links)
+
+def with_priority(self, priority: str) -> Opportunity:
+    """Set priority to one of high/medium/low."""
+    if priority not in _PRIORITIES:
+        raise ValueError(f"priority must be one of {sorted(_PRIORITIES)}, got {priority!r}")
+    return replace(self, priority=priority)
+
+
+def with_contact(self, contact: dict[str, str]) -> Opportunity:
+    """Append a contact entry. `name` is required and non-empty."""
+    name = contact.get("name")
+    if not name:
+        raise ValueError("contact must have a non-empty 'name'")
+    return replace(self, contacts=(*self.contacts, dict(contact)))
+
+
+def with_link(self, *, name: str, url: str) -> Opportunity:
+    """Set or replace a link entry."""
+    links = dict(self.links)
+    links[name] = url
+    return replace(self, links=links)
 ```
 
 - [ ] **Step 4: Run new tests — expect pass**
@@ -1830,7 +1835,9 @@ def run(
     existing = notes.read_text() if notes.exists() else ""
     notes.write_text(existing + f"- {today_date.isoformat()} {msg}\n")
 
-    repo.save(opp.touch(today=today_date), opp_dir, message=f"note: {opp.slug}", no_commit=no_commit)
+    repo.save(
+        opp.touch(today=today_date), opp_dir, message=f"note: {opp.slug}", no_commit=no_commit
+    )
     print(f"noted: {opp.slug}")
 ```
 
@@ -2164,20 +2171,24 @@ class Status(str, Enum):
         raise ValueError(f"unknown verb {verb!r}")
 
 
-_ACTIVE: Final[frozenset[Status]] = frozenset({
-    Status.PROSPECT,
-    Status.APPLIED,
-    Status.SCREEN,
-    Status.INTERVIEW,
-    Status.OFFER,
-})
-_TERMINAL: Final[frozenset[Status]] = frozenset({
-    Status.ACCEPTED,
-    Status.DECLINED,
-    Status.REJECTED,
-    Status.WITHDRAWN,
-    Status.GHOSTED,
-})
+_ACTIVE: Final[frozenset[Status]] = frozenset(
+    {
+        Status.PROSPECT,
+        Status.APPLIED,
+        Status.SCREEN,
+        Status.INTERVIEW,
+        Status.OFFER,
+    }
+)
+_TERMINAL: Final[frozenset[Status]] = frozenset(
+    {
+        Status.ACCEPTED,
+        Status.DECLINED,
+        Status.REJECTED,
+        Status.WITHDRAWN,
+        Status.GHOSTED,
+    }
+)
 _LOG_FORWARD: Final[dict[Status, Status]] = {
     Status.APPLIED: Status.SCREEN,
     Status.SCREEN: Status.INTERVIEW,
@@ -2256,12 +2267,16 @@ def require_transition(current: Status | str, target: Status | str, *, verb: str
     try:
         tgt = Status(target) if not isinstance(target, Status) else target
     except ValueError as exc:
-        legal = sorted(t.value for t in cur.legal_targets(verb=verb)) + ([STAY] if verb == "log" else [])
+        legal = sorted(t.value for t in cur.legal_targets(verb=verb)) + (
+            [STAY] if verb == "log" else []
+        )
         raise InvalidTransitionError(
             f"jh {verb} from {cur.value!r}: {target!r} is not a legal next status (legal: {legal})"
         ) from exc
     if tgt not in cur.legal_targets(verb=verb):
-        legal = sorted(t.value for t in cur.legal_targets(verb=verb)) + ([STAY] if verb == "log" else [])
+        legal = sorted(t.value for t in cur.legal_targets(verb=verb)) + (
+            [STAY] if verb == "log" else []
+        )
         raise InvalidTransitionError(
             f"jh {verb} from {cur.value!r}: {tgt.value!r} is not a legal next status "
             f"(legal: {legal}). Use --force to override."
@@ -2295,12 +2310,26 @@ from typing import Any
 from jobhound.status import Status
 
 # Backwards-compat re-exports for any external callers (e.g. tests).
-ACTIVE_STATUSES: tuple[str, ...] = tuple(s.value for s in (
-    Status.PROSPECT, Status.APPLIED, Status.SCREEN, Status.INTERVIEW, Status.OFFER,
-))
-CLOSED_STATUSES: tuple[str, ...] = tuple(s.value for s in (
-    Status.ACCEPTED, Status.DECLINED, Status.REJECTED, Status.WITHDRAWN, Status.GHOSTED,
-))
+ACTIVE_STATUSES: tuple[str, ...] = tuple(
+    s.value
+    for s in (
+        Status.PROSPECT,
+        Status.APPLIED,
+        Status.SCREEN,
+        Status.INTERVIEW,
+        Status.OFFER,
+    )
+)
+CLOSED_STATUSES: tuple[str, ...] = tuple(
+    s.value
+    for s in (
+        Status.ACCEPTED,
+        Status.DECLINED,
+        Status.REJECTED,
+        Status.WITHDRAWN,
+        Status.GHOSTED,
+    )
+)
 ALL_STATUSES: tuple[str, ...] = ACTIVE_STATUSES + CLOSED_STATUSES
 
 STALE_DAYS: int = 14
@@ -2389,7 +2418,9 @@ class Opportunity:
             status=new_status,
             last_activity=today,
             next_action=next_action if next_action is not None else self.next_action,
-            next_action_due=next_action_due if next_action_due is not None else self.next_action_due,
+            next_action_due=next_action_due
+            if next_action_due is not None
+            else self.next_action_due,
         )
 
     def withdraw(self, *, today: date) -> Opportunity:
@@ -2579,7 +2610,13 @@ Replace the `with_priority` method body with:
 Replace `priority=data.get("priority", "medium")` inside `opportunity_from_dict` with:
 
 ```python
+def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opportunity:
+    # ...
+    return Opportunity(
+        # ...
         priority=Priority(data.get("priority", "medium")),
+        # ...
+    )
 ```
 
 - [ ] **Step 3: Update `meta_io._as_serializable` to write the enum's value**
@@ -2627,7 +2664,9 @@ def run(
     repo = OpportunityRepository(paths_from_config(cfg), cfg)
     opp, opp_dir = repo.find(slug_query)
     updated = opp.with_priority(priority)
-    repo.save(updated, opp_dir, message=f"priority: {opp.slug} {priority.value}", no_commit=no_commit)
+    repo.save(
+        updated, opp_dir, message=f"priority: {opp.slug} {priority.value}", no_commit=no_commit
+    )
     print(f"priority {opp.slug}: {priority.value}")
 ```
 
@@ -3007,7 +3046,13 @@ In `/Users/robin/code/github/yo61/jobhound/src/jobhound/opportunities.py`:
 4. In `opportunity_from_dict`, change the `contacts=...` line:
 
 ```python
+def opportunity_from_dict(data: dict[str, Any], path: Path | None = None) -> Opportunity:
+    # ...
+    return Opportunity(
+        # ...
         contacts=tuple(Contact.from_dict(c) for c in (data.get("contacts") or ())),
+        # ...
+    )
 ```
 
 - [ ] **Step 5: Update `meta_io._as_serializable` to call `.to_dict()`**
@@ -3077,6 +3122,7 @@ In `tests/test_opportunity_methods.py`, the `test_with_contact_appends` and `tes
 ```python
 def test_with_contact_appends() -> None:
     from jobhound.contact import Contact
+
     opp = _prospect()
     after = opp.with_contact(Contact(name="Jane", role="Recruiter"))
     assert after.contacts == (Contact(name="Jane", role="Recruiter"),)
@@ -3084,6 +3130,7 @@ def test_with_contact_appends() -> None:
 
 def test_with_contact_requires_name() -> None:
     from jobhound.contact import Contact
+
     with pytest.raises(ValueError):
         Contact(name="")
 ```

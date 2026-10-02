@@ -881,7 +881,9 @@ from jobhound.infrastructure.fetch.base import (
 
 
 def _config(*, allow: bool) -> Config:
-    return Config(db_path=Path("/tmp/x"), auto_commit=True, editor="", allow_browser_cookie_access=allow)
+    return Config(
+        db_path=Path("/tmp/x"), auto_commit=True, editor="", allow_browser_cookie_access=allow
+    )
 
 
 def test_tier1_success_skips_escalation() -> None:
@@ -1053,7 +1055,10 @@ def test_create_from_url_no_session_returns_error(
     monkeypatch.setattr(
         "jobhound.infrastructure.fetch.coordinator.load_config",
         lambda: Config(
-            db_path=repo.paths.db_root, auto_commit=True, editor="", allow_browser_cookie_access=True
+            db_path=repo.paths.db_root,
+            auto_commit=True,
+            editor="",
+            allow_browser_cookie_access=True,
         ),
     )
     monkeypatch.setattr("jobhound.infrastructure.fetch.cookie_fetch.fetch", _no_session)

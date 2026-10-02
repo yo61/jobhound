@@ -24,6 +24,20 @@ from jobhound.infrastructure.paths import Paths
 
 NOW = datetime(2026, 5, 13, 12, 0, tzinfo=UTC)
 
+_REPO_LOCAL_GIT_ENV_VARS = subprocess.run(
+    ["git", "rev-parse", "--local-env-vars"],
+    check=True,
+    capture_output=True,
+    text=True,
+).stdout.split()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_from_outer_git_repo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Strip the repo-pinning vars a git hook exports, so tests' git calls hit their temp repos."""
+    for name in _REPO_LOCAL_GIT_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
+
 
 def _write_meta(opp_dir: Path, **fields: Any) -> None:
     """Write a minimal meta.toml. fields override defaults."""

@@ -298,13 +298,7 @@ def test_parse_or_synthesize_on_bare_markdown():
 
 
 def test_extras_passthrough():
-    raw = (
-        b"+++\n"
-        b"created = 2026-06-08T14:23:05Z\n"
-        b'channel = "email"\n'
-        b'direction = "to"\n'
-        b"+++\n\nbody"
-    )
+    raw = b'+++\ncreated = 2026-06-08T14:23:05Z\nchannel = "email"\ndirection = "to"\n+++\n\nbody'
     doc = parse(raw)
     assert doc.frontmatter.extras == {"channel": "email", "direction": "to"}
 
@@ -313,11 +307,17 @@ def test_extras_passthrough():
     second=st.integers(min_value=0, max_value=59),
     minute=st.integers(min_value=0, max_value=59),
     hour=st.integers(min_value=0, max_value=23),
-    title=st.one_of(st.none(), st.text(alphabet=st.characters(min_codepoint=32, max_codepoint=126,
-                                                              blacklist_characters='"\\'),
-                                       min_size=1, max_size=40)),
-    body=st.text(alphabet=st.characters(min_codepoint=32, max_codepoint=126),
-                 min_size=1, max_size=400),
+    title=st.one_of(
+        st.none(),
+        st.text(
+            alphabet=st.characters(min_codepoint=32, max_codepoint=126, blacklist_characters='"\\'),
+            min_size=1,
+            max_size=40,
+        ),
+    ),
+    body=st.text(
+        alphabet=st.characters(min_codepoint=32, max_codepoint=126), min_size=1, max_size=400
+    ),
 )
 def test_property_roundtrip(second, minute, hour, title, body):
     created = datetime(2026, 1, 1, hour, minute, second, tzinfo=UTC)
@@ -399,7 +399,7 @@ def parse(content: bytes) -> Document:
         raise FrontmatterError("empty document")
     if not content.startswith(DELIMITER + b"\n"):
         raise FrontmatterError("missing opening +++ delimiter on line 1")
-    rest = content[len(DELIMITER) + 1:]
+    rest = content[len(DELIMITER) + 1 :]
     end_marker = b"\n" + DELIMITER + b"\n"
     idx = rest.find(end_marker)
     if idx < 0:
@@ -413,7 +413,7 @@ def parse(content: bytes) -> Document:
             raise FrontmatterError("unclosed frontmatter: no closing +++ found")
     else:
         fm_raw = rest[:idx].decode("utf-8")
-        body_raw = rest[idx + len(end_marker):].decode("utf-8")
+        body_raw = rest[idx + len(end_marker) :].decode("utf-8")
     try:
         fm_data = tomllib.loads(fm_raw)
     except tomllib.TOMLDecodeError as exc:
@@ -422,7 +422,7 @@ def parse(content: bytes) -> Document:
         raise FrontmatterError("missing required field: created")
     created = fm_data.pop("created")
     if not isinstance(created, datetime):
-        raise FrontmatterError("created must be a TOML datetime, got: " f"{type(created).__name__}")
+        raise FrontmatterError(f"created must be a TOML datetime, got: {type(created).__name__}")
     if created.tzinfo is None:
         raise FrontmatterError("created must be tz-aware UTC")
     title = fm_data.pop("title", None)
@@ -477,7 +477,7 @@ Add to `tests/domain/test_opportunities.py` (top imports may need to be added):
 
 ```python
 def test_notes_next_seq_defaults_to_1():
-    opp = _opp()              # use existing helper if present; otherwise inline minimal Opportunity()
+    opp = _opp()  # use existing helper if present; otherwise inline minimal Opportunity()
     assert opp.notes_next_seq == 1
 
 
@@ -485,7 +485,7 @@ def test_with_notes_next_seq_returns_updated_instance():
     opp = _opp()
     updated = opp.with_notes_next_seq(7)
     assert updated.notes_next_seq == 7
-    assert opp.notes_next_seq == 1     # original unchanged (frozen dataclass)
+    assert opp.notes_next_seq == 1  # original unchanged (frozen dataclass)
 ```
 
 (If `_opp()` helper does not exist, copy the minimal `Opportunity(...)` constructor call from the existing test file.)
@@ -538,7 +538,7 @@ Add to `tests/test_meta_io.py`:
 def test_meta_io_roundtrips_notes_next_seq(tmp_path):
     from jobhound.infrastructure.meta_io import read_meta, write_meta
 
-    opp = _make_opp().with_notes_next_seq(7)   # use existing test helper
+    opp = _make_opp().with_notes_next_seq(7)  # use existing test helper
     path = tmp_path / "meta.toml"
     write_meta(opp, path)
     loaded = read_meta(path)
@@ -563,8 +563,7 @@ def test_meta_io_defaults_notes_next_seq_to_1_when_absent(tmp_path):
 
     path = tmp_path / "meta.toml"
     path.write_text(
-        'company = "X"\nrole = "EM"\nslug = "x"\n'
-        'status = "prospect"\npriority = "medium"\n'
+        'company = "X"\nrole = "EM"\nslug = "x"\nstatus = "prospect"\npriority = "medium"\n'
     )
     loaded = read_meta(path)
     assert loaded.notes_next_seq == 1
@@ -733,7 +732,9 @@ def test_add_note_with_title_slugifies(tmp_path: Path) -> None:
         repo, store, "acme", body="hi", title="Charlotte Eyre Background", now=NOW
     )
     assert result.filename == "1-charlotte-eyre-background.md"
-    assert (paths.opportunities_dir / "2026-05-acme" / "notes" / "1-charlotte-eyre-background.md").exists()
+    assert (
+        paths.opportunities_dir / "2026-05-acme" / "notes" / "1-charlotte-eyre-background.md"
+    ).exists()
 
 
 def test_add_note_increments_notes_next_seq(tmp_path: Path) -> None:
@@ -743,6 +744,7 @@ def test_add_note_increments_notes_next_seq(tmp_path: Path) -> None:
     assert (opp_dir / "notes" / "1.md").exists()
     # Re-read meta — counter should be 2 now
     from jobhound.infrastructure.meta_io import read_meta
+
     opp = read_meta(opp_dir / "meta.toml")
     assert opp.notes_next_seq == 2
 
@@ -753,14 +755,22 @@ def test_add_note_seq_stable_after_delete(tmp_path: Path) -> None:
     notes_service.add_note(repo, store, "acme", body="b", now=NOW)
     notes_service.remove_note(repo, store, "acme", 2, now=NOW)
     r = notes_service.add_note(repo, store, "acme", body="c", now=NOW)
-    assert r.seq == 3        # gap at 2 stays; next is 3
+    assert r.seq == 3  # gap at 2 stays; next is 3
 
 
 def test_add_note_bumps_last_activity(tmp_path: Path) -> None:
     repo, _, store = _seeded(tmp_path)
-    _, after, _, _, _ = notes_service.add_note(repo, store, "acme", body="x", now=NOW).__iter__() if False else (
-        # AddNoteResult is a dataclass; unpack by fields below
-        None, None, None, None, None
+    _, after, _, _, _ = (
+        notes_service.add_note(repo, store, "acme", body="x", now=NOW).__iter__()
+        if False
+        else (
+            # AddNoteResult is a dataclass; unpack by fields below
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
     )
     result = notes_service.add_note(repo, store, "acme", body="x", now=NOW)
     assert result.after.last_activity == NOW
@@ -1009,6 +1019,7 @@ def test_list_notes_raises_on_corrupt_filename(tmp_path: Path) -> None:
     notes_dir.mkdir(exist_ok=True)
     (notes_dir / "garbage.md").write_text("+++\ncreated = 2026-01-01T00:00:00Z\n+++\n\nx")
     from jobhound.application.notes_service import NoteFilenameError
+
     with pytest.raises(NoteFilenameError):
         notes_service.list_notes(repo, store, "acme")
 
@@ -1022,7 +1033,7 @@ def test_read_note_returns_full_note(tmp_path: Path) -> None:
     assert note.title == "greeting"
     assert note.body == "hello there"
     assert note.created == NOW
-    assert note.revision     # any non-empty Revision
+    assert note.revision  # any non-empty Revision
 
 
 def test_read_note_raises_on_missing_seq(tmp_path: Path) -> None:
@@ -1204,8 +1215,9 @@ def test_remove_note_does_not_decrement_counter(tmp_path: Path) -> None:
     notes_service.remove_note(repo, store, "acme", 2, now=NOW)
     _, opp_dir = repo.find("acme")
     from jobhound.infrastructure.meta_io import read_meta
+
     opp = read_meta(opp_dir / "meta.toml")
-    assert opp.notes_next_seq == 3   # was 3 after second add; remove does not decrement
+    assert opp.notes_next_seq == 3  # was 3 after second add; remove does not decrement
 ```
 
 Also remove the `xfail` marker from `test_add_note_seq_stable_after_delete`.
@@ -1304,9 +1316,9 @@ In `tests/infrastructure/test_repository.py`, find the test that asserts on `rep
 
 ```python
 def test_create_makes_notes_directory_not_file(tmp_path: Path) -> None:
-    repo, paths = _build_repo(tmp_path)   # use existing helper from the test file
+    repo, paths = _build_repo(tmp_path)  # use existing helper from the test file
     repo.create(_minimal_opp(), message="seed")
-    opp_dir = paths.opportunities_dir / "2026-05-x"   # adjust to match _minimal_opp's slug
+    opp_dir = paths.opportunities_dir / "2026-05-x"  # adjust to match _minimal_opp's slug
     assert (opp_dir / "notes").is_dir()
     assert not (opp_dir / "notes.md").exists()
 
@@ -1315,6 +1327,7 @@ def test_create_persists_notes_next_seq_1(tmp_path: Path) -> None:
     repo, paths = _build_repo(tmp_path)
     repo.create(_minimal_opp(), message="seed")
     from jobhound.infrastructure.meta_io import read_meta
+
     opp = read_meta(paths.opportunities_dir / "2026-05-x" / "meta.toml")
     assert opp.notes_next_seq == 1
 ```
@@ -1479,7 +1492,7 @@ def test_note_list_shows_gaps(tmp_path: Path) -> None:
     r = _run(env, "note", "list", "acme")
     assert r.returncode == 0
     assert "1" in r.stdout and "3" in r.stdout
-    assert "2" not in r.stdout.split("\n", 1)[1]   # 2 not in any data row
+    assert "2" not in r.stdout.split("\n", 1)[1]  # 2 not in any data row
 
 
 def test_note_show_body_only_by_default(tmp_path: Path) -> None:
@@ -1671,6 +1684,7 @@ def show(
         return
     if with_frontmatter:
         from jobhound.application.frontmatter import Document, Frontmatter
+
         doc = Document(
             frontmatter=Frontmatter(created=note.created, title=note.title),
             body=note.body,
@@ -1682,9 +1696,7 @@ def show(
 
 def _editor_loop(initial_body: str) -> str:
     editor = os.environ.get("EDITOR") or os.environ.get("VISUAL") or "vi"
-    with tempfile.NamedTemporaryFile(
-        suffix=".md", mode="w+", delete=False, encoding="utf-8"
-    ) as tf:
+    with tempfile.NamedTemporaryFile(suffix=".md", mode="w+", delete=False, encoding="utf-8") as tf:
         tf.write(initial_body)
         path = tf.name
     try:
@@ -1725,9 +1737,7 @@ def edit(
     else:
         new_body = _editor_loop(note.body)
     try:
-        notes_service.edit_note(
-            repo, store, slug_query, seq, body=new_body, now=now_obj
-        )
+        notes_service.edit_note(repo, store, slug_query, seq, body=new_body, now=now_obj)
     except Exception as exc:
         _handle_service_error(exc, verb="edit")
         return
@@ -1805,6 +1815,7 @@ In `tests/mcp/test_tools_ops.py`, modify existing `add_note` tests and add new o
 def test_add_note_returns_seq_and_filename(seeded_repo):
     from jobhound.mcp.tools.ops import add_note
     import json
+
     raw = add_note(seeded_repo, slug="acme", body="hello")
     payload = json.loads(raw)
     assert payload["note"]["seq"] == 1
@@ -1815,6 +1826,7 @@ def test_add_note_returns_seq_and_filename(seeded_repo):
 def test_list_notes_empty(seeded_repo):
     from jobhound.mcp.tools.ops import list_notes
     import json
+
     payload = json.loads(list_notes(seeded_repo, slug="acme"))
     assert payload["notes"] == []
 
@@ -1822,6 +1834,7 @@ def test_list_notes_empty(seeded_repo):
 def test_list_notes_after_adds(seeded_repo):
     from jobhound.mcp.tools.ops import add_note, list_notes
     import json
+
     add_note(seeded_repo, slug="acme", body="a")
     add_note(seeded_repo, slug="acme", body="b", title="kickoff")
     payload = json.loads(list_notes(seeded_repo, slug="acme"))
@@ -1832,6 +1845,7 @@ def test_list_notes_after_adds(seeded_repo):
 def test_read_note_returns_body_and_revision(seeded_repo):
     from jobhound.mcp.tools.ops import add_note, read_note
     import json
+
     add_note(seeded_repo, slug="acme", body="hello there")
     payload = json.loads(read_note(seeded_repo, slug="acme", seq=1))
     assert payload["note"]["body"] == "hello there"
@@ -1841,6 +1855,7 @@ def test_read_note_returns_body_and_revision(seeded_repo):
 def test_edit_note_preserves_metadata(seeded_repo):
     from jobhound.mcp.tools.ops import add_note, edit_note, read_note
     import json
+
     add_note(seeded_repo, slug="acme", body="v1", title="greeting")
     edit_note(seeded_repo, slug="acme", seq=1, body="v2")
     payload = json.loads(read_note(seeded_repo, slug="acme", seq=1))
@@ -1851,6 +1866,7 @@ def test_edit_note_preserves_metadata(seeded_repo):
 def test_remove_note(seeded_repo):
     from jobhound.mcp.tools.ops import add_note, remove_note
     import json
+
     add_note(seeded_repo, slug="acme", body="x")
     payload = json.loads(remove_note(seeded_repo, slug="acme", seq=1))
     assert payload["removed_seq"] == 1
@@ -1859,6 +1875,7 @@ def test_remove_note(seeded_repo):
 def test_read_note_missing_seq_returns_error(seeded_repo):
     from jobhound.mcp.tools.ops import read_note
     import json
+
     payload = json.loads(read_note(seeded_repo, slug="acme", seq=99))
     assert payload["error"] == "note_not_found"
 ```
@@ -1888,11 +1905,14 @@ if isinstance(exc, NoteNotFoundError):
 if isinstance(exc, EmptyBodyError):
     return {"error": "empty_body", "tool": tool}
 if isinstance(exc, NoteFilenameError):
-    return {"error": "note_filename_invalid", "tool": tool,
-            "filename": exc.filename, "reason": exc.reason}
+    return {
+        "error": "note_filename_invalid",
+        "tool": tool,
+        "filename": exc.filename,
+        "reason": exc.reason,
+    }
 if isinstance(exc, TitleSlugError):
-    return {"error": "title_slug_invalid", "tool": tool,
-            "title": exc.title, "reason": exc.reason}
+    return {"error": "title_slug_invalid", "tool": tool, "title": exc.title, "reason": exc.reason}
 ```
 
 - [ ] **Step 5: Rewrite add_note and add four new tools in mcp/tools/ops.py**
@@ -1920,16 +1940,10 @@ def add_note(
     from jobhound.application import notes_service
     from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-    now = (
-        datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC)
-        if today
-        else now_utc()
-    )
+    now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC) if today else now_utc()
     store = GitLocalFileStore(repo.paths)
     try:
-        result = notes_service.add_note(
-            repo, store, slug, body=body, title=title, now=now
-        )
+        result = notes_service.add_note(repo, store, slug, body=body, title=title, now=now)
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="add_note"))
     payload = mutation_response(result.before, result.after, result.opp_dir, now=now)
@@ -1951,10 +1965,12 @@ def list_notes(repo: OpportunityRepository, *, slug: str) -> str:
         summaries = notes_service.list_notes(repo, store, slug)
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="list_notes"))
-    return json.dumps({
-        "slug": slug,
-        "notes": [_note_dict(s) for s in summaries],
-    })
+    return json.dumps(
+        {
+            "slug": slug,
+            "notes": [_note_dict(s) for s in summaries],
+        }
+    )
 
 
 def read_note(
@@ -1982,14 +1998,16 @@ def read_note(
         body_out = fm_module.serialize(doc).decode("utf-8")
     else:
         body_out = note.body
-    return json.dumps({
-        "slug": slug,
-        "note": {
-            **_note_dict(note),
-            "body": body_out,
-            "revision": str(note.revision),
-        },
-    })
+    return json.dumps(
+        {
+            "slug": slug,
+            "note": {
+                **_note_dict(note),
+                "body": body_out,
+                "revision": str(note.revision),
+            },
+        }
+    )
 
 
 def edit_note(
@@ -2005,11 +2023,7 @@ def edit_note(
     from jobhound.application.revisions import Revision
     from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-    now = (
-        datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC)
-        if today
-        else now_utc()
-    )
+    now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC) if today else now_utc()
     store = GitLocalFileStore(repo.paths)
     rev: Revision | None = Revision(base_revision) if base_revision else None
     try:
@@ -2038,16 +2052,10 @@ def remove_note(
     from jobhound.application import notes_service
     from jobhound.infrastructure.storage.git_local import GitLocalFileStore
 
-    now = (
-        datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC)
-        if today
-        else now_utc()
-    )
+    now = datetime(*(date.fromisoformat(today).timetuple()[:3]), tzinfo=UTC) if today else now_utc()
     store = GitLocalFileStore(repo.paths)
     try:
-        before, after, removed_seq = notes_service.remove_note(
-            repo, store, slug, seq, now=now
-        )
+        before, after, removed_seq = notes_service.remove_note(repo, store, slug, seq, now=now)
     except Exception as exc:
         return json.dumps(exception_to_response(exc, tool="remove_note"))
     _, opp_dir = repo.find(slug)
@@ -2092,8 +2100,9 @@ def register(app: FastMCP, repo: OpportunityRepository) -> None:
         base_revision: str | None = None,
         today: str | None = None,
     ) -> str:
-        return edit_note(repo, slug=slug, seq=seq, body=body,
-                         base_revision=base_revision, today=today)
+        return edit_note(
+            repo, slug=slug, seq=seq, body=body, base_revision=base_revision, today=today
+        )
 
     @app.tool(
         name="remove_note",
@@ -2199,12 +2208,7 @@ def test_parses_h2_prose_style():
 
 def test_skips_empty_bodies():
     m = _load_script()
-    notes = m.parse_notes_md(
-        "## 2026-05-02\n"
-        "\n"
-        "## 2026-05-08\n"
-        "Real content here.\n"
-    )
+    notes = m.parse_notes_md("## 2026-05-02\n\n## 2026-05-08\nReal content here.\n")
     # First H2 block is empty body → skipped
     assert len(notes) == 1
     assert notes[0].created.day == 8
@@ -2212,12 +2216,7 @@ def test_skips_empty_bodies():
 
 def test_discards_pre_first_marker_preamble():
     m = _load_script()
-    notes = m.parse_notes_md(
-        "# Some title\n"
-        "Random text.\n"
-        "\n"
-        "- 2026-05-02T14:11:08Z actual note\n"
-    )
+    notes = m.parse_notes_md("# Some title\nRandom text.\n\n- 2026-05-02T14:11:08Z actual note\n")
     assert len(notes) == 1
     assert notes[0].body == "actual note"
 
@@ -2240,10 +2239,7 @@ def test_apply_writes_seq_files_and_meta(tmp_path: Path):
         'company = "Acme"\nrole = "EM"\nslug = "2026-05-acme"\n'
         'status = "applied"\npriority = "medium"\n'
     )
-    (opps / "notes.md").write_text(
-        "- 2026-05-02T14:11:08Z first\n"
-        "- 2026-05-08T09:22:14Z second\n"
-    )
+    (opps / "notes.md").write_text("- 2026-05-02T14:11:08Z first\n- 2026-05-08T09:22:14Z second\n")
     subprocess.run(["git", "init", "--quiet", str(db)], check=True)
     subprocess.run(["git", "-C", str(db), "config", "user.name", "t"], check=True)
     subprocess.run(["git", "-C", str(db), "config", "user.email", "t@t"], check=True)
@@ -2256,6 +2252,7 @@ def test_apply_writes_seq_files_and_meta(tmp_path: Path):
     assert (opps / "notes" / "2.md").exists()
     assert not (opps / "notes.md").exists()
     from jobhound.infrastructure.meta_io import read_meta
+
     assert read_meta(opps / "meta.toml").notes_next_seq == 3
 
 
@@ -2322,7 +2319,7 @@ class MarkerNote:
 
 @dataclass
 class MigrateResult:
-    status: str             # "migrated" | "skipped" | "error"
+    status: str  # "migrated" | "skipped" | "error"
     slug: str = ""
     count: int = 0
     detail: str = ""
@@ -2350,7 +2347,9 @@ def parse_notes_md(content: str) -> list[MarkerNote]:
             current_body_lines = []
         elif m_bul is not None:
             flush()
-            current_created = datetime.strptime(m_bul.group(1), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+            current_created = datetime.strptime(m_bul.group(1), "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=UTC
+            )
             current_body_lines = [m_bul.group(2)]
         else:
             if current_created is not None:
@@ -2395,7 +2394,8 @@ def migrate_one(opp_dir: Path, *, apply: bool) -> MigrateResult:
 
     if notes_dir.exists() and any(notes_dir.iterdir()):
         return MigrateResult(
-            status="error", slug=slug,
+            status="error",
+            slug=slug,
             detail="notes/ already exists with content; refusing to merge",
         )
 
@@ -2404,8 +2404,7 @@ def migrate_one(opp_dir: Path, *, apply: bool) -> MigrateResult:
     notes.sort(key=lambda n: n.created)
 
     if not apply:
-        return MigrateResult(status="migrated", slug=slug, count=len(notes),
-                             detail="dry-run")
+        return MigrateResult(status="migrated", slug=slug, count=len(notes), detail="dry-run")
 
     notes_dir.mkdir(exist_ok=True)
     for seq, note in enumerate(notes, start=1):
@@ -2427,8 +2426,9 @@ def migrate_one(opp_dir: Path, *, apply: bool) -> MigrateResult:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Write changes (default: dry-run).")
-    parser.add_argument("--only", type=str, default="",
-                        help="Comma-separated slug substrings to restrict the run.")
+    parser.add_argument(
+        "--only", type=str, default="", help="Comma-separated slug substrings to restrict the run."
+    )
     args = parser.parse_args(argv)
 
     cfg = load_config()

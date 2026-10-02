@@ -207,7 +207,9 @@ from datetime import date
 from pathlib import Path
 
 from jobhound.application.snapshots import (
-    FileEntry, OpportunitySnapshot, Stats,
+    FileEntry,
+    OpportunitySnapshot,
+    Stats,
 )
 from jobhound.domain.priority import Priority
 from jobhound.domain.status import Status
@@ -217,6 +219,7 @@ from jobhound.infrastructure.paths import Paths
 @dataclass(frozen=True)
 class Filters:
     """Optional read-time filters. Empty/None = no filter on that dimension."""
+
     statuses: frozenset[Status] = field(default_factory=frozenset)
     priorities: frozenset[Priority] = field(default_factory=frozenset)
     slug_substring: str | None = None
@@ -230,7 +233,10 @@ class OpportunityQuery:
     def __init__(self, paths: Paths) -> None: ...
 
     def list(
-        self, filters: Filters = Filters(), *, today: date,
+        self,
+        filters: Filters = Filters(),
+        *,
+        today: date,
     ) -> list[OpportunitySnapshot]:
         """Return all snapshots matching filters, sorted by slug."""
 
@@ -288,24 +294,24 @@ class ComputedFlags:
 
 @dataclass(frozen=True)
 class OpportunitySnapshot:
-    opportunity: Opportunity        # the raw aggregate (unchanged)
-    archived: bool                   # was loaded from archive_dir/
-    path: Path                       # absolute path to the opp dir
-    computed: ComputedFlags          # derived at snapshot time
+    opportunity: Opportunity  # the raw aggregate (unchanged)
+    archived: bool  # was loaded from archive_dir/
+    path: Path  # absolute path to the opp dir
+    computed: ComputedFlags  # derived at snapshot time
 
 
 @dataclass(frozen=True)
 class FileEntry:
-    name: str                        # relative to opp_dir, e.g. "cv.md"
-                                     # or "correspondence/2026-05-01-x.md"
+    name: str  # relative to opp_dir, e.g. "cv.md"
+    # or "correspondence/2026-05-01-x.md"
     size: int
-    mtime: datetime                  # tz-aware (UTC)
+    mtime: datetime  # tz-aware (UTC)
 
 
 @dataclass(frozen=True)
 class Stats:
-    funnel: dict[Status, int]        # every Status present; absent → 0
-    sources: dict[str, int]          # "(unspecified)" key for None source
+    funnel: dict[Status, int]  # every Status present; absent → 0
+    sources: dict[str, int]  # "(unspecified)" key for None source
 ```
 
 #### `application/serialization.py`
@@ -316,7 +322,9 @@ from pathlib import Path
 from typing import Any
 
 from jobhound.application.snapshots import (
-    FileEntry, OpportunitySnapshot, Stats,
+    FileEntry,
+    OpportunitySnapshot,
+    Stats,
 )
 
 SCHEMA_VERSION: int = 1

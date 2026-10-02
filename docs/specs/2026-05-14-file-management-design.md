@@ -139,6 +139,7 @@ src/jobhound/
 # infrastructure/storage/protocols.py
 from typing import Protocol
 
+
 class FileStore(Protocol):
     """Backend-agnostic interface for files inside an opportunity directory.
 
@@ -155,16 +156,27 @@ class FileStore(Protocol):
     def exists(self, opp_slug: str, filename: str) -> bool: ...
     def read(self, opp_slug: str, filename: str) -> bytes: ...
     def write(
-        self, opp_slug: str, filename: str, content: bytes,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        content: bytes,
+        *,
+        commit_message: str,
     ) -> None: ...
     def append(
-        self, opp_slug: str, filename: str, content: bytes,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        content: bytes,
+        *,
+        commit_message: str,
     ) -> None: ...
     def delete(
-        self, opp_slug: str, filename: str,
-        *, commit_message: str,
+        self,
+        opp_slug: str,
+        filename: str,
+        *,
+        commit_message: str,
     ) -> None: ...
     def compute_revision(self, opp_slug: str, filename: str) -> Revision: ...
 ```
@@ -197,11 +209,12 @@ class GitLocalFileStore:
         self._paths = paths
 
     def write(self, opp_slug, filename, content, *, commit_message):
-        path = self._resolve(opp_slug, filename)   # path-traversal check
+        path = self._resolve(opp_slug, filename)  # path-traversal check
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(content)
         subprocess.run(
-            ["git", "-C", str(self._paths.db_root), "add", str(path)], check=True,
+            ["git", "-C", str(self._paths.db_root), "add", str(path)],
+            check=True,
         )
         subprocess.run(
             ["git", "-C", str(self._paths.db_root), "commit", "-m", commit_message],
@@ -212,7 +225,9 @@ class GitLocalFileStore:
         path = self._resolve(opp_slug, filename)
         result = subprocess.run(
             ["git", "hash-object", str(path)],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         return Revision(result.stdout.strip())
 
@@ -496,8 +511,12 @@ discipline.
 # inside log.py's run():
 corr_name = f"correspondence/{_correspondence_filename(today_date, channel, direction, who)}"
 file_service.write(
-    store, slug_query, corr_name, body.read_bytes(),
-    base_revision=None, overwrite=False,
+    store,
+    slug_query,
+    corr_name,
+    body.read_bytes(),
+    base_revision=None,
+    overwrite=False,
 )
 before, after, _ = lifecycle_service.log_interaction(repo, slug_query, ...)
 ```
@@ -532,11 +551,14 @@ class InMemoryFileStore:
 
     def write(self, slug, name, content, *, commit_message):
         self._files[(slug, name)] = content
+
     def read(self, slug, name):
         return self._files[(slug, name)]
+
     def compute_revision(self, slug, name):
         h = hashlib.sha1(self._files[(slug, name)]).hexdigest()
         return Revision(h)
+
     # ...
 ```
 

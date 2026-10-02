@@ -95,17 +95,20 @@ Pure helper module. Two dataclasses, three functions.
 ```python
 @dataclass(frozen=True)
 class Frontmatter:
-    created: datetime                       # tz-aware UTC; rejects naive
+    created: datetime  # tz-aware UTC; rejects naive
     title: str | None = None
     extras: Mapping[str, Any] = field(default_factory=dict)
+
 
 @dataclass(frozen=True)
 class Document:
     frontmatter: Frontmatter
-    body: str                               # bare markdown
+    body: str  # bare markdown
+
 
 class FrontmatterError(Exception):
     """Parse/validation failure with line context."""
+
 
 def parse(content: bytes) -> Document: ...
 def serialize(doc: Document) -> bytes: ...
@@ -164,20 +167,24 @@ cost is trivial.
 @dataclass(frozen=True)
 class NoteSummary:
     """Metadata only — what `list_notes` returns. No body fetched."""
+
     seq: int
-    filename: str                           # "5.md" or "5-charlotte-prep.md"
+    filename: str  # "5.md" or "5-charlotte-prep.md"
     created: datetime
     title: str | None
+
 
 @dataclass(frozen=True)
 class Note:
     """Full note — what `read_note` and `edit_note` return."""
+
     seq: int
     filename: str
     created: datetime
     title: str | None
     body: str
-    revision: Revision                      # for conflict-safe follow-up edits
+    revision: Revision  # for conflict-safe follow-up edits
+
 
 @dataclass(frozen=True)
 class AddNoteResult:
@@ -198,18 +205,21 @@ def add_note(
     now: datetime,
 ) -> AddNoteResult: ...
 
+
 def list_notes(
     repo: OpportunityRepository,
     store: FileStore,
     slug: str,
-) -> list[NoteSummary]: ...                 # sorted by seq ascending
+) -> list[NoteSummary]: ...  # sorted by seq ascending
+
 
 def read_note(
     repo: OpportunityRepository,
     store: FileStore,
     slug: str,
     seq: int,
-) -> Note: ...                              # raises NoteNotFoundError
+) -> Note: ...  # raises NoteNotFoundError
+
 
 def edit_note(
     repo: OpportunityRepository,
@@ -222,6 +232,7 @@ def edit_note(
     now: datetime,
 ) -> tuple[Opportunity, Opportunity, Note]: ...
 
+
 def remove_note(
     repo: OpportunityRepository,
     store: FileStore,
@@ -229,7 +240,7 @@ def remove_note(
     seq: int,
     *,
     now: datetime,
-) -> tuple[Opportunity, Opportunity, int]: ...   # returns the removed seq
+) -> tuple[Opportunity, Opportunity, int]: ...  # returns the removed seq
 ```
 
 **Why `NoteSummary` vs `Note`.** `list_notes` enumerates `notes/*.md`
@@ -267,6 +278,7 @@ existing file from a `seq`):
 ```python
 _NOTE_FILENAME = re.compile(r"^(\d+)(?:-[a-z0-9-]+)?\.md$")
 
+
 def _parse_filename(name: str) -> int | None:
     """Return the seq from a valid note filename, or None."""
     m = _NOTE_FILENAME.match(name)
@@ -298,9 +310,7 @@ def add_note(repo, store, slug, *, body, title=None, now) -> AddNoteResult:
         frontmatter=Frontmatter(created=now, title=title),
         body=body.strip(),
     )
-    file_service.write(
-        store, canonical, f"notes/{filename}", frontmatter.serialize(doc)
-    )
+    file_service.write(store, canonical, f"notes/{filename}", frontmatter.serialize(doc))
     after = before.bump(now=now).with_notes_next_seq(seq + 1)
     repo.save(after, opp_dir, message=f"note: {after.slug} #{seq}")
     return AddNoteResult(before, after, opp_dir, seq, filename)
@@ -549,7 +559,7 @@ uv run scripts/migrate_notes_to_directory.py --only acme,menlo
 ### Grammar
 
 ```python
-DATE_MARKER_H2  = re.compile(r"^## (\d{4}-\d{2}-\d{2})(?: — .*)?$")
+DATE_MARKER_H2 = re.compile(r"^## (\d{4}-\d{2}-\d{2})(?: — .*)?$")
 DATE_MARKER_BUL = re.compile(r"^- (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) (.*)$")
 ```
 

@@ -51,7 +51,6 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.format]
 quote-style = "double"
-exclude = ["*.md"]
 
 [tool.ty.rules]
 # strict-by-default; tighten as needed

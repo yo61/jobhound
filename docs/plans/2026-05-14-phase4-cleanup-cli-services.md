@@ -90,12 +90,16 @@ def test_add_note_no_commit(tmp_path: Path) -> None:
     repo, _ = _seeded(tmp_path)
     head_before = subprocess.run(
         ["git", "-C", str(repo.paths.db_root), "rev-parse", "HEAD"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     ops_service.add_note(repo, "acme", msg="quiet note", today=date.today(), no_commit=True)
     head_after = subprocess.run(
         ["git", "-C", str(repo.paths.db_root), "rev-parse", "HEAD"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     assert head_before == head_after
 ```
@@ -149,7 +153,11 @@ Expected: 7 tests pass (4 unchanged + 2 new + 1 updated).
 
 ```python
 def add_note(
-    repo: OpportunityRepository, *, slug: str, msg: str, today: str | None = None,
+    repo: OpportunityRepository,
+    *,
+    slug: str,
+    msg: str,
+    today: str | None = None,
 ) -> str:
     today_d = date.fromisoformat(today) if today else date.today()
     try:
@@ -204,7 +212,8 @@ def test_log_interaction_commit_message_format(tmp_path: Path) -> None:
     repo, paths = _repo(tmp_path)
     _seed_prospect(repo)
     lifecycle_service.apply_to(
-        repo, "acme",
+        repo,
+        "acme",
         applied_on=date(2026, 5, 10),
         today=TODAY,
         next_action="x",
@@ -212,23 +221,37 @@ def test_log_interaction_commit_message_format(tmp_path: Path) -> None:
     )
     # Advance status: APPLIED -> SCREEN
     lifecycle_service.log_interaction(
-        repo, "acme", next_status="screen",
-        next_action=None, next_action_due=None, today=TODAY, force=False,
+        repo,
+        "acme",
+        next_status="screen",
+        next_action=None,
+        next_action_due=None,
+        today=TODAY,
+        force=False,
     )
     msg = subprocess.run(
         ["git", "-C", str(paths.db_root), "log", "-1", "--format=%s"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     assert msg == "log: 2026-05-acme applied → screen"
 
     # Stay
     lifecycle_service.log_interaction(
-        repo, "acme", next_status="stay",
-        next_action=None, next_action_due=None, today=TODAY, force=False,
+        repo,
+        "acme",
+        next_status="stay",
+        next_action=None,
+        next_action_due=None,
+        today=TODAY,
+        force=False,
     )
     msg = subprocess.run(
         ["git", "-C", str(paths.db_root), "log", "-1", "--format=%s"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     assert msg == "log: 2026-05-acme (no status change)"
 ```
@@ -270,7 +293,8 @@ def log_interaction(
         else "(no status change)"
     )
     repo.save(
-        after, opp_dir,
+        after,
+        opp_dir,
         message=f"log: {after.slug} {arrow}",
         no_commit=no_commit,
     )
@@ -306,7 +330,8 @@ Expected: 304 → 305 tests passing.
 def test_add_contact_with_company_and_note(tmp_path: Path) -> None:
     repo = _seeded_repo(tmp_path)
     _, after, _ = relation_service.add_contact(
-        repo, "acme",
+        repo,
+        "acme",
         name="Jane Doe",
         role="Recruiter",
         channel="email",
@@ -342,10 +367,15 @@ def add_contact(
     no_commit: bool = False,
 ) -> tuple[Opportunity, Opportunity, Path]:
     before, opp_dir = repo.find(slug)
-    after = before.with_contact(Contact(
-        name=name, role=role, channel=channel,
-        company=company, note=note,
-    ))
+    after = before.with_contact(
+        Contact(
+            name=name,
+            role=role,
+            channel=channel,
+            company=company,
+            note=note,
+        )
+    )
     repo.save(after, opp_dir, message=f"contact: {after.slug} {name}", no_commit=no_commit)
     return before, after, opp_dir
 ```
@@ -366,8 +396,13 @@ def add_contact(
     return _wrap(
         "add_contact",
         lambda: relation_service.add_contact(
-            repo, slug, name=name, role=role, channel=channel,
-            company=company, note=note,
+            repo,
+            slug,
+            name=name,
+            role=role,
+            channel=channel,
+            company=company,
+            note=note,
         ),
     )
 ```
@@ -419,7 +454,8 @@ Each task follows the same shape. Doing them as separate commits gives clean git
   ```python
   try:
       opp, _, _ = lifecycle_service.apply_to(
-          repo, slug_query,
+          repo,
+          slug_query,
           applied_on=applied_on,
           today=today_date,
           next_action=next_action,
@@ -495,9 +531,7 @@ Two options:
   ) -> tuple[Opportunity, Opportunity, Path]:
       before, opp_dir = repo.find(slug)
       after = before.with_tags(add=add, remove=remove)
-      summary = " ".join(
-          [*(f"+{t}" for t in sorted(add)), *(f"-{t}" for t in sorted(remove))]
-      )
+      summary = " ".join([*(f"+{t}" for t in sorted(add)), *(f"-{t}" for t in sorted(remove))])
       repo.save(after, opp_dir, message=f"tag: {after.slug} {summary}", no_commit=no_commit)
       return before, after, opp_dir
   ```

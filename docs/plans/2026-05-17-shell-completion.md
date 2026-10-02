@@ -180,6 +180,7 @@ commits. Tracking: #44."
 ```python
 # tests/commands/test_cmd_complete.py — append
 
+
 def test_complete_top_level_lists_visible_commands(invoke) -> None:
     """`jh __complete zsh jh ""` lists top-level commands."""
     result = invoke(["__complete", "zsh", "jh", ""])
@@ -412,6 +413,7 @@ def test_complete_no_opps_dir_returns_empty(tmp_jh, invoke) -> None:
     """No opportunities_dir → no slug candidates; does not crash."""
     # tmp_jh fixture creates the dir; remove it.
     import shutil
+
     shutil.rmtree(tmp_jh.db_path / "opportunities")
     result = invoke(["__complete", "zsh", "jh", "show", ""])
     assert result.exit_code == 0
@@ -439,31 +441,56 @@ Expected: all 4 slug tests fail (no slug output).
 # signature inspection is more nuanced than worth implementing for
 # this static set. Update this table when a new slug-taking command
 # is added.
-_SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset({
-    # Lifecycle (slug is the only positional)
-    ("accept",), ("apply",), ("bump",), ("decline",),
-    ("delete",), ("ghost",), ("log",), ("show",),
-    ("withdraw",), ("touch",),  # touch is alias for bump
-
-    # File sub-App
-    ("file", "open"), ("file", "read"), ("file", "write"),
-    ("file", "append"), ("file", "delete"), ("file", "list"),
-    ("file", "import"),
-
-    # Set / clear / add / remove sub-Apps (slug is first positional
-    # for most; specific field-setter and remover commands)
-    ("set", "applied-on"), ("set", "comp-range"), ("set", "company"),
-    ("set", "first-contact"), ("set", "last-activity"), ("set", "link"),
-    ("set", "location"), ("set", "next-action"), ("set", "priority"),
-    ("set", "role"), ("set", "source"), ("set", "status"),
-
-    ("clear", "applied-on"), ("clear", "comp-range"),
-    ("clear", "first-contact"), ("clear", "last-activity"),
-    ("clear", "location"), ("clear", "next-action"), ("clear", "source"),
-
-    ("add", "contact"), ("add", "note"), ("add", "tag"),
-    ("remove", "contact"), ("remove", "link"), ("remove", "tag"),
-})
+_SLUG_AT_POSITION: frozenset[tuple[str, ...]] = frozenset(
+    {
+        # Lifecycle (slug is the only positional)
+        ("accept",),
+        ("apply",),
+        ("bump",),
+        ("decline",),
+        ("delete",),
+        ("ghost",),
+        ("log",),
+        ("show",),
+        ("withdraw",),
+        ("touch",),  # touch is alias for bump
+        # File sub-App
+        ("file", "open"),
+        ("file", "read"),
+        ("file", "write"),
+        ("file", "append"),
+        ("file", "delete"),
+        ("file", "list"),
+        ("file", "import"),
+        # Set / clear / add / remove sub-Apps (slug is first positional
+        # for most; specific field-setter and remover commands)
+        ("set", "applied-on"),
+        ("set", "comp-range"),
+        ("set", "company"),
+        ("set", "first-contact"),
+        ("set", "last-activity"),
+        ("set", "link"),
+        ("set", "location"),
+        ("set", "next-action"),
+        ("set", "priority"),
+        ("set", "role"),
+        ("set", "source"),
+        ("set", "status"),
+        ("clear", "applied-on"),
+        ("clear", "comp-range"),
+        ("clear", "first-contact"),
+        ("clear", "last-activity"),
+        ("clear", "location"),
+        ("clear", "next-action"),
+        ("clear", "source"),
+        ("add", "contact"),
+        ("add", "note"),
+        ("add", "tag"),
+        ("remove", "contact"),
+        ("remove", "link"),
+        ("remove", "tag"),
+    }
+)
 
 
 def _complete_slug() -> Iterable[str]:
@@ -526,7 +553,7 @@ def run(shell: str, /, *words: str) -> None:
     # If we've stepped past the command tree, we're in positionals/flags.
     # Determine what kind of positional we're in.
     rest = word_list[1:-1] if len(word_list) > 1 else []
-    in_positionals = rest[len(cmd_path):]  # tokens after the command path
+    in_positionals = rest[len(cmd_path) :]  # tokens after the command path
 
     # Position 0 of in_positionals == we want the slug (if the command
     # takes one at this position).
@@ -577,14 +604,18 @@ by prefix (shell does its own matching). Tracking: #44."
 ```python
 # tests/commands/test_cmd_complete.py — append
 
+
 def test_complete_file_open_filenames(tmp_jh, invoke) -> None:
     """`jh __complete zsh jh file open <slug> ""` lists files in the opp."""
     opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
     (opp_dir / "notes.md").write_text("hi\n")
     (opp_dir / "research.md").write_text("hi\n")
     subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_jh.db_path), "commit", "-m", "files", "--quiet"],
-                   check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "files", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
 
     result = invoke(["__complete", "zsh", "jh", "file", "open", "2026-05-acme-em", ""])
     lines = set(result.output.splitlines())
@@ -601,8 +632,11 @@ def test_complete_filename_with_space_is_unquoted(tmp_jh, invoke) -> None:
     opp_dir = _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
     (opp_dir / "Job Description.md").write_text("hi\n")
     subprocess.run(["git", "-C", str(tmp_jh.db_path), "add", "."], check=True, capture_output=True)
-    subprocess.run(["git", "-C", str(tmp_jh.db_path), "commit", "-m", "f", "--quiet"],
-                   check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(tmp_jh.db_path), "commit", "-m", "f", "--quiet"],
+        check=True,
+        capture_output=True,
+    )
 
     result = invoke(["__complete", "zsh", "jh", "file", "open", "2026-05-acme-em", ""])
     lines = set(result.output.splitlines())
@@ -631,10 +665,16 @@ Expected: 3 filename tests fail.
 
 # Commands where positional 1 (after the slug) is a filename inside
 # the slug's directory. All under `file`.
-_FILENAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset({
-    ("file", "open"), ("file", "read"), ("file", "write"),
-    ("file", "append"), ("file", "delete"), ("file", "import"),
-})
+_FILENAME_AT_POSITION_1: frozenset[tuple[str, ...]] = frozenset(
+    {
+        ("file", "open"),
+        ("file", "read"),
+        ("file", "write"),
+        ("file", "append"),
+        ("file", "delete"),
+        ("file", "import"),
+    }
+)
 
 
 def _complete_filename(slug: str) -> Iterable[str]:
@@ -671,7 +711,7 @@ def run(shell: str, /, *words: str) -> None:
     word_list = list(words)
     cmd_path = _command_path(word_list)
     rest = word_list[1:-1] if len(word_list) > 1 else []
-    in_positionals = rest[len(cmd_path):]
+    in_positionals = rest[len(cmd_path) :]
 
     # Position 0 = slug
     if len(in_positionals) == 0 and cmd_path in _SLUG_AT_POSITION:
@@ -728,13 +768,24 @@ scripts handle quoting. Tracking: #44."
 ```python
 # tests/commands/test_cmd_complete.py — append
 
+
 def test_complete_set_status_returns_status_enum(tmp_jh, invoke) -> None:
     """`jh __complete zsh jh set status <slug> ""` lists Status values."""
     _seed_slug(tmp_jh.db_path, "2026-05-acme-em")
     result = invoke(["__complete", "zsh", "jh", "set", "status", "2026-05-acme-em", ""])
     out = set(result.output.split())
-    expected = {"prospect", "applied", "screen", "interview", "offer",
-                "accepted", "declined", "rejected", "withdrawn", "ghosted"}
+    expected = {
+        "prospect",
+        "applied",
+        "screen",
+        "interview",
+        "offer",
+        "accepted",
+        "declined",
+        "rejected",
+        "withdrawn",
+        "ghosted",
+    }
     assert expected <= out
 
 
@@ -774,6 +825,7 @@ def _load_enum(spec: str) -> Iterable[str]:
     """Import the enum referenced by 'module.path:ClassName' and yield values."""
     module_name, _, class_name = spec.partition(":")
     import importlib
+
     mod = importlib.import_module(module_name)
     cls = getattr(mod, class_name)
     for member in cls:
@@ -790,7 +842,7 @@ def run(shell: str, /, *words: str) -> None:
     word_list = list(words)
     cmd_path = _command_path(word_list)
     rest = word_list[1:-1] if len(word_list) > 1 else []
-    in_positionals = rest[len(cmd_path):]
+    in_positionals = rest[len(cmd_path) :]
 
     # Flag-value completion: if the previous token is a flag we know.
     if rest:
@@ -992,6 +1044,7 @@ Tracking: #44."
 ```python
 # tests/commands/test_completion_scripts.py — append
 
+
 def test_zsh_script_uses_at_f_split_and_compadd() -> None:
     """zsh script must split on \\n only (preserves spaces) and use compadd -a."""
     s = _script("jh.zsh")
@@ -1048,6 +1101,7 @@ git commit -m "feat(completion): add zsh completion script using compadd -a
 
 ```python
 # tests/commands/test_completion_scripts.py — append
+
 
 def test_fish_script_disables_file_fallback() -> None:
     """fish script must use `complete -f` (no fallback to filename completion)."""
@@ -1233,6 +1287,7 @@ def fish() -> None:
 ```python
 # src/jobhound/cli.py — register the sub-App near the other app.command lines
 from jobhound.commands.completion import app as completion_app
+
 app.command(completion_app)
 ```
 
@@ -1442,9 +1497,11 @@ The likely culprit is `cli.py`'s top-level imports — every command module is i
 # src/jobhound/cli.py — modify the entry function
 def main() -> None:
     import sys
+
     if len(sys.argv) >= 2 and sys.argv[1] == "__complete":
         # Fast path: avoid importing the world.
         from jobhound.commands._complete import run as _complete_run
+
         _complete_run(*sys.argv[2:])
         return
     app()

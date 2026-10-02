@@ -241,6 +241,7 @@ def days_since_activity(self, now: datetime) -> int | None:
         return None
     return calendar_days_between(self.last_activity, now)
 
+
 def is_stale(self, now: datetime) -> bool:
     days = self.days_since_activity(now)
     return self.is_active and days is not None and days >= STALE_DAYS

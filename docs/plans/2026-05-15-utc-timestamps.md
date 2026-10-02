@@ -664,7 +664,9 @@ Rename to `--now` and update the value to an ISO datetime string:
 result = runner.invoke(app, ["apply", slug, "--applied-on", "2026-05-14", "--today", "2026-05-14"])
 
 # after
-result = runner.invoke(app, ["apply", slug, "--applied-on", "2026-05-14", "--now", "2026-05-14T12:00:00Z"])
+result = runner.invoke(
+    app, ["apply", slug, "--applied-on", "2026-05-14", "--now", "2026-05-14T12:00:00Z"]
+)
 ```
 
 (The user-visible flags `--applied-on`, `--next-action-due` keep accepting bare dates; their value strings don't change in PR A. The internal hidden flag is what gets renamed.)
@@ -756,9 +758,11 @@ def days_since_activity(self, now: datetime) -> int | None:
         return None
     return calendar_days_between(self.last_activity, now)
 
+
 def is_stale(self, now: datetime) -> bool:
     days = self.days_since_activity(now)
     return self.is_active and days is not None and days >= STALE_DAYS
+
 
 def looks_ghosted(self, now: datetime) -> bool:
     days = self.days_since_activity(now)
@@ -789,6 +793,7 @@ def apply(
         next_action_due=next_action_due,
     )
 
+
 def log_interaction(
     self,
     *,
@@ -806,26 +811,29 @@ def log_interaction(
         status=new_status,
         last_activity=now,
         next_action=next_action if next_action is not None else self.next_action,
-        next_action_due=(
-            next_action_due if next_action_due is not None else self.next_action_due
-        ),
+        next_action_due=(next_action_due if next_action_due is not None else self.next_action_due),
     )
+
 
 def withdraw(self, *, now: datetime) -> Opportunity:
     require_transition(self.status, Status.WITHDRAWN, verb="withdraw")
     return replace(self, status=Status.WITHDRAWN, last_activity=now)
 
+
 def ghost(self, *, now: datetime) -> Opportunity:
     require_transition(self.status, Status.GHOSTED, verb="ghost")
     return replace(self, status=Status.GHOSTED, last_activity=now)
+
 
 def accept(self, *, now: datetime) -> Opportunity:
     require_transition(self.status, Status.ACCEPTED, verb="accept")
     return replace(self, status=Status.ACCEPTED, last_activity=now)
 
+
 def decline(self, *, now: datetime) -> Opportunity:
     require_transition(self.status, Status.DECLINED, verb="decline")
     return replace(self, status=Status.DECLINED, last_activity=now)
+
 
 def touch(self, *, now: datetime) -> Opportunity:
     """Bump `last_activity` without changing status."""
@@ -1296,6 +1304,7 @@ print(f"applied: {opp.applied_on}")
 
 # after — produces "2026-05-14 13:00:30 BST" (local TZ, whole seconds)
 from jobhound.domain.timekeeping import display_local
+
 print(f"applied: {display_local(opp.applied_on) if opp.applied_on else '—'}")
 ```
 
@@ -1355,7 +1364,7 @@ def _write_meta(path: Path, applied_on: object) -> None:
     path.write_text(
         f'company = "Acme"\nrole = "Engineer"\nstatus = "applied"\n'
         f'slug = "2026-05-14-acme-eng"\npriority = "medium"\n'
-        f'applied_on = {applied_on.isoformat()}\n'
+        f"applied_on = {applied_on.isoformat()}\n"
     )
 
 
@@ -1368,6 +1377,7 @@ def test_migration_converts_bare_date(tmp_path, monkeypatch):
     assert changes == 1
 
     import tomllib
+
     with meta.open("rb") as fh:
         data = tomllib.load(fh)
     assert isinstance(data["applied_on"], datetime)

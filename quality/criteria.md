@@ -128,3 +128,37 @@ collapsed at parse time. Implementer caught and rewrote.
 each had an inline `from jobhound.transitions import require_transition`.
 Consolidated to a single `_require_transition` helper.
 ### Last triggered: 2026-05-11
+
+---
+
+## Category: Test isolation from the outer git repo
+
+### Criteria
+- The suite passes with `GIT_DIR`, `GIT_INDEX_FILE` and `GIT_WORK_TREE`
+  pointing at a scratch repo, and that repo's config, index and history are
+  unchanged afterwards. `tests/test_git_env_isolation.py` guards the env
+  side; re-run the scratch-repo check when adding a hook or fixture that
+  shells out to git.
+
+### Severity: blocking
+### Source: 2026-10-02 PR #195 push; the pre-push `pytest` hook passed its
+`GIT_*` vars to the suite, which set `core.bare = true`, wrote a `jh` user
+identity into `.git/config` and replaced the worktree index. Fixed in #198.
+### Last triggered: 2026-10-02
+
+---
+
+## Category: Formatter changes to markdown code blocks
+
+### Criteria
+- After a formatter upgrade or config change reformats markdown, every
+  changed Python code block parses to the same AST as before. A block whose
+  AST differs is a fragment the formatter misread: give it enough enclosing
+  context to parse as written. Comparing indentation alone is not enough.
+
+### Severity: blocking
+### Source: 2026-10-02 #197; ruff 0.16 turned trailing-comma fragments
+(`"show",`, `priority=X,`) into one-element tuples, changing the code the
+docs tell the reader to paste. An indentation-only comparison missed it;
+the local review caught it.
+### Last triggered: 2026-10-02

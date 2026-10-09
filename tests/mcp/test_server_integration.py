@@ -12,6 +12,7 @@ from mcp import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from mcp.types import TextContent
 
+from jobhound import __version__
 from jobhound.infrastructure.paths import Paths
 
 pytestmark = pytest.mark.asyncio
@@ -33,6 +34,18 @@ def server_env(mcp_paths: Paths) -> dict[str, str]:
     )
     env["XDG_CONFIG_HOME"] = str(mcp_paths.db_root.parent / "config")
     return env
+
+
+async def test_initialize_reports_package_version(server_env: dict[str, str]) -> None:
+    params = StdioServerParameters(
+        command=sys.executable,
+        args=["-m", "jobhound.mcp.server"],
+        env=server_env,
+    )
+    async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+        result = await session.initialize()
+    assert result.server_info.name == "jobhound"
+    assert result.server_info.version == __version__
 
 
 async def test_initialize_and_list_tools(server_env: dict[str, str]) -> None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
 
+from jobhound import __version__
 from jobhound.infrastructure.config import load_config
 from jobhound.infrastructure.paths import paths_from_config
 from jobhound.infrastructure.repository import OpportunityRepository
@@ -39,7 +40,7 @@ def build_server() -> MCPServer:
     paths = paths_from_config(cfg)
     repo = OpportunityRepository(paths, cfg)
 
-    app = MCPServer(name="jobhound")
+    app = MCPServer(name="jobhound", version=__version__)
 
     from jobhound.mcp.tools import reads
 

@@ -8,7 +8,7 @@ permissions: {}
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     outputs:
@@ -45,7 +45,7 @@ jobs:
   sync-lockfile:
     needs: release-please
     if: needs.release-please.outputs.prs && needs.release-please.outputs.prs != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
@@ -78,6 +78,8 @@ jobs:
       - if: steps.pr_branch.outputs.skip != 'true'
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
         with:
+          # The supported floor (requires-python >=3.11), not a pin: move it by hand with
+          # requires-python.
           python-version: "3.11"
           enable-cache: false
       - if: steps.pr_branch.outputs.skip != 'true'
@@ -144,7 +146,7 @@ jobs:
   publish:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment:
       name: pypi
       url: https://pypi.org/p/jobhound
@@ -158,6 +160,8 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7  # v10.2.0
         with:
+          # The supported floor (requires-python >=3.11), not a pin: move it by hand with
+          # requires-python.
           python-version: "3.11"
           enable-cache: false
       - run: uv build
@@ -175,7 +179,7 @@ jobs:
   # manually via workflow_dispatch as a fallback.
   dispatch-homebrew:
     needs: [release-please, publish]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions: {}
     steps:
       - id: create_token

@@ -42,6 +42,12 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/jobhound"]
 
+[tool.uv]
+# The one uv pin: setup-uv reads it, so CI and the release job's `uv lock` run the series
+# developers run. A range on the minor, moved by hand: a patch pin would refuse every local uv
+# but that one patch.
+required-version = ">=0.12,<0.13"
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

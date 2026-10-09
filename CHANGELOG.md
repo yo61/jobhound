@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.7](https://github.com/yo61/jobhound/compare/v0.18.6...v0.18.7) (2026-10-09)
+
+
+### Bug Fixes
+
+* **mcp:** report the package version in serverInfo ([#205](https://github.com/yo61/jobhound/issues/205)) ([a5e4d21](https://github.com/yo61/jobhound/commit/a5e4d2162510c0610213930597f32ad55a169e37))
+
 ## [0.18.6](https://github.com/yo61/jobhound/compare/v0.18.5...v0.18.6) (2026-10-09)
 
 

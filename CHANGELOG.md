@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.18.6](https://github.com/yo61/jobhound/compare/v0.18.5...v0.18.6) (2026-10-09)
+
+
+### Bug Fixes
+
+* **mcp:** report the underlying ImportError from the SDK guard ([#203](https://github.com/yo61/jobhound/issues/203)) ([fdb44d5](https://github.com/yo61/jobhound/commit/fdb44d53fd751b12c3eb9da2a7a683b2b235e1fe))
+
+
+### Dependencies
+
+* bump cyclopts from 5.0.0 to 5.1.1 in the uv-production group ([#200](https://github.com/yo61/jobhound/issues/200)) ([05095a4](https://github.com/yo61/jobhound/commit/05095a481ddcbd6e0e049d54f3d010a69ba24ebc))
+
 ## [0.18.5](https://github.com/yo61/jobhound/compare/v0.18.4...v0.18.5) (2026-10-02)
 
 

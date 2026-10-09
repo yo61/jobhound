@@ -20,7 +20,8 @@ def _require_mcp_sdk() -> None:
         print(
             "jh: the MCP server requires the [mcp] extra with mcp>=2.0.\n"
             "Install with: pip install 'jobhound[mcp]'\n"
-            "Or for zero-install discovery: uvx --from jobhound jh-mcp",
+            "Or for zero-install discovery: uvx --from jobhound jh-mcp\n"
+            f"Underlying error: {exc}",
             file=sys.stderr,
         )
         raise SystemExit(1) from exc

@@ -51,3 +51,26 @@ def test_require_mcp_sdk_exits_when_sdk_too_old(
     stderr = capsys.readouterr().err
     for fragment in EXPECTED_GUIDANCE:
         assert fragment in stderr
+
+
+class _MissingTransitiveDependencyFinder:
+    """Fails the mcp.server import the way an absent transitive dependency does."""
+
+    def find_spec(self, fullname: str, path: object, target: object = None) -> None:
+        if fullname == "mcp.server":
+            raise ModuleNotFoundError("No module named 'cryptography'", name="cryptography")
+
+
+def test_require_mcp_sdk_reports_underlying_import_error(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """mcp is installed but one of its own dependencies is not importable."""
+    monkeypatch.delitem(sys.modules, "mcp.server", raising=False)
+    monkeypatch.setattr(sys, "meta_path", [_MissingTransitiveDependencyFinder(), *sys.meta_path])
+
+    with pytest.raises(SystemExit) as excinfo:
+        _require_mcp_sdk()
+
+    assert excinfo.value.code == 1
+    assert "No module named 'cryptography'" in capsys.readouterr().err

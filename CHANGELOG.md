@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.9](https://github.com/yo61/jobhound/compare/v0.18.8...v0.18.9) (2026-10-26)
+
+
+### Dependencies
+
+* bump certifi from 2026.6.17 to 2026.10.19 ([#218](https://github.com/yo61/jobhound/issues/218)) ([3b75edb](https://github.com/yo61/jobhound/commit/3b75edb62893dcbb0ca6c18d3d40b11ebdf1d587))
+* bump opentelemetry-api from 1.44.0 to 1.45.1 ([#221](https://github.com/yo61/jobhound/issues/221)) ([1d6480e](https://github.com/yo61/jobhound/commit/1d6480e3f3de041f3f424a2304ebf92d957b6535))
+
 ## [0.18.8](https://github.com/yo61/jobhound/compare/v0.18.7...v0.18.8) (2026-10-16)
 
 

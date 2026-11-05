@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.10](https://github.com/yo61/jobhound/compare/v0.18.9...v0.18.10) (2026-11-05)
+
+
+### Dependencies
+
+* bump the uv-production group with 2 updates ([#227](https://github.com/yo61/jobhound/issues/227)) ([0a52fcf](https://github.com/yo61/jobhound/commit/0a52fcfd6d9e0bd18ed83deb168969d7dd0f9edf))
+
 ## [0.18.9](https://github.com/yo61/jobhound/compare/v0.18.8...v0.18.9) (2026-10-26)
 
 

@@ -40,7 +40,7 @@ jobs:
           JACTIONLINT_ONLINE: 1
           GITHUB_TOKEN: ${{ github.token }}
           # renovate: datasource=github-releases depName=j178/prek extractVersion=^v(?<version>.+)$
-          PREK_VERSION: 0.5.9
+          PREK_VERSION: 0.5.10
         with:
           prek-version: ${{ env.PREK_VERSION }}
 

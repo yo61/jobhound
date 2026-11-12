@@ -522,7 +522,7 @@ wheels = [
 
 [[package]]
 name = "jobhound"
-version = "0.18.10"
+version = "0.18.11"
 source = { editable = "." }
 dependencies = [
     { name = "browser-cookie3" },

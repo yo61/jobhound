@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.12](https://github.com/yo61/jobhound/compare/v0.18.11...v0.18.12) (2026-11-15)
+
+
+### Dependencies
+
+* bump opentelemetry-api from 1.45.1 to 1.45.2 ([#240](https://github.com/yo61/jobhound/issues/240)) ([936d59a](https://github.com/yo61/jobhound/commit/936d59a04430e78d13c975794c5c7d6a5047c385))
+
 ## [0.18.11](https://github.com/yo61/jobhound/compare/v0.18.10...v0.18.11) (2026-11-12)
 
 

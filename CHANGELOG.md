@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.14](https://github.com/yo61/jobhound/compare/v0.18.13...v0.18.14) (2026-11-26)
+
+
+### Dependencies
+
+* bump cyclopts from 5.4.1 to 5.5.2 in the uv-production group ([#249](https://github.com/yo61/jobhound/issues/249)) ([d0ac93c](https://github.com/yo61/jobhound/commit/d0ac93c7d9fa890dec4dc1027e02184d9aa8aabe))
+
 ## [0.18.13](https://github.com/yo61/jobhound/compare/v0.18.12...v0.18.13) (2026-11-19)
 
 
